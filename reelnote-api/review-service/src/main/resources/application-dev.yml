@@ -1,0 +1,22 @@
+# 개발 환경 설정
+spring:
+  jpa:
+#    hibernate:
+#      ddl-auto: create  # 개발 중에만 사용 - 테이블 자동 생성 (유지)
+    show-sql: true
+  
+  h2:
+    console:
+      settings:
+        web-allow-others: true  # 외부 접근 허용
+
+logging:
+  level:
+    app.reelnote.review: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.flywaydb: DEBUG  # Flyway 로그 추가
+    org.springframework.jdbc: DEBUG  # JDBC 연결 로그 추가
+
+

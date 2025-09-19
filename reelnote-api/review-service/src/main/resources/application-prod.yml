@@ -1,0 +1,42 @@
+# 프로덕션 환경 설정
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+  
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    app.reelnote.review: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# TMDB API 키 (환경변수에서 가져옴)
+tmdb:
+  api:
+    key: ${TMDB_API_KEY}
+
+# Actuator 보안 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+
+# 운영에서 OpenAPI/Swagger UI 비활성화
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

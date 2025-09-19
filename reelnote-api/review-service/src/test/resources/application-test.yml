@@ -1,0 +1,77 @@
+server:
+  port: 0  # 랜덤 포트 사용
+
+spring:
+  application:
+    name: review-service-test
+  
+  # 테스트용 H2 인메모리 데이터베이스
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+    open-in-view: false
+  
+  # H2 콘솔 비활성화
+  h2:
+    console:
+      enabled: false
+  
+  # Flyway 비활성화 (테스트에서는 JPA DDL 사용)
+  flyway:
+    enabled: false
+  
+  # 캐시 설정
+  cache:
+    type: simple
+  
+  # 메시지 소스 설정
+  messages:
+    basename: messages
+    encoding: UTF-8
+    cache-duration: 0s
+
+# 로깅 설정
+logging:
+  level:
+    app.reelnote.review: DEBUG
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# TMDB API 설정 (테스트용 더미 값)
+tmdb:
+  api:
+    base-url: https://api.themoviedb.org/3
+    key: test-api-key
+    timeout: 5s
+
+# Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+# OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
