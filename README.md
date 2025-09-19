@@ -1,5 +1,5 @@
 # Reelnote 🎬
-개인 영화 리뷰 및 추천 플랫폼 (Microservices + Frontend)
+영화 리뷰 및 추천 플랫폼 (Microservices + Frontend)
 
 ## 구조
 - `reelnote-api/`
@@ -13,6 +13,7 @@
 
 ## 실행 (개발 단계)
 1. 로컬에서 각 서비스 별로 실행
-2. 추후 Docker Compose → K8s 확장
+2. K3s 확장 (api)
+3. vercel 배포 (frontend)
 
 ---
