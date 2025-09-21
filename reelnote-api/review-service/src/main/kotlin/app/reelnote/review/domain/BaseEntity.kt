@@ -75,17 +75,6 @@ abstract class EventPublishableEntity : AuditableEntity() {
     }
 
     /**
-     * 소프트 삭제
-     */
-    fun markAsDeleted(deletedBy: Long? = null) {
-        deleted = true
-        deletedAt = Instant.now()
-        if (deletedBy != null) {
-            this.updatedBy = deletedBy
-        }
-    }
-
-    /**
      * 삭제 취소
      */
     fun restore() {

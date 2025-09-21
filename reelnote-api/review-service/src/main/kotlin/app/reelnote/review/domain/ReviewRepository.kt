@@ -26,15 +26,14 @@ interface ReviewRepository : JpaRepository<Review, Long> {
      */
     @Query("""
         SELECT DISTINCT r FROM Review r 
-        LEFT JOIN r.tags t
-        WHERE r.userSeq = :userSeq
-        AND r.deleted = false
-        AND (:movieIds IS NULL OR r.movieId IN (:movieIds))
-        AND (:tags IS NULL OR t IN :tags)
-        AND (:minRating IS NULL OR r.rating.value >= :minRating)
-        AND (:maxRating IS NULL OR r.rating.value <= :maxRating)
-        AND (:startDate IS NULL OR r.watchedAt >= :startDate)
-        AND (:endDate IS NULL OR r.watchedAt <= :endDate)
+          LEFT JOIN r.tags t
+         WHERE r.userSeq = :userSeq
+           AND (:movieIds   IS NULL OR r.movieId IN (:movieIds))
+           AND (:tags       IS NULL OR t IN :tags)
+           AND (:minRating  IS NULL OR r.rating.value >= :minRating)
+           AND (:maxRating  IS NULL OR r.rating.value <= :maxRating)
+           AND (:startDate  IS NULL OR r.watchedAt >= :startDate)
+           AND (:endDate    IS NULL OR r.watchedAt <= :endDate)
     """)
     fun findMyReviewsWithFilters(
         @Param("userSeq") userSeq: Long,
@@ -52,13 +51,12 @@ interface ReviewRepository : JpaRepository<Review, Long> {
      */
     @Query("""
         SELECT r FROM Review r
-        WHERE r.movieId = :movieId
-        AND r.deleted = false
-        AND (:excludeUserSeq IS NULL OR r.userSeq != :excludeUserSeq)
-        AND (:minRating IS NULL OR r.rating.value >= :minRating)
-        AND (:maxRating IS NULL OR r.rating.value <= :maxRating)
-        AND (:startDate IS NULL OR r.watchedAt >= :startDate)
-        AND (:endDate IS NULL OR r.watchedAt <= :endDate)
+         WHERE r.movieId = :movieId
+           AND (:excludeUserSeq IS NULL OR r.userSeq != :excludeUserSeq)
+           AND (:minRating      IS NULL OR r.rating.value >= :minRating)
+           AND (:maxRating      IS NULL OR r.rating.value <= :maxRating)
+           AND (:startDate      IS NULL OR r.watchedAt >= :startDate)
+           AND (:endDate        IS NULL OR r.watchedAt <= :endDate)
     """)
     fun findMovieReviewsWithFilters(
         @Param("movieId") movieId: Long,
@@ -100,13 +98,13 @@ interface ReviewRepository : JpaRepository<Review, Long> {
     /**
      * 이벤트 미발행 리뷰 조회 (Analysis 서비스용)
      */
-    @Query("SELECT r FROM Review r WHERE r.eventPublished = false AND r.deleted = false")
+    @Query("SELECT r FROM Review r WHERE r.eventPublished = false")
     fun findUnpublishedReviews(pageable: Pageable): Page<Review>
 
     /**
      * 특정 시점 이후 변경된 리뷰 조회 (Analysis 서비스용)
      */
-    @Query("SELECT r FROM Review r WHERE r.updatedAt > :since AND r.deleted = false")
+    @Query("SELECT r FROM Review r WHERE r.updatedAt > :since")
     fun findReviewsUpdatedAfter(@Param("since") since: Instant, pageable: Pageable): Page<Review>
 }
 

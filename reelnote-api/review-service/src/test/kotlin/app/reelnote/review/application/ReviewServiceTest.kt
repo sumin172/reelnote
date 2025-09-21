@@ -184,17 +184,15 @@ class ReviewServiceTest {
             reason = "보통이었습니다"
         )
         
-        val deletedReview = existingReview.softDelete()
-        
         every { reviewRepository.findById(reviewId) } returns Optional.of(existingReview)
-        every { reviewRepository.save(any()) } returns deletedReview
+        every { reviewRepository.delete(any<Review>()) } returns Unit
         
         // When
         reviewService.deleteReview(reviewId, userSeq)
         
         // Then
         verify { reviewRepository.findById(reviewId) }
-        verify { reviewRepository.save(any()) }
+        verify { reviewRepository.delete(existingReview) }  // @SQLDelete가 자동으로 소프트 삭제 처리
         verify { movieService wasNot Called }
     }
     
@@ -239,28 +237,4 @@ class ReviewServiceTest {
         verify { movieService wasNot Called }
     }
     
-    @Test
-    fun `소프트 삭제된 리뷰는 조회되지 않음`() {
-        // Given
-        val reviewId = 1L
-        val userSeq = 1L
-        val deletedReview = Review(
-            id = reviewId,
-            userSeq = userSeq,
-            movieId = 12345L,
-            rating = Rating.of(3),
-            reason = "보통이었습니다"
-        ).apply {
-            // 소프트 삭제 상태로 설정
-            deleted = true
-            deletedAt = Instant.now()
-        }
-        
-        // When
-        every { reviewRepository.findById(reviewId) } returns Optional.empty() // @SQLRestriction으로 인해 삭제된 리뷰는 조회되지 않음
-        
-        // Then
-        val result = reviewRepository.findById(reviewId)
-        assertEquals(Optional.empty(), result)
-    }
 }

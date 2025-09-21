@@ -73,10 +73,6 @@ data class Review(
      */
     fun markAsPublished(): Review = copy().apply { markEventAsPublished() }
     
-    /**
-     * 소프트 삭제
-     */
-    fun softDelete(): Review = copy().apply { markAsDeleted() }
 }
 
 /**

@@ -7,7 +7,6 @@ import app.reelnote.review.shared.message.MessageService
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -65,7 +64,7 @@ class GlobalExceptionHandler(
         val error = ErrorDetail(
             code = ErrorCodes.VALIDATION_ERROR,
             message = messageService.getErrorMessage("error.validation.failed"),
-            details = mapOf<String, Any>(
+            details = mapOf(
                 "fieldErrors" to fieldErrors,
                 "timestamp" to Instant.now().toString(),
                 "path" to request.getDescription(false).removePrefix("uri=")
@@ -94,7 +93,7 @@ class GlobalExceptionHandler(
         val error = ErrorDetail(
             code = ErrorCodes.VALIDATION_ERROR,
             message = messageService.getErrorMessage("error.parameter.validation.failed"),
-            details = mapOf<String, Any>(
+            details = mapOf(
                 "violations" to violations,
                 "timestamp" to Instant.now().toString(),
                 "path" to request.getDescription(false).removePrefix("uri=")

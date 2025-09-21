@@ -170,8 +170,8 @@ class ReviewService(
             throw IllegalArgumentException("본인의 리뷰만 삭제할 수 있습니다")
         }
         
-        val deletedReview = existingReview.softDelete()
-        reviewRepository.save(deletedReview)
+        // @SQLDelete 어노테이션이 자동으로 soft delete 처리
+        reviewRepository.delete(existingReview)
         
         logger.info("리뷰 삭제 완료: id={}", id)
     }

@@ -51,13 +51,6 @@ logging:
   pattern:
     console: "%d{HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# TMDB API 설정 (테스트용 더미 값)
-tmdb:
-  api:
-    base-url: https://api.themoviedb.org/3
-    key: test-api-key
-    timeout: 5s
-
 # Actuator 설정
 management:
   endpoints:
@@ -67,11 +60,3 @@ management:
   endpoint:
     health:
       show-details: never
-
-# OpenAPI 설정
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: method

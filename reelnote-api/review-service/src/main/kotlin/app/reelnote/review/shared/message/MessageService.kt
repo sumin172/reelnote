@@ -54,11 +54,4 @@ class MessageService(
     fun getErrorMessage(key: String, vararg args: Any, locale: Locale = Locale.KOREAN): String {
         return getMessage(key, args, locale)
     }
-    
-    /**
-     * Validation 메시지
-     */
-    fun getValidationMessage(key: String, locale: Locale = Locale.KOREAN): String {
-        return getMessage(key, locale = locale)
-    }
 }

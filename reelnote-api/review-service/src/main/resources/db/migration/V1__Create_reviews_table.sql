@@ -37,14 +37,11 @@ CREATE INDEX idx_reviews_user_seq ON reviews (user_seq);
 CREATE INDEX idx_reviews_movie_id ON reviews (movie_id);
 CREATE INDEX idx_reviews_rating ON reviews (rating_value);
 CREATE INDEX idx_reviews_watched_at ON reviews (watched_at);
-CREATE INDEX idx_reviews_created_at ON reviews (created_at);
-CREATE INDEX idx_reviews_updated_at ON reviews (updated_at);
-CREATE INDEX idx_reviews_created_by ON reviews (created_by);
 CREATE INDEX idx_reviews_deleted ON reviews (deleted);
 CREATE INDEX idx_reviews_event_published ON reviews (event_published);
 CREATE INDEX idx_reviews_tag ON review_tags (tag);
 
 -- 복합 인덱스 (자주 사용되는 쿼리 패턴)
-CREATE INDEX idx_reviews_user_updated ON reviews (user_seq, updated_at);
 CREATE INDEX idx_reviews_movie_rating ON reviews (movie_id, rating_value);
-CREATE INDEX idx_reviews_user_deleted ON reviews (user_seq, deleted);
+CREATE INDEX idx_reviews_user_deleted ON reviews(user_seq, deleted);
+CREATE INDEX idx_reviews_movie_deleted ON reviews(movie_id, deleted);

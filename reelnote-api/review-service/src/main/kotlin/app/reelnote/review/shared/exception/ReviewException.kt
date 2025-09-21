@@ -55,27 +55,4 @@ class ExternalApiException(
     }
 }
 
-/**
- * 검증 실패 시 발생하는 예외
- */
-class ValidationException(
-    message: String,
-    val field: String? = null
-) : ReviewException(
-    message = message,
-    errorCode = ErrorCodes.VALIDATION_ERROR,
-    httpStatus = HttpStatus.BAD_REQUEST
-)
-
-/**
- * 중복 리소스 생성 시 발생하는 예외
- */
-class ConflictException(
-    message: String
-) : ReviewException(
-    message = message,
-    errorCode = ErrorCodes.CONFLICT,
-    httpStatus = HttpStatus.CONFLICT
-)
-
 
