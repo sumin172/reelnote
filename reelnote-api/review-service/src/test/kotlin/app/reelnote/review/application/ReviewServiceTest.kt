@@ -12,9 +12,10 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import org.springframework.context.MessageSource
 import java.time.Instant
 import java.time.LocalDate
-import java.util.Optional
+import java.util.*
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
@@ -22,8 +23,8 @@ class ReviewServiceTest {
     
     private val reviewRepository = mockk<ReviewRepository>()
     private val movieService = mockk<MovieService>()
-    private val messageService = mockk<app.reelnote.review.shared.message.MessageService>()
-    private val reviewService = ReviewService(reviewRepository, movieService, messageService)
+    private val messageSource = mockk<MessageSource>()
+    private val reviewService = ReviewService(reviewRepository, movieService, messageSource)
     
     @Test
     fun `리뷰 생성 성공`() {
@@ -90,7 +91,7 @@ class ReviewServiceTest {
         )
         
         every { reviewRepository.findByUserSeqAndMovieId(userSeq, 12345L) } returns Optional.of(existingReview)
-        every { messageService.getErrorMessage("error.review.already.exists") } returns "이미 해당 영화에 대한 리뷰가 존재합니다."
+        every { messageSource.getMessage("error.review.already.exists", any(), any()) } returns "이미 해당 영화에 대한 리뷰가 존재합니다."
         
         // When & Then
         assertThrows<IllegalArgumentException> {

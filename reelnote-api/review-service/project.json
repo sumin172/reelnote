@@ -1,0 +1,29 @@
+{
+  "name": "review-service",
+  "root": "reelnote-api/review-service",
+  "sourceRoot": "reelnote-api/review-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/gradle:build",
+      "options": {
+        "root": "reelnote-api/review-service"
+      }
+    },
+    "serve": {
+      "executor": "@nx/gradle:build",
+      "options": {
+        "root": "reelnote-api/review-service",
+        "args": "bootRun"
+      }
+    },
+    "test": {
+      "executor": "@nx/gradle:build",
+      "options": {
+        "root": "reelnote-api/review-service",
+        "args": "test"
+      }
+    }
+  },
+  "tags": ["backend", "kotlin", "spring-boot"]
+}

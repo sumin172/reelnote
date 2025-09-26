@@ -3,8 +3,8 @@ package app.reelnote.review.shared.exception
 import app.reelnote.review.shared.response.ApiResponse
 import app.reelnote.review.shared.response.ErrorCodes
 import app.reelnote.review.shared.response.ErrorDetail
-import app.reelnote.review.shared.message.MessageService
 import org.slf4j.LoggerFactory
+import org.springframework.context.MessageSource
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -14,16 +14,28 @@ import org.springframework.web.context.request.WebRequest
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 import jakarta.validation.ConstraintViolationException
 import java.time.Instant
+import java.util.*
 
 /**
  * 글로벌 예외 처리기
  */
 @RestControllerAdvice
 class GlobalExceptionHandler(
-    private val messageService: MessageService
+    private val messageSource: MessageSource
 ) {
     
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
+    
+    /**
+     * 메시지 조회 헬퍼 메서드
+     */
+    private fun getMessage(key: String, vararg args: Any): String {
+        return try {
+            messageSource.getMessage(key, args, Locale.getDefault())
+        } catch (_: Exception) {
+            key
+        }
+    }
     
     /**
      * 비즈니스 예외 처리
@@ -34,7 +46,7 @@ class GlobalExceptionHandler(
         
         val error = ErrorDetail(
             code = ex.errorCode,
-            message = ex.message ?: messageService.getErrorMessage("error.unknown"),
+            message = ex.message ?: getMessage("error.unknown"),
             details = mapOf<String, Any>(
                 "timestamp" to Instant.now().toString(),
                 "path" to request.getDescription(false).removePrefix("uri=")
@@ -63,7 +75,7 @@ class GlobalExceptionHandler(
         
         val error = ErrorDetail(
             code = ErrorCodes.VALIDATION_ERROR,
-            message = messageService.getErrorMessage("error.validation.failed"),
+            message = getMessage("error.validation.failed"),
             details = mapOf(
                 "fieldErrors" to fieldErrors,
                 "timestamp" to Instant.now().toString(),
@@ -92,7 +104,7 @@ class GlobalExceptionHandler(
         
         val error = ErrorDetail(
             code = ErrorCodes.VALIDATION_ERROR,
-            message = messageService.getErrorMessage("error.parameter.validation.failed"),
+            message = getMessage("error.parameter.validation.failed"),
             details = mapOf(
                 "violations" to violations,
                 "timestamp" to Instant.now().toString(),
@@ -117,7 +129,7 @@ class GlobalExceptionHandler(
         
         val error = ErrorDetail(
             code = ErrorCodes.VALIDATION_ERROR,
-            message = messageService.getErrorMessage("error.invalid.parameter.type", ex.name),
+            message = getMessage("error.invalid.parameter.type", ex.name),
             field = ex.name,
             details = mapOf<String, Any>(
                 "requiredType" to (ex.requiredType?.simpleName ?: "Unknown"),
@@ -141,7 +153,7 @@ class GlobalExceptionHandler(
         
         val error = ErrorDetail(
             code = ErrorCodes.INTERNAL_ERROR,
-            message = messageService.getErrorMessage("error.internal.server"),
+            message = getMessage("error.internal.server"),
             details = mapOf<String, Any>(
                 "timestamp" to Instant.now().toString(),
                 "path" to request.getDescription(false).removePrefix("uri=")

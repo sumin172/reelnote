@@ -12,6 +12,12 @@ import java.time.Instant
  * @property createdAt 생성일시
  * @property updatedAt 수정일시
  * @property version 버전 (Optimistic Locking용)
+ * @property createdBy 생성자 ID
+ * @property updatedBy 수정자 ID
+ * @property deleted 삭제 여부
+ * @property deletedAt 삭제일시
+ * @property eventPublished 이벤트 발행 여부
+ * @property eventPublishedAt 이벤트 발행일시
  */
 @MappedSuperclass
 @EntityListeners(value = [BaseEntityListener::class, AuditingEntityListener::class])
@@ -24,18 +30,7 @@ abstract class BaseEntity {
     
     @Version
     var version: Long = 0
-}
-
-/**
- * 감사(Audit) 기능을 포함한 확장 메타데이터 클래스
- * 
- * @property createdBy 생성자 ID
- * @property updatedBy 수정자 ID
- * @property deleted 삭제 여부
- * @property deletedAt 삭제일시
- */
-@MappedSuperclass
-abstract class AuditableEntity : BaseEntity() {
+    
     @CreatedBy
     @Column(name = "created_by", nullable = false)
     var createdBy: Long = 0
@@ -49,22 +44,12 @@ abstract class AuditableEntity : BaseEntity() {
     
     @Column(name = "deleted_at")
     var deletedAt: Instant? = null
-}
-
-/**
- * 이벤트 발행 기능을 포함한 확장 메타데이터 클래스
- * 
- * @property eventPublished 이벤트 발행 여부
- * @property eventPublishedAt 이벤트 발행일시
- */
-@MappedSuperclass
-abstract class EventPublishableEntity : AuditableEntity() {
+    
     @Column(name = "event_published", nullable = false)
     var eventPublished: Boolean = false
     
     @Column(name = "event_published_at")
     var eventPublishedAt: Instant? = null
-
 
     /**
      * 이벤트 발행 완료 표시

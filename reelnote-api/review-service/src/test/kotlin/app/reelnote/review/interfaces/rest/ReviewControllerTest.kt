@@ -2,7 +2,6 @@ package app.reelnote.review.interfaces.rest
 
 import app.reelnote.review.application.ReviewService
 import app.reelnote.review.interfaces.dto.*
-import app.reelnote.review.shared.message.MessageService
 import io.mockk.every
 import io.mockk.coEvery
 import org.junit.jupiter.api.Test
@@ -29,9 +28,6 @@ class ReviewControllerTest {
     
     @MockkBean(relaxed = true)
     private lateinit var reviewService: ReviewService
-
-    @MockkBean(relaxed = true)
-    private lateinit var messageService: MessageService
 
     @Test
     fun `리뷰 생성 API 테스트`() {

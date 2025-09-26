@@ -3,7 +3,6 @@ package app.reelnote.review.interfaces.rest
 import app.reelnote.review.application.ReviewService
 import app.reelnote.review.interfaces.dto.*
 import app.reelnote.review.shared.response.ApiResponse
-import app.reelnote.review.shared.message.MessageService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -14,10 +13,12 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.slf4j.LoggerFactory
+import org.springframework.context.MessageSource
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.util.*
 
 /**
  * 리뷰 REST API 컨트롤러
@@ -28,10 +29,21 @@ import org.springframework.web.bind.annotation.*
 @Tag(name = "Reviews", description = "영화 리뷰 관리 API")
 class ReviewController(
     private val reviewService: ReviewService,
-    private val messageService: MessageService
+    private val messageSource: MessageSource
 ) {
     
     private val logger = LoggerFactory.getLogger(ReviewController::class.java)
+    
+    /**
+     * 메시지 조회 헬퍼 메서드
+     */
+    private fun getMessage(key: String, vararg args: Any): String {
+        return try {
+            messageSource.getMessage(key, args, Locale.getDefault())
+        } catch (_: Exception) {
+            key
+        }
+    }
     
     /**
      * 리뷰 생성
@@ -64,7 +76,7 @@ class ReviewController(
         val review = reviewService.createReview(request, userSeq)
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success(review, messageService.getSuccessMessage("review.create.success")))
+            .body(ApiResponse.success(review, getMessage("review.create.success")))
     }
     
     /**
@@ -240,7 +252,7 @@ class ReviewController(
         logger.info("리뷰 수정 API 호출: id={}, userSeq={}", id, userSeq)
         
         val review = reviewService.updateReview(id, request, userSeq)
-        return ResponseEntity.ok(ApiResponse.success(review, messageService.getSuccessMessage("review.update.success")))
+        return ResponseEntity.ok(ApiResponse.success(review, getMessage("review.update.success")))
     }
     
     /**
@@ -274,7 +286,7 @@ class ReviewController(
         reviewService.deleteReview(id, userSeq)
         return ResponseEntity
             .status(HttpStatus.NO_CONTENT)
-            .body(ApiResponse.success(messageService.getSuccessMessage("review.delete.success")))
+            .body(ApiResponse.success(getMessage("review.delete.success")))
     }
     
     /**

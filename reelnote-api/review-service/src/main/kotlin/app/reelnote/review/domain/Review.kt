@@ -44,7 +44,7 @@ data class Review(
 
     @Column(name = "watched_at")
     val watchedAt: LocalDate? = null
-) : EventPublishableEntity() {
+) : BaseEntity() {
     
     init {
         require(userSeq > 0) { "사용자 식별자는 양수여야 합니다. 입력값: $userSeq" }

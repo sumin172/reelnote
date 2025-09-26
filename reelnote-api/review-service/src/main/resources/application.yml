@@ -1,5 +1,5 @@
 server:
-  port: 80
+  port: 8080
   servlet:
     context-path: /
 
@@ -57,7 +57,6 @@ logging:
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
 # TMDB API 설정
 tmdb:
@@ -71,7 +70,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        include: health,info,metrics
   endpoint:
     health:
       show-details: when-authorized
@@ -83,3 +82,11 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
+
+# App custom settings
+# CORS 설정은 환경별 파일에서 관리
+# app:
+#   cors:
+#     allowed-origins:
+#       - http://localhost:3000
+#     allow-credentials: true

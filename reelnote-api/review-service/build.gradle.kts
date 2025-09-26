@@ -2,7 +2,6 @@ plugins {
     kotlin("jvm") version "2.0.21"
     kotlin("plugin.spring") version "2.0.21"
     kotlin("plugin.jpa") version "2.0.21"
-    kotlin("plugin.serialization") version "2.0.21"
     id("org.springframework.boot") version "3.4.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.springdoc.openapi-gradle-plugin") version "1.8.0"
@@ -50,9 +49,6 @@ dependencies {
     runtimeOnly("com.h2database:h2")
     implementation("org.flywaydb:flyway-core")
 
-    // Monitoring & Observability
-    implementation("io.micrometer:micrometer-registry-prometheus")
-    implementation("net.logstash.logback:logstash-logback-encoder:8.0")
 
     // Development
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -63,7 +59,6 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.11")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
     testImplementation("org.springframework.security:spring-security-test")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 kotlin {

@@ -10,6 +10,14 @@ spring:
       settings:
         web-allow-others: true  # 외부 접근 허용
 
+# 개발 환경 CORS 설정
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://127.0.0.1:3000
+    allow-credentials: true
+
 logging:
   level:
     app.reelnote.review: DEBUG

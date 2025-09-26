@@ -4,14 +4,15 @@ import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.domain.Rating
 import app.reelnote.review.interfaces.dto.*
 import app.reelnote.review.shared.exception.ReviewNotFoundException
-import app.reelnote.review.shared.message.MessageService
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.context.MessageSource
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
 
 /**
  * 리뷰 서비스
@@ -21,10 +22,21 @@ import org.springframework.transaction.annotation.Transactional
 class ReviewService(
     private val reviewRepository: ReviewRepository,
     private val movieService: MovieService,
-    private val messageService: MessageService
+    private val messageSource: MessageSource
 ) {
     
     private val logger = LoggerFactory.getLogger(ReviewService::class.java)
+    
+    /**
+     * 메시지 조회 헬퍼 메서드
+     */
+    private fun getMessage(key: String, vararg args: Any): String {
+        return try {
+            messageSource.getMessage(key, args, Locale.getDefault())
+        } catch (_: Exception) {
+            key
+        }
+    }
     
     /**
      * 리뷰 생성
@@ -37,7 +49,7 @@ class ReviewService(
         // 중복 리뷰 체크
         val existingReview = reviewRepository.findByUserSeqAndMovieId(userSeq, request.movieId)
         if (existingReview.isPresent) {
-            throw IllegalArgumentException(messageService.getErrorMessage("error.review.already.exists"))
+            throw IllegalArgumentException(getMessage("error.review.already.exists"))
         }
         
         val review = request.toDomain(userSeq)
@@ -138,7 +150,7 @@ class ReviewService(
         
         // 권한 체크
         if (existingReview.userSeq != userSeq) {
-            throw IllegalArgumentException("본인의 리뷰만 수정할 수 있습니다")
+            throw IllegalArgumentException(getMessage("error.review.unauthorized.update"))
         }
         
         val updatedReview = existingReview.updateContent(
@@ -167,7 +179,7 @@ class ReviewService(
         
         // 권한 체크
         if (existingReview.userSeq != userSeq) {
-            throw IllegalArgumentException("본인의 리뷰만 삭제할 수 있습니다")
+            throw IllegalArgumentException(getMessage("error.review.unauthorized.delete"))
         }
         
         // @SQLDelete 어노테이션이 자동으로 soft delete 처리
