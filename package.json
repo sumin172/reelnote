@@ -1,0 +1,29 @@
+{
+  "name": "reelnote",
+  "version": "0.0.1",
+  "private": true,
+  "description": "ReelNote - Movie review platform with microservices",
+  "workspaces": [
+    "reelnote-api/*",
+    "reelnote-frontend"
+  ],
+  "scripts": {
+    "build": "nx run-many --target=build --all",
+    "test": "nx run-many --target=test --all",
+    "dev": "nx run-many --target=serve --all",
+    "affected:build": "nx affected --target=build",
+    "affected:test": "nx affected --target=test",
+    "graph": "nx graph"
+  },
+  "devDependencies": {
+    "@nx/gradle": "^21.5.3",
+    "@nx/js": "^21.5.3",
+    "@nx/node": "^21.5.3",
+    "@nx/next": "^21.5.3",
+    "nx": "^21.5.3"
+  }
+}
+
+
+
+

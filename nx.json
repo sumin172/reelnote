@@ -1,0 +1,9 @@
+{
+  "installation": {
+    "version": "21.5.3"
+  },
+  "projects": {
+    "review-service": "reelnote-api/review-service",
+    "frontend": "reelnote-frontend"
+  }
+}

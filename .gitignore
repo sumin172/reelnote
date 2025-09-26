@@ -1,3 +1,9 @@
 .idea/
+.vscode/
+.cursor/
 build/
 node_modules/
+.nx/
+.nx/installation
+.nx/cache
+.nx/workspace-data

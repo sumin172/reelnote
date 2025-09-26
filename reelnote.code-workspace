@@ -1,0 +1,35 @@
+{
+  "folders": [
+    {
+      "name": "ReelNote (Root)",
+      "path": "."
+    },
+    {
+      "name": "Review Service",
+      "path": "./reelnote-api/review-service"
+    },
+    {
+      "name": "Frontend",
+      "path": "./reelnote-frontend"
+    }
+  ],
+  "settings": {
+    "nx.enableTelemetry": false,
+    "nx.defaultProject": "reelnote",
+    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.profiles.windows": {
+      "Command Prompt": {
+        "path": "C:\\WINDOWS\\system32\\cmd.EXE",
+        "args": ["/k", "cd /d ${workspaceFolder}"]
+      }
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "nrwl.angular-console",
+      "ms-vscode.vscode-typescript-next",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}
