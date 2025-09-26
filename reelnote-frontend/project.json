@@ -1,0 +1,32 @@
+{
+  "name": "frontend",
+  "root": "reelnote-frontend",
+  "sourceRoot": "reelnote-frontend/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/next:build",
+      "options": {
+        "root": "reelnote-frontend"
+      }
+    },
+    "serve": {
+      "executor": "@nx/next:server",
+      "options": {
+        "root": "reelnote-frontend",
+        "dev": true
+      }
+    },
+    "test": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test"
+      }
+    }
+  },
+  "tags": ["frontend", "react", "nextjs"]
+}
+
+
+
+
