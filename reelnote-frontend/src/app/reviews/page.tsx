@@ -19,7 +19,8 @@ export default function ReviewsPage() {
 
   if (isLoading) return <LoadingState />;
   if (isError) return <ErrorState />;
-  if (!data || data.content.length === 0) return <EmptyState />;
+
+  const hasReviews = data && data.content.length > 0;
 
   return (
     <div className="container mx-auto p-4">
@@ -29,22 +30,27 @@ export default function ReviewsPage() {
           <Link href="/reviews/new">새 리뷰 작성</Link>
         </Button>
       </div>
-      <div className="space-y-3">
-        {data.content.map((r) => (
-          <Card key={r.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
-              <CardDescription>#{r.id}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="text-sm font-medium">평점: {r.rating}</div>
-                <div className="text-sm text-muted-foreground">{r.reason}</div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      
+      {hasReviews ? (
+        <div className="space-y-3">
+          {data?.content.map((r) => (
+            <Card key={r.id}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
+                <CardDescription>#{r.id}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">평점: {r.rating}</div>
+                  <div className="text-sm text-muted-foreground">{r.reason}</div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <EmptyState message="아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!" />
+      )}
     </div>
   );
 }
