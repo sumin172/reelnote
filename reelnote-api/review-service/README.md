@@ -76,6 +76,42 @@ data class Rating(val value: Int) {
 7. **운영**: 환경별 프로파일 + 구조화된 로깅
    - *개발/운영 환경 분리로 안정성 확보*
 
+## 🔧 구현 예시
+
+### 소프트 삭제: @SQLDelete + @SQLRestriction
+
+```kotlin
+@Entity
+@Table(name = "reviews")
+@SQLDelete(sql = "UPDATE reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
+@SQLRestriction("deleted = false")
+data class Review(
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    val id: Long = 0,
+    
+    @Column(name = "deleted", nullable = false)
+    val deleted: Boolean = false,
+    
+    @Column(name = "deleted_at")
+    val deletedAt: LocalDateTime? = null
+) : EventPublishableEntity()
+
+// 서비스에서 사용
+fun deleteReview(id: Long, userSeq: Long) {
+    val review = reviewRepository.findById(id)
+        .orElseThrow { ReviewNotFoundException(id) }
+    
+    // @SQLDelete 어노테이션이 자동으로 soft delete 처리
+    reviewRepository.delete(review)
+}
+```
+
+**장점:**
+- **@SQLRestriction**: JPQL 쿼리에서 `deleted = false` 조건 자동 추가로 성능 최적화
+- **@SQLDelete**: 실제 삭제 대신 플래그 업데이트로 데이터 복구 가능
+- **Optimistic Locking**: 동시 삭제 요청 시 데이터 무결성 보장
+
 ## 🤔 기술적 의사결정
 
 ### 아키텍처 선택
