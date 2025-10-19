@@ -9,6 +9,7 @@ data/
 # Build outputs
 build/
 dist/
+.next/
 
 # Dependencies
 node_modules/
