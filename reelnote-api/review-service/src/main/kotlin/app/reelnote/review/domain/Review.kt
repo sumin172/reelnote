@@ -20,7 +20,7 @@ import java.time.LocalDate
 @Table(name = "reviews")
 @SQLDelete(sql = "UPDATE reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
 @SQLRestriction("deleted = false")
-data class Review(
+class Review private constructor(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
@@ -32,18 +32,18 @@ data class Review(
     val movieId: Long,
     
     @Embedded
-    val rating: Rating,
+    var rating: Rating,
     
     @Column(length = 1000)
-    val reason: String? = null,
+    var reason: String? = null,
     
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "review_tags", joinColumns = [JoinColumn(name = "review_id")])
     @Column(name = "tag", length = 50)
-    val tags: Set<String> = emptySet(),
+    var tags: Set<String> = emptySet(),
 
     @Column(name = "watched_at")
-    val watchedAt: LocalDate? = null
+    var watchedAt: LocalDate? = null
 ) : BaseEntity() {
     
     init {
@@ -54,24 +54,67 @@ data class Review(
     }
     
     /**
-     * 리뷰 내용 수정
+     * ID 기반 equals/hashCode
+     */
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is Review) return false
+        return id != 0L && id == other.id
+    }
+    
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+    
+    /**
+     * 리뷰 내용 수정 - 더티 체킹 사용
      */
     fun updateContent(
         rating: Rating = this.rating,
         reason: String? = this.reason,
         tags: Set<String> = this.tags,
         watchedAt: LocalDate? = this.watchedAt
-    ): Review = copy(
-        rating = rating,
-        reason = reason,
-        tags = tags,
-        watchedAt = watchedAt
-    )
+    ) {
+        // 검증 로직
+        require((reason?.length ?: 0) <= 1000) { "리뷰 내용은 1000자를 초과할 수 없습니다. 현재 길이: ${reason?.length ?: 0}" }
+        require(tags.all { it.length <= 50 }) { "태그는 50자를 초과할 수 없습니다. 위반 태그: ${tags.filter { it.length > 50 }}" }
+        
+        // 더티 체킹으로 자동 업데이트
+        this.rating = rating
+        this.reason = reason
+        this.tags = tags
+        this.watchedAt = watchedAt
+    }
     
     /**
      * 이벤트 발행 완료 표시
      */
-    fun markAsPublished(): Review = copy().apply { markEventAsPublished() }
+    fun markAsPublished() {
+        markEventAsPublished()
+    }
+    
+    companion object {
+        /**
+         * 새로운 리뷰 생성 - 비즈니스 로직 검증 포함
+         */
+        fun create(
+            userSeq: Long,
+            movieId: Long,
+            rating: Rating,
+            reason: String? = null,
+            tags: Set<String> = emptySet(),
+            watchedAt: LocalDate? = null
+        ): Review {
+            return Review(
+                userSeq = userSeq,
+                movieId = movieId,
+                rating = rating,
+                reason = reason,
+                tags = tags,
+                watchedAt = watchedAt
+            )
+        }
+    }
     
 }
 

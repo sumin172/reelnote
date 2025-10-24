@@ -2,6 +2,7 @@ package app.reelnote.review.application
 
 import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.domain.Rating
+import app.reelnote.review.domain.Review
 import app.reelnote.review.interfaces.dto.*
 import app.reelnote.review.shared.exception.ReviewNotFoundException
 import org.slf4j.LoggerFactory
@@ -52,7 +53,16 @@ class ReviewService(
             throw IllegalArgumentException(getMessage("error.review.already.exists"))
         }
         
-        val review = request.toDomain(userSeq)
+        // 도메인 객체 생성 (비즈니스 로직은 도메인에)
+        val review = Review.create(
+            userSeq = userSeq,
+            movieId = request.movieId,
+            rating = Rating.of(request.rating),
+            reason = request.reason,
+            tags = request.tags,
+            watchedAt = request.watchedAt
+        )
+        
         val savedReview = reviewRepository.save(review)
         
         logger.info("리뷰 생성 완료: id={}", savedReview.id)
@@ -153,14 +163,16 @@ class ReviewService(
             throw IllegalArgumentException(getMessage("error.review.unauthorized.update"))
         }
         
-        val updatedReview = existingReview.updateContent(
+        // 기존 인스턴스 수정 (필드 값 변경 감지)
+        existingReview.updateContent(
             rating = request.rating?.let { Rating.of(it) } ?: existingReview.rating,
             reason = request.reason,
             tags = request.tags ?: existingReview.tags,
             watchedAt = request.watchedAt
         )
         
-        val savedReview = reviewRepository.save(updatedReview)
+        // 트랜잭션 커밋 시 자동 저장되지만, 반환값 획득 및 명시적 의도 표현을 위해 호출
+        val savedReview = reviewRepository.save(existingReview)
         
         logger.info("리뷰 수정 완료: id={}", savedReview.id)
         return ReviewResponse.from(savedReview)

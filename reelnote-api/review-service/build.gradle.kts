@@ -68,9 +68,11 @@ kotlin {
 }
 
 allOpen {
-    annotation("jakarta.persistence.Entity")
-    annotation("jakarta.persistence.MappedSuperclass")
-    annotation("jakarta.persistence.Embeddable")
+    // Spring과 JPA 어노테이션들은 kotlin("plugin.spring")와 kotlin("plugin.jpa")가 자동 처리
+    // 커스텀 어노테이션이 필요할 때 여기에 추가
+    // annotation("jakarta.persistence.Entity")
+    // annotation("jakarta.persistence.MappedSuperclass")
+    // annotation("jakarta.persistence.Embeddable")
 }
 
 tasks.withType<Test> {

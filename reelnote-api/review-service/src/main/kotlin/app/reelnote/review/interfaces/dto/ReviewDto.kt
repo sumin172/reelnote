@@ -1,7 +1,6 @@
 package app.reelnote.review.interfaces.dto
 
 import app.reelnote.review.domain.Review
-import app.reelnote.review.domain.Rating
 import jakarta.validation.constraints.*
 import java.time.LocalDate
 import com.fasterxml.jackson.annotation.JsonCreator
@@ -26,16 +25,7 @@ data class CreateReviewRequest(
     val tags: Set<String> = emptySet(),
     
     val watchedAt: LocalDate? = null
-) {
-    fun toDomain(userSeq: Long): Review = Review(
-        userSeq = userSeq,
-        movieId = movieId,
-        rating = Rating.of(rating),
-        reason = reason,
-        tags = tags,
-        watchedAt = watchedAt
-    )
-}
+)
 
 /**
  * 개인 리뷰 검색 요청 DTO (userSeq 필수)

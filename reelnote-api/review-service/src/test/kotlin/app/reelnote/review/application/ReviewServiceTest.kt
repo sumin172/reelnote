@@ -38,8 +38,7 @@ class ReviewServiceTest {
             watchedAt = LocalDate.now()
         )
         
-        val savedReview = Review(
-            id = 1L,
+        val savedReview = Review.create(
             userSeq = userSeq,
             movieId = 12345L,
             rating = Rating.of(5),
@@ -59,7 +58,7 @@ class ReviewServiceTest {
         
         // Then
         assertNotNull(result)
-        assertEquals(1L, result.id)
+        assertEquals(0L, result.id)
         assertEquals(userSeq, result.userSeq)
         assertEquals(12345L, result.movieId)
         assertEquals(5, result.rating)
@@ -82,8 +81,7 @@ class ReviewServiceTest {
             reason = "정말 재미있었습니다"
         )
         
-        val existingReview = Review(
-            id = 1L,
+        val existingReview = Review.create(
             userSeq = userSeq,
             movieId = 12345L,
             rating = Rating.of(4),
@@ -107,8 +105,7 @@ class ReviewServiceTest {
         // Given
         val reviewId = 1L
         val userSeq = 1L
-        val existingReview = Review(
-            id = reviewId,
+        val existingReview = Review.create(
             userSeq = userSeq,
             movieId = 12345L,
             rating = Rating.of(3),
@@ -119,14 +116,14 @@ class ReviewServiceTest {
             rating = 5,
             reason = "정말 좋았습니다"
         )
-        
-        val updatedReview = existingReview.updateContent(
+
+        existingReview.updateContent(
             rating = Rating.of(5),
             reason = "정말 좋았습니다"
         )
         
         every { reviewRepository.findById(reviewId) } returns Optional.of(existingReview)
-        every { reviewRepository.save(any()) } returns updatedReview
+        every { reviewRepository.save(any()) } returns existingReview
         
         // When
         val result = reviewService.updateReview(reviewId, updateRequest, userSeq)
@@ -148,8 +145,7 @@ class ReviewServiceTest {
         val reviewId = 1L
         val userSeq = 1L
         val otherUserSeq = 2L
-        val existingReview = Review(
-            id = reviewId,
+        val existingReview = Review.create(
             userSeq = otherUserSeq,  // 다른 사용자의 리뷰
             movieId = 12345L,
             rating = Rating.of(3),
@@ -177,8 +173,7 @@ class ReviewServiceTest {
         // Given
         val reviewId = 1L
         val userSeq = 1L
-        val existingReview = Review(
-            id = reviewId,
+        val existingReview = Review.create(
             userSeq = userSeq,
             movieId = 12345L,
             rating = Rating.of(3),
@@ -203,8 +198,7 @@ class ReviewServiceTest {
         val reviewId = 1L
         val userSeq = 1L
         val otherUserSeq = 2L
-        val existingReview = Review(
-            id = reviewId,
+        val existingReview = Review.create(
             userSeq = otherUserSeq,  // 다른 사용자의 리뷰
             movieId = 12345L,
             rating = Rating.of(3),

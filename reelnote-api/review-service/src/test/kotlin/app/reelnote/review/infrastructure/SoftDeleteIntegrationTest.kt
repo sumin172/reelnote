@@ -28,7 +28,7 @@ class SoftDeleteIntegrationTest {
     @Test
     fun `소프트 삭제된 리뷰는 기본 조회에서 제외됨`() {
         // Given
-        val review = Review(
+        val review = Review.create(
             userSeq = 1L,
             movieId = 12345L,
             rating = Rating.of(5),
@@ -63,7 +63,7 @@ class SoftDeleteIntegrationTest {
     @Test
     fun `낙관적 락과 함께 소프트 삭제가 정상 작동함`() {
         // Given
-        val review = Review(
+        val review = Review.create(
             userSeq = 1L,
             movieId = 12345L,
             rating = Rating.of(5),
@@ -98,7 +98,7 @@ class SoftDeleteIntegrationTest {
     @Test
     fun `삭제되지 않은 리뷰는 정상 조회됨`() {
         // Given
-        val review = Review(
+        val review = Review.create(
             userSeq = 1L,
             movieId = 12345L,
             rating = Rating.of(5),
@@ -121,21 +121,21 @@ class SoftDeleteIntegrationTest {
     @Test
     fun `모든 리뷰 조회 시 삭제된 리뷰는 제외됨`() {
         // Given
-        val activeReview1 = Review(
+        val activeReview1 = Review.create(
             userSeq = 1L,
             movieId = 12345L,
             rating = Rating.of(5),
             reason = "활성 리뷰 1"
         )
         
-        val activeReview2 = Review(
+        val activeReview2 = Review.create(
             userSeq = 2L,
             movieId = 67890L,
             rating = Rating.of(4),
             reason = "활성 리뷰 2"
         )
         
-        val deletedReview = Review(
+        val deletedReview = Review.create(
             userSeq = 3L,
             movieId = 11111L,
             rating = Rating.of(3),
