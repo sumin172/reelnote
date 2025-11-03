@@ -118,6 +118,31 @@ class GlobalExceptionHandler(
     }
     
     /**
+     * 도메인 무결성/상태 위반 예외 처리
+     * - require 등에서 발생하는 IllegalArgumentException/IllegalStateException을 422로 매핑
+     */
+    @ExceptionHandler(IllegalArgumentException::class, IllegalStateException::class)
+    fun handleDomainViolation(
+        ex: RuntimeException,
+        request: WebRequest
+    ): ResponseEntity<ApiResponse<Nothing>> {
+        logger.warn("도메인 무결성 위반: ${ex.message}")
+        
+        val error = ErrorDetail(
+            code = ErrorCodes.VALIDATION_ERROR,
+            message = ex.message ?: getMessage("error.validation.failed"),
+            details = mapOf<String, Any>(
+                "timestamp" to Instant.now().toString(),
+                "path" to request.getDescription(false).removePrefix("uri=")
+            )
+        )
+        
+        return ResponseEntity
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .body(ApiResponse.error(error))
+    }
+    
+    /**
      * 타입 변환 예외 처리
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
