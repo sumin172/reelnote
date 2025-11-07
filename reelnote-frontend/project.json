@@ -7,14 +7,17 @@
     "build": {
       "executor": "@nx/next:build",
       "options": {
-        "root": "reelnote-frontend"
+        "root": "reelnote-frontend",
+        "outputPath": "dist/reelnote-frontend"
       }
     },
     "serve": {
       "executor": "@nx/next:server",
       "options": {
         "root": "reelnote-frontend",
-        "dev": true
+        "dev": true,
+        "buildTarget": "frontend:build",
+        "port": 3000
       }
     },
     "test": {

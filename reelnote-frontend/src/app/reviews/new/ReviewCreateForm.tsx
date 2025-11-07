@@ -1,43 +1,35 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { SubmitHandler, useForm, type Resolver } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { reviewCreateSchema, type ReviewCreateInput } from '@/domains/review/schema';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createReview, reviewQueryKeys } from '@/domains/review/services';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-type FormValues = {
-  movieId: number;
-  rating: number;
-  reason: string;
-  tags: string[];
-  watchedAt: string;
-};
+type FormValues = ReviewCreateInput;
 
 export default function ReviewCreateForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const resolver = zodResolver(reviewCreateSchema) as unknown as Resolver<FormValues>;
   const form = useForm<FormValues>({
-    resolver,
+    resolver: zodResolver(reviewCreateSchema),
     defaultValues: { movieId: 0, rating: 5, reason: '', tags: [], watchedAt: '' },
   });
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data: ReviewCreateInput) => createReview(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: reviewQueryKeys.all as unknown as any });
+      await queryClient.invalidateQueries({ queryKey: [...reviewQueryKeys.all] });
       router.push('/reviews');
     },
   });
 
-  const onSubmit: SubmitHandler<FormValues> = (data) => mutate(data as ReviewCreateInput);
+  const onSubmit: SubmitHandler<FormValues> = (data) => mutate(data);
 
   return (
     <div className="container mx-auto p-4">

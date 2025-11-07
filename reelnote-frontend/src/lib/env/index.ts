@@ -7,18 +7,23 @@
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
+const isServer = typeof window === 'undefined';
 
 // 환경 변수 검증 함수 (지연 실행)
 function validateRequiredEnvVars() {
-  if (isDevelopment) {
+  if (isDevelopment && isServer) {
     const requiredVars = ['NEXT_PUBLIC_API_BASE_URL', 'NEXT_PUBLIC_APP_NAME', 'NEXT_PUBLIC_APP_VERSION'];
     const missing = requiredVars.filter(varName => !process.env[varName]);
-    
+
     if (missing.length > 0) {
       console.error(`❌ 필수 환경 변수가 누락되었습니다: ${missing.join(', ')}`);
       throw new Error(`필수 환경 변수 누락: ${missing.join(', ')}`);
     }
   }
+}
+
+if (isDevelopment && isServer) {
+  validateRequiredEnvVars();
 }
 
 // 환경 변수에 대한 안전한 접근자 함수들

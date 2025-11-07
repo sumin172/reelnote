@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import type { RequestHandler } from 'msw';
+import type { ReviewCreateInput } from '@/domains/review/schema';
 
 /**
  * MSW 핸들러 생성 함수
@@ -64,7 +65,7 @@ export function createHandlers(): RequestHandler[] {
 
     http.post(/\/api\/v1\/reviews$/, async ({ request }) => {
       try {
-        const body = (await request.json()) as any;
+        const body = (await request.json()) as ReviewCreateInput;
         
         // 입력 데이터 검증 (간단한 예시)
         if (!body.movieId || !body.rating) {
@@ -82,7 +83,7 @@ export function createHandlers(): RequestHandler[] {
           },
           { status: 201 }
         );
-      } catch (error) {
+      } catch {
         return HttpResponse.json(
           { error: '잘못된 JSON 형식입니다.' },
           { status: 400 }

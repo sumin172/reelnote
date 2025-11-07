@@ -12,7 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 export default function ReviewsList() {
   // Client component for demo simplicity
   // In real app, consider Server Components with React Query hydration when needed
-  // eslint-disable-next-line react-hooks/rules-of-hooks
   const { data, isLoading, isError } = useQuery({
     queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
     queryFn: () => fetchReviews({ page: 0, size: 10 }),

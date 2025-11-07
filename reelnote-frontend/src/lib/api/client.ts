@@ -1,6 +1,7 @@
 import { config, isMSWEnabled } from '../env';
 
 export type FetchOptions = RequestInit & { baseUrl?: string };
+type ErrorWithStatus = Error & { status: number };
 
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { baseUrl = config.apiBaseUrl, headers, ...rest } = options;
@@ -26,10 +27,12 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
   // React Query의 에러 처리에 위임 - 단순히 에러를 throw
   if (!res.ok) {
     const text = await res.text();
-    const error = new Error(`API ${res.status}: ${text || res.statusText}`);
+    const errorWithStatus: ErrorWithStatus = Object.assign(
+      new Error(`API ${res.status}: ${text || res.statusText}`),
+      { status: res.status }
+    );
     // React Query가 재시도 로직을 처리할 수 있도록 에러에 상태 정보 추가
-    (error as any).status = res.status;
-    throw error;
+    throw errorWithStatus;
   }
 
   // Handle empty body
