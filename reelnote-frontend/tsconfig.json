@@ -1,4 +1,5 @@
 {
+  "extends": "../tools/ts/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["dom", "dom.iterable", "esnext"],
