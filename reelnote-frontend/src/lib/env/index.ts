@@ -72,9 +72,9 @@ export const config = {
     return getApiBaseUrl();
   },
 
-  // MSW 설정 (개발 환경에서만)
+  // MSW 설정 (환경 변수로 제어)
   get enableMSW() {
-    return process.env.NEXT_PUBLIC_ENABLE_MSW === "true" && isDevelopment;
+    return process.env.NEXT_PUBLIC_ENABLE_MSW === "true";
   },
 
   // 사용자 설정
@@ -99,6 +99,6 @@ export const config = {
 } as const;
 
 /**
- * MSW 활성화 여부 (개발 환경에서만)
+ * MSW 활성화 여부 (환경 변수 기반)
  */
 export const isMSWEnabled = config.enableMSW;

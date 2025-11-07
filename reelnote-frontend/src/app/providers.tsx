@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { isMSWEnabled } from "@/lib/env";
 
 type AppProvidersProps = {
   children: React.ReactNode;
@@ -25,13 +26,13 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   React.useEffect(() => {
     // MSW 초기화 (에러가 발생해도 애플리케이션에 영향을 주지 않음)
-    if (process.env.NODE_ENV === "development") {
-      import("@/lib/msw")
-        .then(({ initializeMSW, createHandlers }) =>
-          initializeMSW(createHandlers()),
-        )
-        .catch((error) => console.warn("MSW 초기화 실패:", error));
-    }
+    if (!isMSWEnabled) return;
+
+    import("@/lib/msw")
+      .then(({ initializeMSW, createHandlers }) =>
+        initializeMSW(createHandlers()),
+      )
+      .catch((error) => console.warn("MSW 초기화 실패:", error));
   }, []);
 
   return (

@@ -87,7 +87,7 @@ export default function ReviewCreateForm() {
                 name="rating"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>평점 (1~5)</FormLabel>
+                    <FormLabel>평점(1~5)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -123,7 +123,7 @@ export default function ReviewCreateForm() {
                 name="watchedAt"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>감상일 (YYYY-MM-DD)</FormLabel>
+                    <FormLabel>감상일(YYYY-MM-DD)</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} />
                     </FormControl>

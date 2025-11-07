@@ -31,20 +31,22 @@ export default function CatalogSearch() {
       {isFetching && (
         <div className="text-sm text-muted-foreground">검색 중...</div>
       )}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 list-none p-0">
         {data?.results?.map((m) => (
-          <Card key={m.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">{m.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <CardDescription className="text-xs">
-                {m.releaseDate}
-              </CardDescription>
-            </CardContent>
-          </Card>
+          <li key={m.id} className="list-none">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">{m.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <CardDescription className="text-xs">
+                  {m.releaseDate}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

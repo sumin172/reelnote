@@ -38,24 +38,26 @@ export default function ReviewsList() {
       </div>
 
       {hasReviews ? (
-        <div className="space-y-3">
+        <ul className="space-y-3 list-none p-0">
           {data?.content.map((r) => (
-            <Card key={r.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
-                <CardDescription>#{r.id}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">평점: {r.rating}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {r.reason}
+            <li key={r.id} className="list-none">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
+                  <CardDescription>#{r.id}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium">평점: {r.rating}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {r.reason}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : (
         <EmptyState message="아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!" />
       )}
