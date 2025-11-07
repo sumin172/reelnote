@@ -45,7 +45,9 @@ export default function ReviewsList() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-sm font-medium">평점: {r.rating}</div>
-                  <div className="text-sm text-muted-foreground">{r.reason}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {r.reason}
+                  </div>
                 </div>
               </CardContent>
             </Card>
