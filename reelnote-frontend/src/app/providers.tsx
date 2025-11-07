@@ -26,7 +26,9 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   React.useEffect(() => {
     // MSW 초기화 (에러가 발생해도 애플리케이션에 영향을 주지 않음)
-    if (!isMSWEnabled) return;
+    if (!isMSWEnabled) {
+      return;
+    }
 
     import("@/lib/msw")
       .then(({ initializeMSW, createHandlers }) =>

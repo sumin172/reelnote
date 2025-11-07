@@ -72,9 +72,13 @@ export const config = {
     return getApiBaseUrl();
   },
 
-  // MSW 설정 (환경 변수로 제어)
+  // MSW 설정 (환경 변수 우선, 기본은 비-프로덕션에서 활성화)
   get enableMSW() {
-    return process.env.NEXT_PUBLIC_ENABLE_MSW === "true";
+    const raw = process.env.NEXT_PUBLIC_ENABLE_MSW;
+    if (typeof raw === "string") {
+      return raw === "true";
+    }
+    return !isProduction;
   },
 
   // 사용자 설정

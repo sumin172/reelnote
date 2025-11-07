@@ -23,10 +23,37 @@ export default function ReviewsList() {
     queryFn: () => fetchReviews({ page: 0, size: 10 }),
   });
 
-  if (isLoading) return <LoadingState />;
-  if (isError) return <ErrorState />;
-
   const hasReviews = data && data.content.length > 0;
+
+  const body = (() => {
+    if (isLoading) return <LoadingState />;
+    if (isError) return <ErrorState />;
+    if (!hasReviews)
+      return (
+        <EmptyState message="아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!" />
+      );
+
+    return (
+      <ul className="space-y-3 list-none p-0">
+        {data?.content.map((r) => (
+          <li key={r.id} className="list-none">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
+                <CardDescription>#{r.id}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">평점: {r.rating}</div>
+                  <div className="text-sm text-muted-foreground">{r.reason}</div>
+                </div>
+              </CardContent>
+            </Card>
+          </li>
+        ))}
+      </ul>
+    );
+  })();
 
   return (
     <div className="container mx-auto p-4">
@@ -37,30 +64,7 @@ export default function ReviewsList() {
         </Button>
       </div>
 
-      {hasReviews ? (
-        <ul className="space-y-3 list-none p-0">
-          {data?.content.map((r) => (
-            <li key={r.id} className="list-none">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">영화 ID: {r.movieId}</CardTitle>
-                  <CardDescription>#{r.id}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-sm font-medium">평점: {r.rating}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {r.reason}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState message="아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!" />
-      )}
+      {body}
     </div>
   );
 }

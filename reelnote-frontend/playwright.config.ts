@@ -10,6 +10,15 @@ export default defineConfig({
   },
   retries: 1,
   reporter: [["list"]],
+  webServer: {
+    command: "pnpm dev",
+    url: "http://localhost:3000",
+    reuseExistingServer: !process.env.CI,
+    timeout: 120_000,
+    env: {
+      NEXT_PUBLIC_ENABLE_MSW: "true",
+    },
+  },
   projects: [
     {
       name: "chromium",
