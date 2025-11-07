@@ -43,7 +43,7 @@ jobs:
         working-directory: ./reelnote-frontend
 
       - name: Wait for server
-        run: npx wait-on http://localhost:3000
+        run: pnpm dlx wait-on http://localhost:3000
         working-directory: ./reelnote-frontend
 
       - name: Run E2E tests

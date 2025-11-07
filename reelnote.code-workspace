@@ -9,6 +9,10 @@
       "path": "./reelnote-api/review-service"
     },
     {
+      "name": "Catalog Service",
+      "path": "./reelnote-api/catalog-service"
+    },
+    {
       "name": "Frontend",
       "path": "./reelnote-frontend"
     }
