@@ -7,6 +7,11 @@ import { AxiosInstance, AxiosRequestConfig, AxiosResponse, Method, isAxiosError 
 
 type LimitExecutor = <T>(fn: () => Promise<T>) => Promise<T>;
 
+// Node.js CommonJS 환경에서도 ESM 모듈을 안전하게 동적 로딩하기 위한 헬퍼
+// eslint-disable-next-line no-new-func, @typescript-eslint/no-implied-eval
+const dynamicImport = new Function('specifier', 'return import(specifier);') as <T>(specifier: string) => Promise<T>;
+const P_LIMIT_SPECIFIER = 'p-limit';
+
 /**
  * TMDB API 클라이언트
  * - 레이트리밋: p-limit 기반 동시성 제어
@@ -101,10 +106,10 @@ export class TmdbClient implements OnModuleDestroy {
 
   private async loadLimiter(concurrency: number): Promise<LimitExecutor> {
     try {
-      const module = await import('p-limit');
-      const createLimit = (module as { default?: unknown }).default;
-      if (typeof createLimit === 'function') {
-        return (createLimit as (limit: number) => LimitExecutor)(concurrency);
+      const module = await dynamicImport<typeof import('p-limit')>(P_LIMIT_SPECIFIER);
+      const candidate = (module as { default?: unknown }).default ?? (module as unknown);
+      if (typeof candidate === 'function') {
+        return (candidate as (limit: number) => LimitExecutor)(concurrency);
       }
 
       this.logger.warn('p-limit 모듈에서 기본 함수를 찾을 수 없어 기본 구현으로 대체합니다.');

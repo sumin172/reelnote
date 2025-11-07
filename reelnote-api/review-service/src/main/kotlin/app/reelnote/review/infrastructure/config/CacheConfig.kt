@@ -18,7 +18,6 @@ class CacheConfig {
      * 개발 환경용 인메모리 캐시 매니저
      */
     @Bean
-    @Profile("!prod")
     fun cacheManager(): CacheManager = ConcurrentMapCacheManager().apply {
         setCacheNames(
             listOf(

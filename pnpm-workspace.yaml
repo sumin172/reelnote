@@ -1,3 +1,14 @@
 packages:
-  - 'reelnote-api/*'
-  - 'reelnote-frontend'
+  - reelnote-api/*
+  - reelnote-frontend
+
+ignoredBuiltDependencies:
+  - '@nestjs/core'
+  - '@prisma/client'
+  - '@prisma/engines'
+  - '@scarf/scarf'
+  - '@swc/core'
+  - msw
+  - nx
+  - prisma
+  - sharp
