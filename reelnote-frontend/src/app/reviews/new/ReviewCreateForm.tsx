@@ -1,15 +1,31 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { reviewCreateSchema, type ReviewCreateInput } from '@/domains/review/schema';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createReview, reviewQueryKeys } from '@/domains/review/services';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useRouter } from "next/navigation";
+import { SubmitHandler, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  reviewCreateSchema,
+  type ReviewCreateInput,
+} from "@/domains/review/schema";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createReview, reviewQueryKeys } from "@/domains/review/services";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 type FormValues = ReviewCreateInput;
 
@@ -18,14 +34,22 @@ export default function ReviewCreateForm() {
   const queryClient = useQueryClient();
   const form = useForm<FormValues>({
     resolver: zodResolver(reviewCreateSchema),
-    defaultValues: { movieId: 0, rating: 5, reason: '', tags: [], watchedAt: '' },
+    defaultValues: {
+      movieId: 0,
+      rating: 5,
+      reason: "",
+      tags: [],
+      watchedAt: "",
+    },
   });
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data: ReviewCreateInput) => createReview(data),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: [...reviewQueryKeys.all] });
-      router.push('/reviews');
+      await queryClient.invalidateQueries({
+        queryKey: [...reviewQueryKeys.all],
+      });
+      router.push("/reviews");
     },
   });
 
@@ -48,7 +72,11 @@ export default function ReviewCreateForm() {
                   <FormItem>
                     <FormLabel>영화 ID</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -61,7 +89,13 @@ export default function ReviewCreateForm() {
                   <FormItem>
                     <FormLabel>평점 (1~5)</FormLabel>
                     <FormControl>
-                      <Input type="number" min="1" max="5" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
+                      <Input
+                        type="number"
+                        min="1"
+                        max="5"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -74,7 +108,7 @@ export default function ReviewCreateForm() {
                   <FormItem>
                     <FormLabel>리뷰 내용</FormLabel>
                     <FormControl>
-                      <textarea 
+                      <textarea
                         className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         rows={4}
                         {...field}
@@ -98,7 +132,7 @@ export default function ReviewCreateForm() {
                 )}
               />
               <Button type="submit" disabled={isPending} className="w-full">
-                {isPending ? '등록 중...' : '등록'}
+                {isPending ? "등록 중..." : "등록"}
               </Button>
             </form>
           </Form>

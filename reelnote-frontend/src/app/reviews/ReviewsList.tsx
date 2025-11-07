@@ -1,13 +1,19 @@
 "use client";
 
-import { useQuery } from '@tanstack/react-query';
-import { reviewQueryKeys, fetchReviews } from '@/domains/review/services';
-import { LoadingState } from '@/domains/shared/components/state/Loading';
-import { ErrorState } from '@/domains/shared/components/state/Error';
-import { EmptyState } from '@/domains/shared/components/state/Empty';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from "@tanstack/react-query";
+import { reviewQueryKeys, fetchReviews } from "@/domains/review/services";
+import { LoadingState } from "@/domains/shared/components/state/Loading";
+import { ErrorState } from "@/domains/shared/components/state/Error";
+import { EmptyState } from "@/domains/shared/components/state/Empty";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function ReviewsList() {
   // Client component for demo simplicity
@@ -30,7 +36,7 @@ export default function ReviewsList() {
           <Link href="/reviews/new">새 리뷰 작성</Link>
         </Button>
       </div>
-      
+
       {hasReviews ? (
         <div className="space-y-3">
           {data?.content.map((r) => (
@@ -42,7 +48,9 @@ export default function ReviewsList() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-sm font-medium">평점: {r.rating}</div>
-                  <div className="text-sm text-muted-foreground">{r.reason}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {r.reason}
+                  </div>
                 </div>
               </CardContent>
             </Card>

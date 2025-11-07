@@ -5,7 +5,7 @@
 ## 사용법
 
 ```typescript
-import { initializeMSW, createHandlers } from '@/lib/msw';
+import { initializeMSW, createHandlers } from "@/lib/msw";
 
 // MSW 초기화
 await initializeMSW(createHandlers());
@@ -34,10 +34,10 @@ src/lib/msw/
 export function createHandlers(): RequestHandler[] {
   return [
     // 기존 핸들러들...
-    
+
     // 새로운 핸들러
-    http.get('/api/v1/new-endpoint', () => {
-      return HttpResponse.json({ data: 'mock' });
+    http.get("/api/v1/new-endpoint", () => {
+      return HttpResponse.json({ data: "mock" });
     }),
   ];
 }
@@ -46,10 +46,12 @@ export function createHandlers(): RequestHandler[] {
 ## 핸들러 분리 전략
 
 ### 현재 상태 (권장)
+
 - **단일 파일**: 3개 엔드포인트로 관리하기 적합
 - **장점**: 단순함, 빠른 수정, 충돌 없음
 
 ### 미래 확장 시 고려사항
+
 - **10개 이상 엔드포인트**: 도메인별 분리 검토
 - **복잡한 비즈니스 로직**: 핸들러별 파일 분리
 - **대규모 팀**: 충돌 방지를 위한 분리

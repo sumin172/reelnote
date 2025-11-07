@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { catalogQueryKeys, searchMovies } from '@/domains/catalog/services';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { catalogQueryKeys, searchMovies } from "@/domains/catalog/services";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function CatalogSearch() {
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState("");
   const { data, isFetching } = useQuery({
     queryKey: catalogQueryKeys.search(q, 1),
     queryFn: () => searchMovies(q, 1),
@@ -22,7 +28,9 @@ export default function CatalogSearch() {
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
-      {isFetching && <div className="text-sm text-muted-foreground">검색 중...</div>}
+      {isFetching && (
+        <div className="text-sm text-muted-foreground">검색 중...</div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {data?.results?.map((m) => (
           <Card key={m.id}>
@@ -30,7 +38,9 @@ export default function CatalogSearch() {
               <CardTitle className="text-sm">{m.title}</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <CardDescription className="text-xs">{m.releaseDate}</CardDescription>
+              <CardDescription className="text-xs">
+                {m.releaseDate}
+              </CardDescription>
             </CardContent>
           </Card>
         ))}

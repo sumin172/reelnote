@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 export function LoadingState() {
   return (
@@ -7,5 +7,3 @@ export function LoadingState() {
     </div>
   );
 }
-
-

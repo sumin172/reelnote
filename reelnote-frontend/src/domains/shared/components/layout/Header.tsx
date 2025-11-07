@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { ThemeToggle } from './ThemeToggle';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useState } from "react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const links = [
-  { href: '/reviews', label: '리뷰' },
-  { href: '/catalog', label: '카탈로그' },
-  { href: '/analysis', label: '분석' },
+  { href: "/reviews", label: "리뷰" },
+  { href: "/catalog", label: "카탈로그" },
+  { href: "/analysis", label: "분석" },
 ];
 
 export function Header() {
@@ -29,7 +29,11 @@ export function Header() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={active ? 'text-foreground font-medium' : 'hover:text-foreground'}
+                  className={
+                    active
+                      ? "text-foreground font-medium"
+                      : "hover:text-foreground"
+                  }
                 >
                   {l.label}
                 </Link>
@@ -58,7 +62,7 @@ export function Header() {
                 <Link
                   key={l.href}
                   href={l.href}
-                  className={`py-2 ${active ? 'text-foreground font-medium' : 'text-muted-foreground'}`}
+                  className={`py-2 ${active ? "text-foreground font-medium" : "text-muted-foreground"}`}
                   onClick={() => setOpen(false)}
                 >
                   {l.label}
@@ -71,5 +75,3 @@ export function Header() {
     </header>
   );
 }
-
-

@@ -9,5 +9,3 @@ export const metadata: Metadata = {
 export default function CatalogPage() {
   return <CatalogSearch />;
 }
-
-

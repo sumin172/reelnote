@@ -12,5 +12,3 @@ export type SearchResponse = {
   totalResults: number;
   results: Movie[];
 };
-
-

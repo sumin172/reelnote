@@ -30,11 +30,14 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const nextConfigs = compat.extends("next/core-web-vitals", "next/typescript").map(
-  (config) => {
+const nextConfigs = compat
+  .extends("next/core-web-vitals", "next/typescript")
+  .map((config) => {
     const existingPlugins = config.plugins
       ? Object.fromEntries(
-          Object.entries(config.plugins).filter(([name]) => name !== "@typescript-eslint")
+          Object.entries(config.plugins).filter(
+            ([name]) => name !== "@typescript-eslint",
+          ),
         )
       : {};
 
@@ -45,8 +48,7 @@ const nextConfigs = compat.extends("next/core-web-vitals", "next/typescript").ma
         "react-hooks": reactHooksPlugin,
       },
     };
-  }
-);
+  });
 
 const config = [
   // Nx base 설정 (모듈 경계 규칙 포함)

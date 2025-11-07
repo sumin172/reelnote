@@ -21,13 +21,13 @@ export const metadata: Metadata = {
   },
   description: "영화 리뷰와 카탈로그, 분석을 한 곳에서",
   metadataBase: new URL("https://example.com"),
-  icons: [{ rel: 'icon', url: '/favicon.ico' }],
+  icons: [{ rel: "icon", url: "/favicon.ico" }],
   openGraph: {
     title: "ReelNote",
     description: "영화 리뷰와 카탈로그, 분석을 한 곳에서",
-    type: 'website',
-    url: 'https://example.com',
-    siteName: 'ReelNote',
+    type: "website",
+    url: "https://example.com",
+    siteName: "ReelNote",
   },
 };
 
