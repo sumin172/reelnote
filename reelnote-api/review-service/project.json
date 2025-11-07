@@ -5,23 +5,21 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "@nx/gradle:build",
+      "executor": "@nx/gradle:gradle",
       "options": {
-        "root": "reelnote-api/review-service"
+        "taskName": "build"
       }
     },
     "serve": {
-      "executor": "@nx/gradle:build",
+      "executor": "@nx/gradle:gradle",
       "options": {
-        "root": "reelnote-api/review-service",
-        "args": "bootRun"
+        "taskName": "bootRun"
       }
     },
     "test": {
-      "executor": "@nx/gradle:build",
+      "executor": "@nx/gradle:gradle",
       "options": {
-        "root": "reelnote-api/review-service",
-        "args": "test"
+        "taskName": "test"
       }
     }
   },

@@ -1,0 +1,122 @@
+{
+  "name": "catalog-service",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "nx serve catalog-service",
+    "start": "nx serve catalog-service"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "executor": "@nx/js:swc",
+        "outputs": [
+          "{options.outputPath}"
+        ],
+        "defaultConfiguration": "production",
+        "options": {
+          "outputPath": "reelnote-api/catalog-service/dist",
+          "main": "reelnote-api/catalog-service/src/main.ts",
+          "tsConfig": "reelnote-api/catalog-service/tsconfig.app.json",
+          "generatePackageJson": true,
+          "generateLockfile": true,
+          "assets": [
+            "reelnote-api/catalog-service/src/assets"
+          ]
+        },
+        "configurations": {
+          "development": {
+            "sourceMap": true,
+            "watch": false
+          },
+          "production": {
+            "generateLockfile": true
+          }
+        }
+      },
+      "prune-lockfile": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "executor": "@nx/js:prune-lockfile",
+        "outputs": [
+          "{workspaceRoot}/reelnote-api/catalog-service/dist/package.json",
+          "{workspaceRoot}/reelnote-api/catalog-service/dist/pnpm-lock.yaml"
+        ],
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "copy-workspace-modules": {
+        "dependsOn": [
+          "build"
+        ],
+        "cache": true,
+        "outputs": [
+          "{workspaceRoot}/reelnote-api/catalog-service/dist/workspace_modules"
+        ],
+        "executor": "@nx/js:copy-workspace-modules",
+        "options": {
+          "buildTarget": "build"
+        }
+      },
+      "prune": {
+        "dependsOn": [
+          "prune-lockfile",
+          "copy-workspace-modules"
+        ],
+        "executor": "nx:noop"
+      },
+      "serve": {
+        "continuous": true,
+        "executor": "@nx/js:node",
+        "defaultConfiguration": "development",
+        "options": {
+          "buildTarget": "catalog-service:build"
+        },
+        "configurations": {
+          "development": {
+            "buildTarget": "catalog-service:build:development",
+            "inspect": false,
+            "watch": true,
+            "runBuildTargetDependencies": true,
+            "runtimeArgs": [
+              "--inspect=127.0.0.1:9230"
+            ]
+          },
+          "production": {
+            "buildTarget": "catalog-service:build:production"
+          }
+        }
+      },
+      "test": {
+        "options": {
+          "passWithNoTests": true
+        }
+      },
+      "prisma:generate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "prisma generate",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "prisma:migrate": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "prisma migrate dev",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "prisma:studio": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "prisma studio",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      }
+    }
+  },
+  "dependencies": {}
+}
