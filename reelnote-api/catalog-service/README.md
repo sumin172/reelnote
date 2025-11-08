@@ -20,6 +20,37 @@ Catalog Service는 TMDB API를 통해 영화 데이터를 관리하고, 내부 �
 - **Cache**: Redis
 - **External API**: TMDB API
 
+## 빠른 시작
+
+1. **의존성 설치**
+   ```bash
+   # 워크스페이스 루트에서
+   pnpm install
+   ```
+2. **환경 변수 설정**
+   `reelnote-api/catalog-service/.env` 파일을 생성하고 아래 "환경 변수" 섹션 내용을 참고해 값을 채웁니다.
+3. **Prisma 준비**
+   ```bash
+   # (A) 서비스 디렉터리로 이동해 직접 실행
+   cd reelnote-api/catalog-service
+   pnpm exec prisma generate
+   pnpm exec prisma migrate dev --name init
+
+   # 또는 (B) Nx 타깃으로 실행
+   nx run catalog-service:prisma:generate
+   nx run catalog-service:prisma:migrate -- --name init
+   ```
+4. **서비스 실행**
+   ```bash
+   nx serve catalog-service
+   ```
+5. **기본 동작 확인**
+   ```bash
+   curl http://localhost:3001/api/health
+   curl http://localhost:3001/api/movies/550
+   curl -X POST http://localhost:3001/api/sync/trending
+   ```
+
 ## 프로젝트 구조
 
 ```
@@ -37,9 +68,9 @@ src/
 
 ## 환경 설정
 
-### 환경 변수 파일 생성
+### 환경 변수
 
-`reelnote-api/catalog-service/.env` 파일을 생성하고 다음 내용을 설정하세요:
+`.env` 파일에 다음 값을 설정합니다.
 
 ```bash
 # Database
@@ -70,19 +101,22 @@ WARM_POOL_SIZE=100
 
 **선택 환경 변수:**
 - `REDIS_URL`: Redis 연결 URL (없으면 인메모리 캐시 사용)
+- `CACHE_TTL_SECONDS`: 캐시 기본 TTL (초, 기본값: 3600)
+- `CACHE_NAMESPACE`: Redis/Keyv 캐시 네임스페이스 (기본값: `catalog-cache`)
+- `MOVIE_CACHE_TTL_SECONDS`: 영화 응답 캐시 TTL (초, 기본값: 3600)
+- `TMDB_API_BASE_URL`: TMDB API 엔드포인트 (기본값: `https://api.themoviedb.org/3`)
+- `TMDB_API_TIMEOUT`: TMDB API 요청 타임아웃 (ms, 기본값: 10000)
+- `TMDB_API_MAX_CONCURRENCY`: TMDB API 동시 요청 제한 (기본값: 10)
+- `TMDB_API_MAX_RETRY`: TMDB API 재시도 횟수 (기본값: 3)
+- `TMDB_BREAKER_TIMEOUT`: 서킷브레이커 요청 제한 시간 (ms, 기본값: `TMDB_API_TIMEOUT + 1000`)
+- `TMDB_BREAKER_RESET_TIMEOUT`: 서킷브레이커 재시도까지 대기 시간 (ms, 기본값: 60000)
+- `TMDB_BREAKER_ERROR_PERCENTAGE`: OPEN 상태로 전환되는 실패 비율 임계값 (기본값: 50)
+- `TMDB_BREAKER_VOLUME_THRESHOLD`: 서킷브레이커가 동작하기 위한 최소 요청 수 (기본값: 10)
 - `PORT`: 서비스 포트 (기본값: 3001)
 
 ## 데이터베이스 설정
 
-### Prisma 마이그레이션
-
-```bash
-# Prisma 클라이언트 생성
-pnpm exec prisma generate
-
-# 마이그레이션 실행
-pnpm exec prisma migrate dev --name init
-```
+Prisma 스키마는 TMDB 원본 데이터와 향후 추천·분석 서비스를 대비한 Feature Store 구성을 포함합니다. 주요 테이블은 다음과 같습니다.
 
 ### 스키마 구조
 

@@ -72,73 +72,48 @@ user_profile (user_id PK)
 └── embedding (vector)
 ```
 
-## 5. API 엔드포인트
+## 5. 모듈 상호작용
 
-### 5.1 영화 관리
-- `GET /api/movies/:tmdbId` - 영화 상세 조회 (Lazy Hydration)
-- `POST /api/movies/import` - 영화 일괄 인입
+Catalog Service는 다음 흐름을 중심으로 모듈이 협력합니다.
 
-### 5.2 동기화
-- `POST /api/sync/trending?timeWindow=day|week` - 트렌딩 영화 동기화
-- `POST /api/sync/popular` - 인기 영화 동기화
+- **요청 처리 경로**: `movies` 모듈이 HTTP 진입점을 담당하며, 캐시 계층(`cache`) → 데이터베이스(`database`) → 외부 통합(`tmdb`) 순으로 의존합니다. Lazy Hydration 과정에서 `sync` 모듈이 백그라운드 업데이트를 트리거합니다.
+- **Warm Pool 동기화**: `sync` 모듈은 스케줄러 또는 수동 트리거를 통해 인기/트렌딩 영화를 주기적으로 갱신하고, 결과를 `movies` 모듈과 캐시에 반영합니다.
+- **검색 파사드**: `search` 모듈은 동일한 데이터 소스를 사용하지만, 전용 DTO/정렬 전략을 통해 검색 특화 API를 제공합니다.
+- **확장 지점**: 이벤트 발행 및 Feature Store 업데이트는 `sync`와 `movies` 모듈에서 발생하며, 세부 시나리오는 아래 확장 계획을 참고합니다.
 
-### 5.3 검색
-- `GET /api/search?q={query}&page={page}&language={lang}` - 영화 검색
+자세한 REST 엔드포인트와 성능 목표는 `README.md`의 관련 섹션을 참고하세요.
 
-## 6. 성능 목표
+## 6. 추후 확장 계획
 
-- **응답 시간**: p95 ≤ 120ms (캐시 히트 시)
-- **캐시 미스 시**: p95 ≤ 400ms
-- **캐시 히트율**: > 80%
-- **TMDB API 호출 실패율**: < 1%
-
-## 7. 추후 확장 계획
-
-### 7.1 이벤트 기반 아키텍처
+### 6.1 이벤트 기반 아키텍처
 - `movie.synced`: 영화 동기화 완료 시 발행 (Analysis Service 구독)
 - `movie.feature.updated`: 영화 Feature 업데이트 시 발행 (Reco Service 구독)
 - `user.profile.updated`: 사용자 프로필 업데이트 시 발행 (Reco Service 구독)
 
-### 7.2 Analysis Service 연동
+### 6.2 Analysis Service 연동
 - 리뷰 NLP 분석 결과를 `movie_feature`에 저장
 - 태그 정규화 및 TMDB keyword 매핑
 - 사용자 프로필 업데이트
 
-### 7.3 Reco Service 연동
+### 6.3 Reco Service 연동
 - Feature Store를 통한 영화 추천
 - ANN(Approximate Nearest Neighbor) 검색을 위한 임베딩 활용
 - 콘텐츠 기반 → 협업 필터링 점진적 전환
 
-## 8. 환경 변수
+## 7. 모니터링 메트릭
 
-```bash
-# 필수
-DATABASE_URL=postgresql://user:password@localhost:5432/catalog_db
-TMDB_API_KEY=your_api_key
-
-# 선택 (없으면 기본값 사용)
-REDIS_URL=redis://localhost:6379
-PORT=3001
-MOVIE_STALE_THRESHOLD_DAYS=7
-WARM_POOL_SIZE=100
-TMDB_API_TIMEOUT=10000
-CORS_ORIGIN=http://localhost:3000
-```
-
-## 9. 모니터링 메트릭
-
-### 9.1 카탈로그 서비스
+### 7.1 카탈로그 서비스
 - 캐시 히트율
 - TMDB API 호출 실패율
 - 동기화 지연 시간
 - 응답 시간 (p50, p95, p99)
 
-### 9.2 TMDB 클라이언트
+### 7.2 TMDB 클라이언트
 - 서킷브레이커 상태 변화
 - 레이트리밋 대기 시간
 - 리트라이 횟수 및 성공률
 
-## 10. 배포 고려사항
+## 8. 배포 고려사항
 
 - **데이터베이스 마이그레이션**: Prisma Migrate 사용
 - **Redis 고가용성**: Redis Cluster 또는 AWS ElastiCache

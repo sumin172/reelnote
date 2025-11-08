@@ -9,61 +9,56 @@ const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
 const isServer = typeof window === "undefined";
 
-// 환경 변수 검증 함수 (지연 실행)
-function validateRequiredEnvVars() {
-  if (isDevelopment && isServer) {
-    const requiredVars = [
-      "NEXT_PUBLIC_API_BASE_URL",
-      "NEXT_PUBLIC_APP_NAME",
-      "NEXT_PUBLIC_APP_VERSION",
-    ];
-    const missing = requiredVars.filter((varName) => !process.env[varName]);
+const fallbackEnvVars = {
+  NEXT_PUBLIC_API_BASE_URL: "http://localhost:8080",
+  NEXT_PUBLIC_APP_NAME: "ReelNote",
+  NEXT_PUBLIC_APP_VERSION: "0.1.0",
+} as const;
 
-    if (missing.length > 0) {
-      console.error(
-        `❌ 필수 환경 변수가 누락되었습니다: ${missing.join(", ")}`,
-      );
-      throw new Error(`필수 환경 변수 누락: ${missing.join(", ")}`);
-    }
+function reportMissingEnvVars() {
+  if (!isServer) {
+    return;
+  }
+
+  const missingEntries = Object.entries(fallbackEnvVars)
+    .filter(([key]) => !process.env[key])
+    .map(
+      ([key, fallback]) => `${key} → 기본값(${fallback})`,
+    );
+
+  if (missingEntries.length > 0 && isDevelopment) {
+    console.warn(
+      [
+        "⚠️ 일부 NEXT_PUBLIC 환경 변수가 설정되지 않아 기본값을 사용합니다.",
+        ...missingEntries,
+      ].join("\n"),
+    );
   }
 }
 
-if (isDevelopment && isServer) {
-  validateRequiredEnvVars();
-}
+reportMissingEnvVars();
 
 // 환경 변수에 대한 안전한 접근자 함수들
-function getApiBaseUrl(): string {
-  const value = process.env.NEXT_PUBLIC_API_BASE_URL;
+function getEnvVar<Key extends keyof typeof fallbackEnvVars>(
+  key: Key,
+): string {
+  const value = process.env[key];
   if (!value) {
-    console.warn(
-      "⚠️ NEXT_PUBLIC_API_BASE_URL이 설정되지 않았습니다. 기본값을 사용합니다.",
-    );
-    return "http://localhost:8080";
+    return fallbackEnvVars[key];
   }
   return value;
+}
+
+function getApiBaseUrl(): string {
+  return getEnvVar("NEXT_PUBLIC_API_BASE_URL");
 }
 
 function getAppName(): string {
-  const value = process.env.NEXT_PUBLIC_APP_NAME;
-  if (!value) {
-    console.warn(
-      "⚠️ NEXT_PUBLIC_APP_NAME이 설정되지 않았습니다. 기본값을 사용합니다.",
-    );
-    return "ReelNote";
-  }
-  return value;
+  return getEnvVar("NEXT_PUBLIC_APP_NAME");
 }
 
 function getAppVersion(): string {
-  const value = process.env.NEXT_PUBLIC_APP_VERSION;
-  if (!value) {
-    console.warn(
-      "⚠️ NEXT_PUBLIC_APP_VERSION이 설정되지 않았습니다. 기본값을 사용합니다.",
-    );
-    return "0.1.0";
-  }
-  return value;
+  return getEnvVar("NEXT_PUBLIC_APP_VERSION");
 }
 
 export const config = {

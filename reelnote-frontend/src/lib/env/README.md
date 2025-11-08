@@ -17,16 +17,6 @@ if (isMSWEnabled) {
 }
 ```
 
-## 개발용 유틸리티
-
-```typescript
-// 개발 환경에서만 사용
-import { logEnvInfo, validateEnvConfig } from "@/lib/env/dev-utils";
-
-logEnvInfo(); // 개발 환경에서만 실행됨
-validateEnvConfig(); // 개발 환경에서만 실행됨
-```
-
 ## 환경별 .env 파일 설정
 
 ### .env.local (개발 환경)
@@ -58,6 +48,12 @@ NEXT_PUBLIC_USER_SEQ=1
 NEXT_PUBLIC_APP_NAME=ReelNote (Test)
 NEXT_PUBLIC_APP_VERSION=0.1.0
 ```
+
+## 런타임 동작
+
+- `NEXT_PUBLIC_ENABLE_MSW`를 명시하지 않으면 프로덕션에서는 자동으로 `false`, 그 외 환경에서는 `true`로 동작합니다.
+- `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_VERSION`가 비어 있으면 서버 사이드에서 안전한 기본값을 적용하고, 개발 모드일 때만 경고를 출력합니다.
+- 환경 변수 검증과 경고는 서버에서만 실행되므로 브라우저 콘솔에는 나타나지 않습니다.
 
 ## 환경 변수
 

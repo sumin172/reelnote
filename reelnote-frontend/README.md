@@ -31,8 +31,7 @@ src/
 │   ├── api/                  # API 클라이언트
 │   │   └── client.ts         # apiFetch 유틸리티
 │   ├── env/                  # 환경 변수 관리
-│   │   ├── index.ts          # 환경 변수 설정
-│   │   └── dev-utils.ts      # 개발용 유틸리티
+│   │   └── index.ts          # 환경 변수 설정
 │   ├── msw/                  # MSW 설정
 │   │   ├── index.ts          # MSW 인터페이스
 │   │   ├── manager.ts        # MSW 초기화 로직
@@ -88,7 +87,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 
 1. **타입 안전한 API 통신**: TypeScript + 공통 응답 래핑 처리
    - _API 응답 형식 일관성과 타입 안전성 확보_
-2. **환경 변수 관리**: 중앙화된 설정 관리 + 개발 환경 검증
+2. **환경 변수 관리**: 중앙화된 설정 관리 + 기본값 기반 경고
    - _환경별 설정 관리와 누락된 변수 자동 감지_
 3. **MSW 기반 모킹**: 개발 환경 독립성 확보
    - _백엔드 서비스 없이도 프론트엔드 개발 가능_
@@ -199,14 +198,7 @@ React.useEffect(() => {
 
 ### 1. 환경 변수 설정
 
-```bash
-# .env.local 파일 생성 (개발 환경)
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-NEXT_PUBLIC_ENABLE_MSW=true
-NEXT_PUBLIC_USER_SEQ=1
-NEXT_PUBLIC_APP_NAME=ReelNote (Dev)
-NEXT_PUBLIC_APP_VERSION=0.1.0
-```
+환경 변수 목록, 환경별 샘플 `.env` 파일, MSW 기본 동작 등 자세한 설명은 `src/lib/env/README.md`를 참고하세요. 개발 환경에서 빠르게 시작하려면 위 문서를 따라 `.env.local`을 생성하면 됩니다.
 
 ### 2. 개발 서버 실행
 
@@ -269,13 +261,7 @@ pnpm format
 
 ### 환경 변수
 
-| 변수명                     | 필수 | 설명                        |
-| -------------------------- | ---- | --------------------------- |
-| `NEXT_PUBLIC_API_BASE_URL` | ✅   | API 기본 URL                |
-| `NEXT_PUBLIC_ENABLE_MSW`   | ❌   | MSW 활성화 여부 (개발 환경) |
-| `NEXT_PUBLIC_USER_SEQ`     | ❌   | 사용자 시퀀스 (개발용)      |
-| `NEXT_PUBLIC_APP_NAME`     | ✅   | 앱 이름                     |
-| `NEXT_PUBLIC_APP_VERSION`  | ✅   | 앱 버전                     |
+공식 환경 변수 정의와 기본값, 실행 시 주의사항은 `src/lib/env/README.md`에서 관리합니다. 이 문서에서는 표 대신 해당 문서를 참조하도록 유지합니다.
 
 ### 주요 설정값
 

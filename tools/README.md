@@ -18,6 +18,10 @@ tools/
 
 ## 공통 설정
 
+- Nx 워크스페이스에서 공유하는 설정은 `tools/` 하위에 두고 각 프로젝트가 상속합니다.
+- 새로운 언어/플랫폼 설정을 추가할 때는 하위 디렉터리를 만들고 README에 반영하세요.
+- 공통 설정 업데이트 시 영향 범위를 파악하기 위해 Nx `affected` 명령어(`pnpm nx affected:test` 등)를 활용하세요.
+
 ## TypeScript 설정
 
 - **eslint.config.mjs**: 모든 TypeScript/JavaScript 프로젝트의 공통 ESLint 규칙
