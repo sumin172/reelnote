@@ -18,12 +18,11 @@ src/main/kotlin/app/reelnote/review/
 ├── domain/                   # 도메인 계층
 │   ├── Review.kt             # 리뷰 엔티티
 │   ├── BaseEntity.kt         # 공통 메타데이터 클래스
-│   ├── Movie.kt              # 영화 도메인 모델 (참고용)
 │   └── ReviewRepository.kt   # 리포지토리 인터페이스
 ├── application/              # 애플리케이션 계층
-│   ├── ReviewService.kt      # 리뷰 서비스
-│   └── MovieService.kt       # 영화 서비스 (참고용)
+│   └── ReviewService.kt      # 리뷰 서비스
 ├── infrastructure/           # 인프라 계층
+│   ├── catalog/              # Catalog 서비스 클라이언트
 │   └── config/               # 설정 클래스들
 ├── interfaces/               # 인터페이스 계층
 │   ├── rest/                 # REST 컨트롤러
@@ -65,8 +64,8 @@ data class Rating(val value: Int) {
    - *비즈니스 규칙을 도메인 객체에 캡슐화하여 유지보수성 향상*
 2. **고급 JPA**: @Embeddable, @ElementCollection, Optimistic Locking
    - *동시성 제어와 데이터 무결성 보장*
-3. **비동기 처리**: WebClient + Coroutines (외부 API 호출용)
-   - *외부 서비스 연동 시 응답 시간 최적화*
+3. **카탈로그 연동**: WebClient + Coroutines (Catalog 서비스 호출)
+   - *영화 메타데이터는 Catalog 서비스에서 일괄 관리*
 4. **캐싱 전략**: 다층 캐싱으로 성능 최적화
    - *리뷰 조회 성능 3배 향상*
 5. **예외 처리**: @RestControllerAdvice + 도메인 예외
@@ -156,7 +155,7 @@ fun deleteReview(id: Long, userSeq: Long) {
 
 ### 4. 참고사항
 
-- **TMDB API**: 현재는 테스트용으로만 사용되며, 추후 별도 Catalog 서비스로 분리 예정
+- **Catalog 연동**: 영화 메타데이터는 `catalog-service`에서 조회합니다.
 - **사용자 인증**: 현재는 `X-User-Seq` 헤더로 사용자 식별 (추후 인증 서비스 연동 예정)
 
 ## 📚 API 사용법
@@ -211,13 +210,6 @@ curl -X DELETE http://localhost:8080/api/v1/reviews/1 \
   -H "X-User-Seq: 1"
 ```
 
-### 참고: 영화 검색 (테스트용)
-
-```bash
-# TMDB API를 통한 영화 검색 (추후 Catalog 서비스로 분리 예정)
-curl "http://localhost:8080/api/v1/movies/search?query=인셉션&page=1&language=ko-KR"
-```
-
 ## 🧪 테스트
 
 ```bash
@@ -250,9 +242,9 @@ spring:
   application:
     name: review-service
 
-tmdb:
+catalog:
   api:
-    base-url: https://api.themoviedb.org/3
-    key: ${TMDB_API_KEY}
-    timeout: 10s
+    base-url: http://localhost:3001/api
+    timeout: 5s
+    connect-timeout: 5s
 ```

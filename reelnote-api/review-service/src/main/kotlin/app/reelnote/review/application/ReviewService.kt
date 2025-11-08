@@ -1,9 +1,11 @@
 package app.reelnote.review.application
 
-import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.domain.Rating
 import app.reelnote.review.domain.Review
+import app.reelnote.review.domain.ReviewRepository
+import app.reelnote.review.infrastructure.catalog.CatalogClient
 import app.reelnote.review.interfaces.dto.*
+import app.reelnote.review.shared.exception.ExternalApiException
 import app.reelnote.review.shared.exception.ReviewNotFoundException
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
@@ -22,7 +24,7 @@ import java.util.*
 @Transactional(readOnly = true)
 class ReviewService(
     private val reviewRepository: ReviewRepository,
-    private val movieService: MovieService,
+    private val catalogClient: CatalogClient,
     private val messageSource: MessageSource
 ) {
     
@@ -103,12 +105,22 @@ class ReviewService(
         val sort = toSort(request.sortBy, request.sortDirection)
         val pageable = PageRequest.of(request.page, request.size, sort)
 
-        // movieTitle이 있으면 TMDB에서 영화 ID 목록을 해석한다
+        // movieTitle이 있으면 Catalog 서비스 검색 결과를 통해 영화 ID 목록을 확보한다
         val movieIds: List<Long>? = if (!request.movieTitle.isNullOrBlank()) {
-            val searchResp = movieService.searchMovies(
-                MovieSearchRequest(query = request.movieTitle, page = 1, language = request.language)
-            )
-            searchResp.results.map { it.id }.take(request.maxMovieIds)
+            try {
+                val response = catalogClient.searchMovies(
+                    query = request.movieTitle,
+                    page = 1,
+                    language = request.language
+                )
+                response.aggregateMovieIds().take(request.maxMovieIds)
+            } catch (ex: ExternalApiException) {
+                logger.warn("Catalog 서비스 검색 실패로 영화 ID 필터를 생략합니다.", ex)
+                null
+            } catch (ex: Exception) {
+                logger.warn("Catalog 서비스 호출 중 알 수 없는 오류가 발생하여 영화 ID 필터를 생략합니다.", ex)
+                null
+            }
         } else null
 
         val page = reviewRepository.findMyReviewsWithFilters(

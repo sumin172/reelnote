@@ -11,25 +11,28 @@ import type { ReviewCreateInput } from "@/domains/review/schema";
 export function createHandlers(): RequestHandler[] {
   return [
     // ===== 카탈로그 API =====
-    http.get(/\/api\/v1\/movies\/search(\?.*)?$/, ({ request }) => {
+    http.get(/\/api\/v1\/search(\?.*)?$/, ({ request }) => {
       const url = new URL(request.url);
-      const query = url.searchParams.get("query") ?? "";
+      const query = url.searchParams.get("q") ?? "";
       const page = Number(url.searchParams.get("page") ?? "1");
 
-      // 검색어에 따른 동적 결과 생성
-      const results = Array.from({ length: 10 }).map((_, i) => ({
-        id: (page - 1) * 10 + i + 1,
-        title: query ? `${query} 관련 영화 ${i + 1}` : `영화 ${i + 1}`,
-        posterPath: null,
-        overview: `이것은 ${query || "일반"} 영화에 대한 설명입니다.`,
-        releaseDate: "2024-01-01",
-      }));
-
       return HttpResponse.json({
+        query,
         page,
-        totalPages: 5,
-        totalResults: 50,
-        results,
+        local: Array.from({ length: 5 }).map((_, i) => ({
+          tmdbId: (page - 1) * 10 + i + 1,
+          title: query ? `${query} (로컬) ${i + 1}` : `로컬 영화 ${i + 1}`,
+          originalTitle: null,
+          posterPath: null,
+          year: 2024,
+        })),
+        tmdb: Array.from({ length: 5 }).map((_, i) => ({
+          tmdbId: (page - 1) * 10 + i + 101,
+          title: query ? `${query} (TMDB) ${i + 1}` : `TMDB 영화 ${i + 1}`,
+          originalTitle: null,
+          posterPath: null,
+          year: 2024,
+        })),
       });
     }),
 
@@ -99,7 +102,7 @@ export function createHandlers(): RequestHandler[] {
     }),
 
     // ===== 에러 핸들링 =====
-    http.get(/\/api\/v1\/.*/, ({ request }) => {
+    http.get(/\/api\/v[12]\/.*/, ({ request }) => {
       console.warn(`🚨 MSW: 처리되지 않은 API 요청: ${request.url}`);
       return HttpResponse.json(
         { error: "API 엔드포인트를 찾을 수 없습니다." },

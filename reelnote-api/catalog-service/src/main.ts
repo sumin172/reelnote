@@ -1,4 +1,4 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
@@ -9,6 +9,13 @@ async function bootstrap() {
   // 글로벌 접두사
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
+
+  // API 버전 관리
+  const defaultVersion = '1';
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion,
+  });
 
   // CORS 설정
   app.enableCors({
@@ -40,7 +47,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
-  Logger.log(`🚀 Catalog Service is running on: http://localhost:${port}/${globalPrefix}`);
+  Logger.log(`🚀 Catalog Service is running on: http://localhost:${port}/${globalPrefix}/v${defaultVersion}`);
   Logger.log(`📚 Swagger Docs: http://localhost:${port}/${globalPrefix}/docs`);
 }
 

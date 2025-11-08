@@ -7,7 +7,7 @@ export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { baseUrl = config.apiBaseUrl, headers, ...rest } = options;
+  const { baseUrl = config.reviewApiBaseUrl, headers, ...rest } = options;
   const isBrowser = typeof window !== "undefined";
 
   // MSW 활성화 여부 확인

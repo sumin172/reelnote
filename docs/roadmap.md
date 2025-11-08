@@ -12,6 +12,9 @@
 - 도구 설정 공통화 (`tools/ts/*`, 루트 `tsconfig.base.json` 상속 구조)
 - 루트 `.editorconfig`, `.gitattributes` 정비
 - Nx + pnpm 기반 워크스페이스 정리
+- Catalog·Review API 버전 전략 정비 (`/api/v1` URI 통일, 호출부에서 버전 관리)
+- 프론트엔드 환경 변수 및 API 클라이언트 재정비 (`NEXT_PUBLIC_REVIEW_API_BASE_URL`, `NEXT_PUBLIC_CATALOG_API_BASE_URL`)
+- Catalog ↔ Review 연동 안정성 강화 (WebClient 타임아웃, 공통 base URL 적용)
 
 ## 🚧 진행 중인 작업
 

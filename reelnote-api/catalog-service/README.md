@@ -46,9 +46,9 @@ Catalog Service는 TMDB API를 통해 영화 데이터를 관리하고, 내부 �
    ```
 5. **기본 동작 확인**
    ```bash
-   curl http://localhost:3001/api/health
-   curl http://localhost:3001/api/movies/550
-   curl -X POST http://localhost:3001/api/sync/trending
+   curl http://localhost:3001/api/v1/health
+   curl http://localhost:3001/api/v1/movies/550
+   curl -X POST http://localhost:3001/api/v1/sync/trending
    ```
 
 ## 프로젝트 구조
@@ -185,9 +185,9 @@ nx serve catalog-service
 자동 재시작이 필요하면 위 명령으로 Daemon을 먼저 시작하세요.
 
 서비스가 시작되면:
-- API: `http://localhost:3001/api`
+- API: `http://localhost:3001/api/v1`
 - Swagger 문서: `http://localhost:3001/api/docs`
-- 헬스체크: `http://localhost:3001/api/health`
+- 헬스체크: `http://localhost:3001/api/v1/health`
 
 ### 프로덕션 빌드
 

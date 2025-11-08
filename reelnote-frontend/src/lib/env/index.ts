@@ -10,7 +10,8 @@ const isTest = process.env.NODE_ENV === "test";
 const isServer = typeof window === "undefined";
 
 const fallbackEnvVars = {
-  NEXT_PUBLIC_API_BASE_URL: "http://localhost:8080",
+  NEXT_PUBLIC_REVIEW_API_BASE_URL: "http://localhost:8080/api",
+  NEXT_PUBLIC_CATALOG_API_BASE_URL: "http://localhost:3001/api",
   NEXT_PUBLIC_APP_NAME: "ReelNote",
   NEXT_PUBLIC_APP_VERSION: "0.1.0",
 } as const;
@@ -22,9 +23,7 @@ function reportMissingEnvVars() {
 
   const missingEntries = Object.entries(fallbackEnvVars)
     .filter(([key]) => !process.env[key])
-    .map(
-      ([key, fallback]) => `${key} → 기본값(${fallback})`,
-    );
+    .map(([key, fallback]) => `${key} → 기본값(${fallback})`);
 
   if (missingEntries.length > 0 && isDevelopment) {
     console.warn(
@@ -39,9 +38,7 @@ function reportMissingEnvVars() {
 reportMissingEnvVars();
 
 // 환경 변수에 대한 안전한 접근자 함수들
-function getEnvVar<Key extends keyof typeof fallbackEnvVars>(
-  key: Key,
-): string {
+function getEnvVar<Key extends keyof typeof fallbackEnvVars>(key: Key): string {
   const value = process.env[key];
   if (!value) {
     return fallbackEnvVars[key];
@@ -49,8 +46,12 @@ function getEnvVar<Key extends keyof typeof fallbackEnvVars>(
   return value;
 }
 
-function getApiBaseUrl(): string {
-  return getEnvVar("NEXT_PUBLIC_API_BASE_URL");
+function getReviewApiBaseUrl(): string {
+  return getEnvVar("NEXT_PUBLIC_REVIEW_API_BASE_URL");
+}
+
+function getCatalogApiBaseUrl(): string {
+  return getEnvVar("NEXT_PUBLIC_CATALOG_API_BASE_URL");
 }
 
 function getAppName(): string {
@@ -63,8 +64,12 @@ function getAppVersion(): string {
 
 export const config = {
   // API 설정 (안전한 접근자 사용)
-  get apiBaseUrl() {
-    return getApiBaseUrl();
+  get reviewApiBaseUrl() {
+    return getReviewApiBaseUrl();
+  },
+
+  get catalogApiBaseUrl() {
+    return getCatalogApiBaseUrl();
   },
 
   // MSW 설정 (환경 변수 우선, 기본은 비-프로덕션에서 활성화)

@@ -14,15 +14,15 @@ export async function fetchReviews(
   if (params.page != null) search.set("page", String(params.page));
   if (params.size != null) search.set("size", String(params.size));
   const qs = search.toString();
-  // Real API: personal reviews under /api/v1/reviews/my (requires X-User-Seq)
-  const path = `/api/v1/reviews/my${qs ? `?${qs}` : ""}`;
+  // Real API: personal reviews under /api/v1/reviews/my (base URL already includes /api)
+  const path = `/v1/reviews/my${qs ? `?${qs}` : ""}`;
   return apiFetch<Page<Review>>(path);
 }
 
 export async function createReview(
   payload: Pick<Review, "movieId" | "rating" | "reason" | "tags" | "watchedAt">,
 ) {
-  return apiFetch<Review>(`/api/v1/reviews`, {
+  return apiFetch<Review>(`/v1/reviews`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

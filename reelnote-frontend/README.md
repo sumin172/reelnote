@@ -108,8 +108,8 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 // lib/env/index.ts
 export const config = {
   // API 설정 (안전한 접근자 사용)
-  get apiBaseUrl() {
-    return getApiBaseUrl();
+  get reviewApiBaseUrl() {
+    return getReviewApiBaseUrl();
   },
 
   // MSW 설정 (개발 환경에서만)
@@ -133,7 +133,7 @@ export const config = {
 
 // 사용 예시
 import { config } from "@/lib/env";
-const apiUrl = config.apiBaseUrl; // 타입 안전하게 접근
+const reviewApiUrl = config.reviewApiBaseUrl; // 타입 안전하게 접근
 ```
 
 **장점:**
@@ -268,7 +268,10 @@ pnpm format
 ```typescript
 // lib/api/client.ts
 const config = {
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080",
+  reviewApiBaseUrl:
+    process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL || "http://localhost:8080/api",
+  catalogApiBaseUrl:
+    process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL || "http://localhost:3001/api",
   userSeq: process.env.NEXT_PUBLIC_USER_SEQ
     ? parseInt(process.env.NEXT_PUBLIC_USER_SEQ, 10)
     : null,

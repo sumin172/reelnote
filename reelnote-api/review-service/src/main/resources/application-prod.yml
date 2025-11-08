@@ -19,10 +19,12 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# TMDB API 키 (환경변수에서 가져옴)
-tmdb:
+# Catalog 서비스 설정
+catalog:
   api:
-    key: ${TMDB_API_KEY}
+    base-url: ${CATALOG_API_BASE_URL:http://catalog-service:3001/api}
+    timeout: ${CATALOG_API_TIMEOUT:5s}
+    connect-timeout: ${CATALOG_API_CONNECT_TIMEOUT:5s}
 
 # Actuator 보안 설정
 management:

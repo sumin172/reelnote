@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("리뷰 목록 페이지가 렌더되고 카드가 보인다", async ({ page }) => {
-  await page.route("**/api/v1/reviews/my**", async (route) => {
+  await page.route("**/v1/reviews/my**", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -28,11 +28,11 @@ test("리뷰 목록 페이지가 렌더되고 카드가 보인다", async ({ pag
 
   await page.goto("/reviews");
   await expect(page.getByRole("heading", { name: "리뷰 목록" })).toBeVisible();
-  await expect(page.locator("li >> nth=0")).toBeVisible();
+  await expect(page.locator("li").first()).toBeVisible();
 });
 
 test("리뷰 작성 플로우", async ({ page }) => {
-  await page.route("**/api/v1/reviews/my**", async (route) => {
+  await page.route("**/v1/reviews/my**", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -46,25 +46,43 @@ test("리뷰 작성 플로우", async ({ page }) => {
     });
   });
 
-  await page.route("**/api/v1/reviews", async (route) => {
-    if (route.request().method() === "POST") {
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: 999,
-          movieId: 12345,
-          rating: 4,
-          reason: "플레이wright 테스트",
-          tags: [],
-          watchedAt: "2024-01-15",
-          createdAt: "2024-01-15T00:00:00Z",
-        }),
-      });
-    } else {
-      await route.fallback();
-    }
-  });
+  await page.addInitScript(
+    ({ responseBody }) => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (input, init) => {
+        const request =
+          typeof input === "string" || input instanceof URL
+            ? null
+            : (input as Request);
+        const url = request ? request.url : String(input);
+        const method = (init?.method ?? request?.method ?? "GET").toUpperCase();
+
+        if (
+          typeof url === "string" &&
+          /\/(api\/)?v1\/reviews$/.test(url) &&
+          method === "POST"
+        ) {
+          return new Response(JSON.stringify(responseBody), {
+            status: 201,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+
+        return originalFetch(input, init);
+      };
+    },
+    {
+      responseBody: {
+        id: 999,
+        movieId: 12345,
+        rating: 4,
+        reason: "플레이wright 테스트",
+        tags: [],
+        watchedAt: "2024-01-15",
+        createdAt: "2024-01-15T00:00:00Z",
+      },
+    },
+  );
 
   await page.goto("/reviews");
   await page.getByRole("link", { name: "새 리뷰 작성" }).click();

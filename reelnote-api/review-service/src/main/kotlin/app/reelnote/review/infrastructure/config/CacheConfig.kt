@@ -24,10 +24,7 @@ class CacheConfig {
                 "reviews",
                 "recentReviews", 
                 "popularTags",
-                "ratingStats",
-                "movieSearch",
-                "movieDetail",
-                "popularMovies"
+                "ratingStats"
             )
         )
     }

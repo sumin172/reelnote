@@ -23,7 +23,7 @@ src/lib/msw/
 
 ## 현재 지원하는 API
 
-- `GET /api/v1/movies/search` - 영화 검색
+- `GET /api/v1/search` - 영화 검색 (Catalog 서비스)
 - `GET /api/v1/reviews/my` - 내 리뷰 목록
 - `POST /api/v1/reviews` - 리뷰 생성
 

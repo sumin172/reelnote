@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { catalogQueryKeys, searchMovies } from "@/domains/catalog/services";
+import type { CatalogMovie } from "@/domains/catalog/types";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -31,22 +32,56 @@ export default function CatalogSearch() {
       {isFetching && (
         <div className="text-sm text-muted-foreground">검색 중...</div>
       )}
-      <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 list-none p-0">
-        {data?.results?.map((m) => (
-          <li key={m.id} className="list-none">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">{m.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <CardDescription className="text-xs">
-                  {m.releaseDate}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </li>
-        ))}
-      </ul>
+      {data && (
+        <div className="space-y-6">
+          <SearchSection
+            title="카탈로그"
+            movies={data.local}
+            emptyMessage="로컬 카탈로그에 등록된 결과가 없습니다."
+          />
+          <SearchSection
+            title="TMDB"
+            movies={data.tmdb}
+            emptyMessage="TMDB에서 일치하는 결과를 찾지 못했습니다."
+          />
+        </div>
+      )}
     </div>
+  );
+}
+
+type SearchSectionProps = {
+  title: string;
+  movies: CatalogMovie[];
+  emptyMessage: string;
+};
+
+function SearchSection({ title, movies, emptyMessage }: SearchSectionProps) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-lg font-medium">{title}</h2>
+      {movies.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+      ) : (
+        <ul className="grid grid-cols-2 md:grid-cols-4 gap-3 list-none p-0">
+          {movies.map((movie) => (
+            <li key={`${title}-${movie.tmdbId}`} className="list-none">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm line-clamp-2">
+                    {movie.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <CardDescription className="text-xs">
+                    {movie.year ?? "연도 정보 없음"}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

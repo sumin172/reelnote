@@ -1,8 +1,9 @@
 package app.reelnote.review.application
 
+import app.reelnote.review.domain.Rating
 import app.reelnote.review.domain.Review
 import app.reelnote.review.domain.ReviewRepository
-import app.reelnote.review.domain.Rating
+import app.reelnote.review.infrastructure.catalog.CatalogClient
 import app.reelnote.review.interfaces.dto.CreateReviewRequest
 import app.reelnote.review.interfaces.dto.UpdateReviewRequest
 import app.reelnote.review.shared.exception.ReviewNotFoundException
@@ -22,9 +23,9 @@ import kotlin.test.assertNotNull
 class ReviewServiceTest {
     
     private val reviewRepository = mockk<ReviewRepository>()
-    private val movieService = mockk<MovieService>()
+    private val catalogClient = mockk<CatalogClient>()
     private val messageSource = mockk<MessageSource>()
-    private val reviewService = ReviewService(reviewRepository, movieService, messageSource)
+    private val reviewService = ReviewService(reviewRepository, catalogClient, messageSource)
     
     @Test
     fun `리뷰 생성 성공`() {
@@ -68,7 +69,7 @@ class ReviewServiceTest {
         verify { reviewRepository.findByUserSeqAndMovieId(userSeq, 12345L) }
         verify { reviewRepository.save(any()) }
         // 외부 호출 없음
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -97,7 +98,7 @@ class ReviewServiceTest {
         }
         
         verify { reviewRepository.findByUserSeqAndMovieId(userSeq, 12345L) }
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -136,7 +137,7 @@ class ReviewServiceTest {
         
         verify { reviewRepository.findById(reviewId) }
         verify { reviewRepository.save(any()) }
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -165,7 +166,7 @@ class ReviewServiceTest {
         }
         
         verify { reviewRepository.findById(reviewId) }
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -189,7 +190,7 @@ class ReviewServiceTest {
         // Then
         verify { reviewRepository.findById(reviewId) }
         verify { reviewRepository.delete(existingReview) }  // @SQLDelete가 자동으로 소프트 삭제 처리
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -213,7 +214,7 @@ class ReviewServiceTest {
         }
         
         verify { reviewRepository.findById(reviewId) }
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
     @Test
@@ -229,7 +230,7 @@ class ReviewServiceTest {
         }
         
         verify { reviewRepository.findById(reviewId) }
-        verify { movieService wasNot Called }
+        verify { catalogClient wasNot Called }
     }
     
 }
