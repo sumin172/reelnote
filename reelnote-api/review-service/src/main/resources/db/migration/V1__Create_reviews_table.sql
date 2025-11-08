@@ -1,6 +1,5 @@
--- 리뷰 테이블 생성
-CREATE TABLE reviews (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS app.reviews (
+    id BIGSERIAL PRIMARY KEY,
     user_seq BIGINT NOT NULL,
     movie_id BIGINT NOT NULL,
     rating_value INT NOT NULL CHECK (rating_value BETWEEN 1 AND 5),
@@ -24,24 +23,24 @@ CREATE TABLE reviews (
 );
 
 -- 리뷰 태그 테이블 생성
-CREATE TABLE review_tags (
+CREATE TABLE IF NOT EXISTS app.review_tags (
     review_id BIGINT NOT NULL,
     tag VARCHAR(50) NOT NULL,
     
     PRIMARY KEY (review_id, tag),
-    FOREIGN KEY (review_id) REFERENCES reviews(id) ON DELETE CASCADE
+    FOREIGN KEY (review_id) REFERENCES app.reviews(id) ON DELETE CASCADE
 );
 
 -- 인덱스 생성
-CREATE INDEX idx_reviews_user_seq ON reviews (user_seq);
-CREATE INDEX idx_reviews_movie_id ON reviews (movie_id);
-CREATE INDEX idx_reviews_rating ON reviews (rating_value);
-CREATE INDEX idx_reviews_watched_at ON reviews (watched_at);
-CREATE INDEX idx_reviews_deleted ON reviews (deleted);
-CREATE INDEX idx_reviews_event_published ON reviews (event_published);
-CREATE INDEX idx_reviews_tag ON review_tags (tag);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_seq ON app.reviews (user_seq);
+CREATE INDEX IF NOT EXISTS idx_reviews_movie_id ON app.reviews (movie_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_rating ON app.reviews (rating_value);
+CREATE INDEX IF NOT EXISTS idx_reviews_watched_at ON app.reviews (watched_at);
+CREATE INDEX IF NOT EXISTS idx_reviews_deleted ON app.reviews (deleted);
+CREATE INDEX IF NOT EXISTS idx_reviews_event_published ON app.reviews (event_published);
+CREATE INDEX IF NOT EXISTS idx_reviews_tag ON app.review_tags (tag);
 
 -- 복합 인덱스 (자주 사용되는 쿼리 패턴)
-CREATE INDEX idx_reviews_movie_rating ON reviews (movie_id, rating_value);
-CREATE INDEX idx_reviews_user_deleted ON reviews(user_seq, deleted);
-CREATE INDEX idx_reviews_movie_deleted ON reviews(movie_id, deleted);
+CREATE INDEX IF NOT EXISTS idx_reviews_movie_rating ON app.reviews (movie_id, rating_value);
+CREATE INDEX IF NOT EXISTS idx_reviews_user_deleted ON app.reviews(user_seq, deleted);
+CREATE INDEX IF NOT EXISTS idx_reviews_movie_deleted ON app.reviews(movie_id, deleted);
