@@ -37,11 +37,18 @@ function mapMovie(
   };
 }
 
+type SearchMoviesOptions = {
+  language?: string;
+  signal?: AbortSignal;
+};
+
 export async function searchMovies(
   q: string,
   page = 1,
-  language = "ko-KR",
+  options: SearchMoviesOptions = {},
 ): Promise<SearchResponse> {
+  const { language = "ko-KR", signal } = options;
+
   const params = new URLSearchParams({
     q,
     page: String(page),
@@ -52,6 +59,7 @@ export async function searchMovies(
     `/v1/search?${params.toString()}`,
     {
       baseUrl: config.catalogApiBaseUrl,
+      signal,
     },
   );
 

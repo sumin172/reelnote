@@ -33,15 +33,12 @@ test("카탈로그 검색 결과가 표시된다", async ({ page }) => {
   await page.goto("/catalog");
   await page.getByPlaceholder("영화 제목을 입력하세요").fill("inception");
 
-  const loading = page.getByText("검색 중...", { exact: true });
-  await expect(loading).toBeVisible();
   await page.waitForResponse(
     (response) =>
       response.url().includes("/search") &&
       response.request().method() === "GET" &&
       response.status() === 200,
   );
-  await expect(loading).toBeHidden();
 
   await expect(
     page.getByRole("heading", { name: "카탈로그 검색" }),

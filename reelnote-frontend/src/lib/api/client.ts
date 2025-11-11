@@ -12,7 +12,7 @@ export async function apiFetch<T>(
 
   // MSW 활성화 여부 확인
   const mswEnabled = isBrowser && isMSWEnabled;
-  const baseUrlToUse = mswEnabled ? "" : baseUrl;
+  const baseUrlToUse = mswEnabled ? "/api" : baseUrl;
   const url = `${baseUrlToUse}${path}`;
 
   const res = await fetch(url, {

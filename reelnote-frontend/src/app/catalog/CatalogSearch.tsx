@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import type { ChangeEvent, CompositionEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { catalogQueryKeys, searchMovies } from "@/domains/catalog/services";
-import type { CatalogMovie } from "@/domains/catalog/types";
+import type { CatalogMovie, SearchResponse } from "@/domains/catalog/types";
 import { Input } from "@/components/ui/input";
 import {
   Card,
@@ -12,13 +13,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useDebouncedValue } from "@/lib/hooks/useDebounce";
 
 export default function CatalogSearch() {
-  const [q, setQ] = useState("");
-  const { data, isFetching } = useQuery({
-    queryKey: catalogQueryKeys.search(q, 1),
-    queryFn: () => searchMovies(q, 1),
-    enabled: q.length > 0,
+  const [inputValue, setInputValue] = useState("");
+  const [isComposing, setIsComposing] = useState(false);
+  const [committedQuery, setCommittedQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(committedQuery, 400);
+  const canSearch = !isComposing && debouncedQuery.trim().length > 0;
+
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setInputValue(value);
+    if (!isComposing) {
+      setCommittedQuery(value);
+    }
+  };
+
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = (event: CompositionEvent<HTMLInputElement>) => {
+    const { value } = event.currentTarget;
+    setIsComposing(false);
+    setInputValue(value);
+    setCommittedQuery(value);
+  };
+
+  const { data, isFetching } = useQuery<SearchResponse>({
+    queryKey: catalogQueryKeys.search(debouncedQuery, 1),
+    queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
+    enabled: canSearch,
+    staleTime: 1000 * 30,
   });
 
   return (
@@ -26,8 +53,10 @@ export default function CatalogSearch() {
       <h1 className="text-2xl font-semibold">카탈로그 검색</h1>
       <Input
         placeholder="영화 제목을 입력하세요"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
+        value={inputValue}
+        onChange={handleChange}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
       />
       {isFetching && (
         <div className="text-sm text-muted-foreground">검색 중...</div>
