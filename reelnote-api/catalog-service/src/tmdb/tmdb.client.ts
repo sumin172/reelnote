@@ -52,13 +52,23 @@ export class TmdbClient implements OnModuleDestroy {
     this.axios = this.httpService.axiosRef;
     const parsedRetries = Number(this.configService.get<string>('TMDB_API_MAX_RETRY'));
     const resolvedRetries = Number.isFinite(parsedRetries) && parsedRetries >= 0 ? Math.floor(parsedRetries) : 3;
+    const retryDelayWithJitter = (retryCount: number) => {
+      const baseDelay = exponentialDelay(retryCount);
+      const jitter = Math.floor(Math.random() * 300);
+      return baseDelay + jitter;
+    };
+
     axiosRetry(this.axios, {
       retries: resolvedRetries,
-      retryDelay: exponentialDelay,
-      retryCondition: error =>
-        isNetworkOrIdempotentRequestError(error) ||
-        error.response?.status === 429 ||
-        (error.response?.status ?? 0) >= 500,
+      retryDelay: retryDelayWithJitter,
+      retryCondition: error => {
+        if (isNetworkOrIdempotentRequestError(error)) {
+          return true;
+        }
+
+        const status = error.response?.status ?? 0;
+        return status === 429 || status >= 500;
+      },
       onRetry: (retryCount, error, requestConfig) => {
         const status = isAxiosError(error) ? error.response?.status : undefined;
         this.logger.warn(`TMDB API 재시도 ${retryCount}/${resolvedRetries} - status=${status ?? 'unknown'} url=${requestConfig?.url}`);

@@ -35,7 +35,7 @@ export class GetMovieUseCase {
       if (movie.isStale(staleThresholdDays)) {
         this.logger.log(`Movie ${tmdbId} is stale. Triggering background sync.`);
         this.syncMovieUseCase
-          .execute({ tmdbId, language, cacheTtlSeconds })
+          .execute({ tmdbId, language, cacheTtlSeconds, strategy: 'single' })
           .catch(error => this.logger.error(`Failed to refresh movie ${tmdbId} in background`, error));
       }
 
@@ -44,7 +44,7 @@ export class GetMovieUseCase {
       return snapshot;
     }
 
-    return this.syncMovieUseCase.execute({ tmdbId, language, cacheTtlSeconds });
+    return this.syncMovieUseCase.execute({ tmdbId, language, cacheTtlSeconds, strategy: 'single' });
   }
 }
 

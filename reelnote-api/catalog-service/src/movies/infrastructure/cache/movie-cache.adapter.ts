@@ -19,6 +19,7 @@ export class MovieCacheAdapter extends MovieCachePort {
     return {
       ...value,
       syncedAt: new Date(value.syncedAt),
+      sourceUpdatedAt: value.sourceUpdatedAt ? new Date(value.sourceUpdatedAt) : value.sourceUpdatedAt ?? undefined,
       genres: [...(value.genres ?? [])],
       keywords: [...(value.keywords ?? [])],
     };
@@ -27,7 +28,12 @@ export class MovieCacheAdapter extends MovieCachePort {
   async set(tmdbId: number, language: string, snapshot: MovieSnapshot, ttlSeconds: number): Promise<void> {
     const key = this.buildKey(tmdbId, language);
     const { rawPayload, ...cached } = snapshot;
-    await this.cacheService.set(key, cached, ttlSeconds);
+    const payload = {
+      ...cached,
+      syncedAt: cached.syncedAt.toISOString(),
+      sourceUpdatedAt: cached.sourceUpdatedAt ? cached.sourceUpdatedAt.toISOString() : cached.sourceUpdatedAt ?? undefined,
+    };
+    await this.cacheService.set(key, payload, ttlSeconds);
   }
 
   private buildKey(tmdbId: number, language: string): string {

@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma.service';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../../database/prisma.service';
+
+export type CatalogPrismaTransaction = Prisma.TransactionClient;
 
 @Injectable()
-export class CatalogCorePrismaService {
+export class CatalogPrismaAccessor {
   constructor(private readonly prisma: PrismaService) {}
 
   get movie() {
@@ -33,12 +36,24 @@ export class CatalogCorePrismaService {
     return this.prisma.movieCrew;
   }
 
+  get movieFeature() {
+    return this.prisma.movieFeature;
+  }
+
+  get userProfile() {
+    return this.prisma.userProfile;
+  }
+
   async ensureConnection(): Promise<void> {
     await this.prisma.$connect();
   }
 
   async countMovies(): Promise<number> {
     return this.prisma.movie.count();
+  }
+
+  async runInTransaction<T>(handler: (tx: CatalogPrismaTransaction) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(handler);
   }
 }
 

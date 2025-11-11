@@ -1,225 +1,168 @@
 # Catalog Service
 
-ReelNote의 영화 메타데이터 관리 마이크로서비스입니다.
+> Hexagonal Architecture와 Resilience 패턴으로 구성된 ReelNote의 영화 메타데이터 마이크로서비스
 
-## 개요
+Catalog Service는 TMDB API를 통해 영화 메타데이터를 수집·정제해 플랫폼 전반의 **Source of Truth**를 제공합니다. Review Service와 동일한 포트/어댑터 언어를 사용하여 학습 경험을 자연스럽게 이어가도록 구성했습니다.
 
-Catalog Service는 TMDB API를 통해 영화 데이터를 관리하고, 내부 서비스들이 사용할 수 있는 권위 소스(Source of Truth) 역할을 합니다.
+## 🛠 기술 스택
 
-### 주요 기능
+- **Runtime**: Node.js 20 + TypeScript 5.x
+- **Framework**: NestJS 10
+- **Persistence**: PostgreSQL + Prisma ORM
+- **Cache**: Redis (옵션) + In-memory fallback
+- **Resilience**: Axios + `axios-retry`, `opossum`, `p-limit`
+- **Orchestration**: Nx Workspace + pnpm
 
-- **Lazy Hydration**: 요청 시 TMDB에서 데이터를 가져와 로컬 DB에 저장
-- **Warm Pool**: 트렌딩/인기 영화 주기적 동기화
-- **캐싱**: Redis를 통한 빠른 응답 (p95 ≤ 120ms)
-- **신뢰성**: 서킷브레이커, 레이트리밋, 리트라이, 스테일 데이터 허용
-
-## 기술 스택
-
-- **Framework**: NestJS
-- **Database**: PostgreSQL (Prisma ORM)
-- **Cache**: Redis
-- **External API**: TMDB API
-
-## 빠른 시작
-
-1. **의존성 설치**
-   ```bash
-   # 워크스페이스 루트에서
-   pnpm install
-   ```
-2. **환경 변수 설정**
-   `reelnote-api/catalog-service/.env` 파일을 생성하고 아래 "환경 변수" 섹션 내용을 참고해 값을 채웁니다.
-3. **Prisma 준비**
-   ```bash
-   # (A) 서비스 디렉터리로 이동해 직접 실행
-   cd reelnote-api/catalog-service
-   pnpm exec prisma generate
-   pnpm exec prisma migrate dev --name init
-
-   # 또는 (B) Nx 타깃으로 실행
-   nx run catalog-service:prisma:generate
-   nx run catalog-service:prisma:migrate -- --name init
-   ```
-4. **서비스 실행**
-   ```bash
-   nx serve catalog-service
-   ```
-5. **기본 동작 확인**
-   ```bash
-   curl http://localhost:3001/api/v1/health
-   curl http://localhost:3001/api/v1/movies/550
-   curl -X POST http://localhost:3001/api/v1/sync/trending
-   ```
-
-## 프로젝트 구조
+## 📁 프로젝트 구조
 
 ```
 src/
 ├── main.ts                 # 애플리케이션 진입점
-├── app/
-│   └── app.module.ts      # 루트 모듈
-├── database/              # Prisma 서비스
-├── cache/                 # Redis 캐싱 모듈
-├── tmdb/                  # TMDB API 클라이언트 (레이트리밋, 리트라이, 서킷브레이커)
-├── movies/                # 영화 관리 모듈
-├── sync/                  # 동기화 모듈
-└── search/                # 검색 모듈
+├── app/                    # 루트 모듈
+├── cache/                  # Redis / In-memory 캐시 어댑터
+├── database/               # Prisma 서비스 (DB 어댑터)
+├── movies/                 # 도메인 + 애플리케이션 계층
+├── search/                 # 검색 파사드
+├── sync/                   # Warm Pool 배치/트리거
+└── tmdb/                   # 외부 API 어댑터 (Resilience Layer 포함)
 ```
 
-## 환경 설정
+## 🏗 아키텍처 & 설계
 
-### 환경 변수
+### 다층 Port/Adapter
+- **Domain & Application**: `movies/domain`, `movies/application`에서 엔티티와 UseCase를 정의합니다.
+- **Inbound Ports**: `movies/application`의 파사드/UseCase가 핵심 진입점입니다.
+- **Outbound Ports**: `movies/application/ports`에 저장소, 캐시, 외부 API 포트가 명시됩니다.
+- **Adapters**: `database/`, `cache/`, `tmdb/`가 각각 Prisma, Redis, TMDB 통합을 담당합니다.
 
-`.env` 파일에 다음 값을 설정합니다.
+### Resilience Layer
+- **Concurrency**: `p-limit`을 통한 동시성 제어 (`TMDB_API_MAX_CONCURRENCY`)
+- **Retry**: `axios-retry` 지수 백오프 + 지터 (`TMDB_API_MAX_RETRY`)
+- **Circuit Breaker**: `opossum` 기반 보호 (`TMDB_BREAKER_*`)
+- **Warm Pool**: 인기/트렌딩 콘텐츠를 주기적으로 채우는 배치 파이프라인 (`sync` 모듈)
 
-```bash
-# Database
-DATABASE_URL="postgresql://user:password@localhost:5432/catalog_db?schema=public"
+### 데이터 전략
+- **Lazy Hydration**: 요청 시 캐시 → DB → TMDB 순서로 조회
+- **Warm Pool**: `WARM_POOL_SIZE`만큼 인기/트렌딩 데이터를 미리 적재
+- **Stale Tolerance**: `synced_at`이 만료되었어도 응답 후 비동기 갱신
+- 더 자세한 흐름은 `ARCHITECTURE.md`에서 다루고 있습니다.
 
-# TMDB API
-TMDB_API_KEY=your_tmdb_api_key_here
-TMDB_API_BASE_URL=https://api.themoviedb.org/3
-TMDB_API_TIMEOUT=10000
+## 💡 핵심 구현 특징
 
-# Redis (선택사항)
-# REDIS_URL=redis://localhost:6379
-REDIS_URL=
+1. **Hexagonal 구조**: Review Service와 동일한 Port/Adapter 패턴으로 계층 역할을 명시
+2. **다층 캐싱**: Redis + In-memory 조합으로 p95 ≤ 120ms 목표 달성
+3. **Resilience 내장**: Retry, Circuit Breaker, Rate Limiter를 서비스 내부에 통합
+4. **배치 & 온디맨드 병행**: Warm Pool 스케줄링과 Lazy Hydration이 상호 보완
+5. **확장 로드맵**: Feature Store, 추천/분석 서비스 연동을 위한 스키마 준비
 
-# Application
-PORT=3001
-NODE_ENV=development
-CORS_ORIGIN=http://localhost:3000
+## 🔐 환경 변수
 
-# Catalog Service Settings
-MOVIE_STALE_THRESHOLD_DAYS=7
-WARM_POOL_SIZE=100
-```
+`.env` 파일을 `reelnote-api/catalog-service` 루트에 생성하고 아래 값을 채웁니다.
 
-**필수 환경 변수:**
+### 필수
 - `DATABASE_URL`: PostgreSQL 연결 문자열
-- `TMDB_API_KEY`: TMDB API 키
+- `TMDB_API_KEY`: TMDB API Key
 
-**선택 환경 변수:**
-- `REDIS_URL`: Redis 연결 URL (없으면 인메모리 캐시 사용)
-- `CACHE_TTL_SECONDS`: 캐시 기본 TTL (초, 기본값: 3600)
-- `CACHE_NAMESPACE`: Redis/Keyv 캐시 네임스페이스 (기본값: `catalog-cache`)
-- `MOVIE_CACHE_TTL_SECONDS`: 영화 응답 캐시 TTL (초, 기본값: 3600)
-- `TMDB_API_BASE_URL`: TMDB API 엔드포인트 (기본값: `https://api.themoviedb.org/3`)
-- `TMDB_API_TIMEOUT`: TMDB API 요청 타임아웃 (ms, 기본값: 10000)
-- `TMDB_API_MAX_CONCURRENCY`: TMDB API 동시 요청 제한 (기본값: 10)
-- `TMDB_API_MAX_RETRY`: TMDB API 재시도 횟수 (기본값: 3)
-- `TMDB_BREAKER_TIMEOUT`: 서킷브레이커 요청 제한 시간 (ms, 기본값: `TMDB_API_TIMEOUT + 1000`)
-- `TMDB_BREAKER_RESET_TIMEOUT`: 서킷브레이커 재시도까지 대기 시간 (ms, 기본값: 60000)
-- `TMDB_BREAKER_ERROR_PERCENTAGE`: OPEN 상태로 전환되는 실패 비율 임계값 (기본값: 50)
-- `TMDB_BREAKER_VOLUME_THRESHOLD`: 서킷브레이커가 동작하기 위한 최소 요청 수 (기본값: 10)
-- `PORT`: 서비스 포트 (기본값: 3001)
-
-## 데이터베이스 설정
-
-Prisma 스키마는 TMDB 원본 데이터와 향후 추천·분석 서비스를 대비한 Feature Store 구성을 포함합니다. 주요 테이블은 다음과 같습니다.
-
-### 스키마 구조
-
-- `movie`: 영화 메인 테이블 (TMDB 원본 데이터)
-- `genre`, `keyword`, `person`: 메타데이터 테이블
-- `movie_genre`, `movie_keyword`, `movie_cast`, `movie_crew`: 관계 테이블
-- `movie_feature`: Feature Store (추천 서비스용, 추후 Analysis Service에서 업데이트)
-- `user_profile`: 사용자 프로필 (추천 서비스용)
-
-## API 엔드포인트
-
-### 영화 관리
-
-- `GET /api/movies/:tmdbId` - 영화 상세 조회 (Lazy Hydration)
-- `POST /api/movies/import` - 영화 일괄 인입
-
-### 동기화
-
-- `POST /api/sync/trending` - 트렌딩 영화 동기화
-- `POST /api/sync/popular` - 인기 영화 동기화
-
-### 검색
-
-- `GET /api/search?q=...` - 영화 검색
-
-### 문서
-
-- `GET /api/docs` - Swagger API 문서
-
-> 참고: Nest 초기 스캐폴딩에서 제공되던 루트 라우트(`/api`)는 제거되어 있으며, 모든 HTTP 인터페이스는 도메인 모듈(`movies`, `sync`, `search`, `health`)을 통해서만 노출됩니다.
-
-## 실행
-
-### 전제 조건
-
-1. PostgreSQL 데이터베이스 준비
-2. 환경 변수 설정 (`.env` 파일)
-3. Prisma 클라이언트 생성 및 마이그레이션 완료
-
-### 개발 모드 실행
+### 선택 (주요 항목)
+- `TMDB_API_BASE_URL` (기본값 `https://api.themoviedb.org/3`)
+- `TMDB_API_TIMEOUT` (기본값 `10000`)
+- `TMDB_API_MAX_CONCURRENCY`, `TMDB_API_MAX_RETRY`
+- `TMDB_BREAKER_TIMEOUT`, `TMDB_BREAKER_RESET_TIMEOUT`, `TMDB_BREAKER_ERROR_PERCENTAGE`, `TMDB_BREAKER_VOLUME_THRESHOLD`
+- `MOVIE_IMPORT_CONCURRENCY`, `MOVIE_IMPORT_QUEUE_THRESHOLD`, `MOVIE_IMPORT_CHUNK_SIZE`
+- `WARM_POOL_SIZE`, `MOVIE_STALE_THRESHOLD_DAYS`, `MOVIE_CACHE_TTL_SECONDS`
+- `CACHE_TTL_SECONDS`, `CACHE_NAMESPACE`, `REDIS_URL`
+- `PORT`, `NODE_ENV`, `CORS_ORIGIN`
 
 ```bash
-# 기본 실행 방법
-nx serve catalog-service
+# 예시
+DATABASE_URL="postgresql://user:password@localhost:5432/catalog_db?schema=public"
+TMDB_API_KEY=your_tmdb_api_key
+WARM_POOL_SIZE=100
+MOVIE_IMPORT_CONCURRENCY=5
+```
 
-# 또는 catalog-service 디렉토리에서
+> **학습 팁**
+> 실습/테스트 환경에서는 `MOVIE_IMPORT_CONCURRENCY=1`, `MOVIE_IMPORT_QUEUE_THRESHOLD=20`, `WARM_POOL_SIZE=20`처럼 값의를 낮추면 흐름을 눈으로 추적하기 쉽습니다. 운영(또는 퍼포먼스 테스트)에는 기본값 이상을 사용해 병렬 처리 이점을 누리세요.
+
+전체 목록과 기본값 설명은 `ARCHITECTURE.md` 및 `env.example`을 참고하세요.
+
+## 🚀 실행 방법
+
+### 1. 의존성 설치
+```bash
+pnpm install
+```
+
+### 2. Prisma 준비
+```bash
+# 서비스 디렉터리에서
 cd reelnote-api/catalog-service
-pnpm dev
+pnpm exec prisma generate
+pnpm exec prisma migrate dev --name init
+
+# 또는 Nx 타깃 사용
+nx run catalog-service:prisma:generate
+nx run catalog-service:prisma:migrate -- --name init
 ```
 
-**파일 변경 시 자동 재시작:**
-
-NX Daemon이 실행 중이어야 파일 변경 시 자동 재시작이 작동합니다.
-만약 "NX Daemon is not running" 메시지가 나타나면:
-
+### 3. 서비스 실행
 ```bash
-# 워크스페이스 루트에서 Daemon 수동 시작
-cd c:\Dev\Project\reelnote
-npx nx daemon --start
-
-# 그 다음 서비스 실행
 nx serve catalog-service
 ```
 
-**참고**: Daemon은 3시간 이상 비활성 상태면 자동으로 종료될 수 있습니다.
-자동 재시작이 필요하면 위 명령으로 Daemon을 먼저 시작하세요.
+### 4. 동작 확인
+```bash
+curl http://localhost:3001/api/v1/health
+curl http://localhost:3001/api/v1/movies/550
+curl -X POST http://localhost:3001/api/v1/sync/trending
+```
 
-서비스가 시작되면:
-- API: `http://localhost:3001/api/v1`
-- Swagger 문서: `http://localhost:3001/api/docs`
-- 헬스체크: `http://localhost:3001/api/v1/health`
+**NX Daemon**이 꺼져 있으면 먼저 시작해야 파일 변경 감지가 정상 동작합니다.
 
-### 프로덕션 빌드
+```bash
+npx nx daemon --start
+```
 
+### 5. 프로덕션 빌드
 ```bash
 nx build catalog-service
 ```
 
-## 성능 목표
+## 📡 API 개요
 
-- **응답 시간**: p95 ≤ 120ms (캐시 히트 시)
-- **캐시 히트율**: > 80%
-- **TMDB API 호출 실패율**: < 1%
+- `GET /api/v1/movies/:tmdbId` : Lazy Hydration 기반 상세 조회
+- `POST /api/v1/movies/import` : 온디맨드 일괄 인입 (큐 임계치에 따라 Job 전환)
+- `POST /api/v1/sync/trending` : 트렌딩 Warm Pool 동기화
+- `POST /api/v1/sync/popular` : 인기 Warm Pool 동기화
+- `GET /api/v1/search` : 검색 파사드
+- `GET /api/docs` : Swagger 문서
 
-## 아키텍처 고려사항
+## 🗂 데이터베이스 & 스키마
 
-### 추후 추가될 서비스와의 연동
+- `movie` 및 관계 테이블로 TMDB 원본 데이터 보관
+- `movie_feature`, `user_profile` 등 Feature Store 테이블은 추천/분석 서비스용
+- Prisma 구조 및 마이그레이션 관리는 `prisma/` 디렉터리에 위치
 
-- **Analysis Service**: `movie.feature.updated`, `user.profile.updated` 이벤트 발행 예정
-- **Reco Service**: Feature Store를 통해 영화 추천 서비스
-- **Review Service**: 외부 영화 조회 기능을 Catalog Service로 마이그레이션 예정
+## 🎯 성능 & 운영 목표
 
-### 이벤트 기반 아키텍처 (추후 구현)
+- 응답 시간: 캐시 히트 시 p95 ≤ 120ms
+- TMDB API 실패율: < 1% (Resilience Layer로 보완)
+- Warm Pool Top N = `WARM_POOL_SIZE`
+- 모니터링 지표: 캐시 히트율, TMDB 실패율, 동기화 지연, Resilience 이벤트
 
-- `movie.synced`: 영화 동기화 완료 이벤트
-- `movie.feature.updated`: 영화 Feature 업데이트 이벤트 (Analysis Service →)
-- `user.profile.updated`: 사용자 프로필 업데이트 이벤트 (Analysis Service →)
+## 🔄 서비스 연동 & 로드맵
 
-### 분석/추천 서비스를 위한 Prisma 스키마 위치
+- **Review Service**: Catalog의 Port/Adapter 용어와 동일한 언어로 연동
+- **Analysis Service**: `movie.feature.updated` 이벤트 플로우 예정
+- **Reco Service**: Feature Store 기반 추천 파이프라인 예정
 
-- `MovieCast`, `MovieCrew`: TMDB 인물 관계를 유지해 향후 분석·추천 파이프라인에서 캐스팅/스태프 기반 피처를 계산할 때 사용합니다.
-- `MovieFeature`: Analysis Service가 `movie.feature.updated` 이벤트로 최신 임베딩과 태그 가중치를 저장하는 Feature Store 테이블입니다.
-- `UserProfile`: 사용자의 취향 벡터를 `user.profile.updated` 이벤트로 업데이트하는 개인화 프로필 저장소입니다.
+## 📚 학습 노트 & 공용 용어
 
-위 모델은 현재 Catalog Service에서 직접 소비하지 않지만, 상기 서비스 확장 로드맵에 따라 유지되며, 세부 데이터 흐름은 `[ARCHITECTURE.md](./ARCHITECTURE.md)`에 정리해 두었습니다.
+- **Port**: 도메인/애플리케이션 계층에서 외부 의존성을 추상화한 계약 (인터페이스)
+- **Adapter**: Port 계약을 만족하는 구현. `tmdb`, `cache`, `database` 등
+- **Resilience Layer**: Retry, Circuit Breaker, Rate Limiter를 통합한 보호 계층
+- **Warm Pool**: 인기/트렌딩 Top N을 사전 적재하는 배치 파이프라인
+- **Lazy Hydration**: 요청 시점에 외부 데이터를 당겨와 DB에 저장하는 전략
+
+Review Service README에서도 동일한 용어를 사용하므로, 두 서비스를 오가며 헥사고날 패턴과 Resilience 전략을 비교하며 학습할 수 있습니다.
 

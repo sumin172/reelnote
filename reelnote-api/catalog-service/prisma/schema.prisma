@@ -25,6 +25,8 @@ model Movie {
   voteCnt      Int?      @map("vote_cnt")
   syncedAt     DateTime  @map("synced_at") @default(now())
   rawJson      Json      @map("raw_json")
+  sourceUpdatedAt DateTime? @map("source_updated_at")
+  sourceHash    String?  @map("source_hash")
 
   // Relations
   genres       MovieGenre[]

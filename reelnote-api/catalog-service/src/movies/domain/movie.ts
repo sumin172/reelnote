@@ -11,6 +11,8 @@ export interface MovieSnapshot {
   voteAvg?: number;
   voteCnt?: number;
   syncedAt: Date;
+  sourceUpdatedAt?: Date | null;
+  sourceHash?: string | null;
   genres: string[];
   keywords: string[];
   rawPayload?: unknown;
@@ -47,6 +49,14 @@ export class Movie {
     return [...this.props.genres];
   }
 
+  get sourceUpdatedAt(): Date | undefined | null {
+    return this.props.sourceUpdatedAt ? new Date(this.props.sourceUpdatedAt) : this.props.sourceUpdatedAt ?? undefined;
+  }
+
+  get sourceHash(): string | undefined | null {
+    return this.props.sourceHash ?? null;
+  }
+
   get keywords(): string[] {
     return [...this.props.keywords];
   }
@@ -73,6 +83,7 @@ export class Movie {
     return {
       ...this.props,
       syncedAt: new Date(this.props.syncedAt),
+      sourceUpdatedAt: this.props.sourceUpdatedAt ? new Date(this.props.sourceUpdatedAt) : this.props.sourceUpdatedAt ?? undefined,
       genres: [...this.props.genres],
       keywords: [...this.props.keywords],
     };

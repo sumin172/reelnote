@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { SyncMovieUseCase } from './sync-movie.usecase';
+import { SyncManyProgress, SyncMovieFailure, SyncMovieUseCase } from './sync-movie.usecase';
 import { MovieSnapshot } from '../../domain/movie';
 
 export interface ImportMoviesCommand {
@@ -8,33 +8,73 @@ export interface ImportMoviesCommand {
   cacheTtlSeconds: number;
 }
 
+export interface ImportMoviesFailure {
+  tmdbId: number;
+  reason: string;
+}
+
+export interface ImportMoviesResult {
+  snapshots: MovieSnapshot[];
+  failures: ImportMoviesFailure[];
+}
+
+export interface ImportMoviesProgress {
+  total: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+  lastTmdbId?: number;
+}
+
+export interface ImportMoviesOptions {
+  concurrencyLimit?: number;
+  chunkSize?: number;
+  onProgress?: (progress: ImportMoviesProgress) => void;
+}
+
 @Injectable()
 export class ImportMoviesUseCase {
   private readonly logger = new Logger(ImportMoviesUseCase.name);
 
   constructor(private readonly syncMovieUseCase: SyncMovieUseCase) {}
 
-  async execute(command: ImportMoviesCommand): Promise<MovieSnapshot[]> {
+  async execute(command: ImportMoviesCommand, options: ImportMoviesOptions = {}): Promise<ImportMoviesResult> {
     const { tmdbIds, language, cacheTtlSeconds } = command;
-    const results: MovieSnapshot[] = [];
+    const { concurrencyLimit = 5, chunkSize, onProgress } = options;
 
-    for (const tmdbId of tmdbIds) {
-      if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
-        this.logger.warn(`Skipping invalid TMDB ID during import: ${tmdbId}`);
-        continue;
-      }
+    const uniqueTmdbIds = Array.from(new Set(tmdbIds));
+    const commands = uniqueTmdbIds.map(tmdbId => ({
+      tmdbId,
+      language,
+      cacheTtlSeconds,
+      strategy: 'batch' as const,
+    }));
 
-      try {
-        const snapshot = await this.syncMovieUseCase.execute({ tmdbId, language, cacheTtlSeconds });
-        results.push(snapshot);
-      } catch (error) {
-        this.logger.error(`Failed to import movie ${tmdbId}`, error);
-      }
-    }
+    const { snapshots, failures } = await this.syncMovieUseCase.syncMany(commands, {
+      strategy: 'batch',
+      concurrencyLimit: Number.isFinite(concurrencyLimit) && concurrencyLimit > 0 ? Math.floor(concurrencyLimit) : 1,
+      chunkSize,
+      onProgress: (progress: SyncManyProgress) => {
+        onProgress?.({
+          total: progress.total,
+          processed: progress.processed,
+          succeeded: progress.succeeded,
+          failed: progress.failed,
+          lastTmdbId: progress.lastTmdbId,
+        });
+      },
+    });
 
-    this.logger.log(`Imported ${results.length}/${tmdbIds.length} movies.`);
-    return results;
+    const mappedFailures: ImportMoviesFailure[] = failures.map(failure => this.mapFailure(failure));
+
+    this.logger.log(`Imported ${snapshots.length}/${uniqueTmdbIds.length} movies (failed: ${mappedFailures.length}).`);
+    return { snapshots, failures: mappedFailures };
+  }
+
+  private mapFailure(failure: SyncMovieFailure): ImportMoviesFailure {
+    return {
+      tmdbId: failure.tmdbId,
+      reason: failure.reason,
+    };
   }
 }
-
-

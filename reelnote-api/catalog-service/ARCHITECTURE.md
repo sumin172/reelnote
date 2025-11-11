@@ -1,51 +1,62 @@
-# Catalog Service 아키텍처 문서
+# Catalog Service 아키텍처
+
+> Review Service와 동일한 다층 Port/Adapter 언어로 정리된 Catalog Service 아키텍처 가이드
 
 ## 1. 개요
 
-Catalog Service는 ReelNote 플랫폼의 영화 메타데이터 관리 마이크로서비스입니다. TMDB API를 통해 영화 데이터를 가져와 내부 서비스들이 사용할 수 있는 권위 소스(Source of Truth) 역할을 합니다.
+- **목적**: ReelNote 전반에서 사용할 영화 메타데이터의 권위 소스(Source of Truth)를 제공
+- **패턴**: Hexagonal Architecture (Port/Adapter) + Resilience Layer
+- **핵심 기능**: Lazy Hydration, Warm Pool, 다층 캐시, TMDB 연동 보호
 
-## 2. 핵심 설계 원칙
+## 2. 레이어 & 포트/어댑터
 
-### 2.1 Lazy Hydration
-- **목적**: 메모리 효율성과 초기 로딩 시간 단축
-- **구현**: `GET /movies/{id}` 요청 시 로컬 캐시(Redis/인메모리) → DB → TMDB 순서로 조회
-- **장점**: 사용자가 실제로 조회한 영화만 DB에 저장
+| 계층 | 폴더 | 책임 | 예시 포트/어댑터 |
+| --- | --- | --- | --- |
+| Domain | `movies/domain` | 엔티티, 값 객체, 도메인 서비스 | `Movie`, `MovieFactory` |
+| Application | `movies/application` | UseCase, Facade, Port 정의 | `GetMovieUseCase`, `MovieExternalPort` |
+| Inbound Adapter | `movies/movies.controller.ts`, `sync/sync.controller.ts` | HTTP/Batch 진입점 | NestJS Controller |
+| Outbound Adapter | `tmdb/`, `cache/`, `database/` | 외부 시스템 연결 | `TmdbClient`, `CatalogPrismaAccessor` |
 
-### 2.2 Warm Pool (예열 풀)
-- **목적**: 인기 컨텐츠에 대한 빠른 응답 제공
-- **구현**: 트렌딩/인기 Top N 영화를 주기적으로 동기화
-- **트리거**: `POST /sync/trending`, `POST /sync/popular` API 또는 스케줄러
+- **Port 계약**은 애플리케이션 계층에 위치하고, Adapter는 해당 계약을 구현합니다.
+- Review Service의 `domain/application/infrastructure/interfaces` 구조와 1:1로 매칭됩니다.
 
-### 2.3 스테일 데이터 허용 (Stale Data Tolerance)
-- **목적**: 가용성 향상
-- **구현**: `synced_at` 기준 N일(기본 7일) 지난 데이터도 응답하며, 백그라운드에서 리프레시
-- **장점**: TMDB API 장애 시에도 서비스 지속 가능
+## 3. Resilience Layer
 
-### 2.4 캐싱 전략
-- **L1 Cache**: Redis (분산 캐시)
-- **L2 Cache**: 인메모리 캐시 (Redis 미사용 시)
-- **TTL**: 1시간 (캐시 히트 시 p95 ≤ 120ms 목표)
+### 3.1 Rate & Concurrency Control
+- `p-limit`으로 동시 TMDB 호출 수를 제한 (`TMDB_API_MAX_CONCURRENCY`, 기본 10)
+- Fallback limiter를 내장해 모듈 로딩 실패 시에도 안전 운용
 
-## 3. 신뢰성 메커니즘
+### 3.2 Retry 전략
+- `axios-retry` 지수 백오프 (1s → 2s → 4s) + 지터
+- 재시도 대상: 네트워크 오류, 타임아웃, 5xx, 429
 
-### 3.1 서킷브레이커
-- **상태**: CLOSED → OPEN → HALF_OPEN → CLOSED
-- **임계값**: 연속 5회 실패 시 OPEN
-- **복구**: 1분 후 HALF_OPEN으로 전환, 성공 시 CLOSED
+### 3.3 Circuit Breaker
+- `opossum` 기반 상태 관리 (CLOSED ↔ OPEN ↔ HALF_OPEN)
+- 임계값: 실패율 50% 이상, 최소 요청 수 10, 타임아웃 `TMDB_API_TIMEOUT + 1000`
+- 이벤트 로그는 모니터링 대시보드에서 추적 가능
 
-### 3.2 레이트리밋 (토큰 버킷)
-- **제한**: 초당 40개 요청 (TMDB API 제한)
-- **알고리즘**: 토큰 버킷 알고리즘
-- **대기**: 토큰이 없으면 최대 100ms 간격으로 대기
+### 3.4 학습 모드 팁
+- 실습 중 호출 흐름을 추적하고 싶다면 `MOVIE_IMPORT_CONCURRENCY=1`, `WARM_POOL_SIZE=20`으로 조정해 거의 직렬 처리 형태를 만들 수 있습니다.
+- 운영 또는 퍼포먼스 검증 시에는 기본값(동시성 5~10, Warm Pool 100 이상)으로 가동합니다.
 
-### 3.3 리트라이 (지수 백오프)
-- **최대 재시도**: 3회
-- **지연**: 1초, 2초, 4초 (최대 10초)
-- **대상**: 네트워크 오류, 타임아웃
+## 4. 데이터 전략
 
-## 4. 데이터베이스 스키마
+### 4.1 Lazy Hydration
+- 캐시 → DB → TMDB 순으로 조회
+- 미존재 시 TMDB에서 동기화 후 DB/캐시에 저장
+- 스테일 데이터 허용: 기본 7일 (`MOVIE_STALE_THRESHOLD_DAYS`)
 
-### 4.1 핵심 테이블
+### 4.2 Warm Pool
+- 인기/트렌딩 Top N(`WARM_POOL_SIZE`)을 주기적으로 미리 적재
+- 트리거: `POST /api/v1/sync/trending`, `POST /api/v1/sync/popular`, 또는 스케줄러
+- 큐 임계치(`MOVIE_IMPORT_QUEUE_THRESHOLD`)를 넘으면 Job으로 전환되어 백그라운드에서 처리
+
+### 4.3 캐싱
+- **L1**: Redis (또는 기타 Key-Value 스토어)
+- **L2**: In-memory fallback
+- TTL: 기본 1시간 (`CACHE_TTL_SECONDS`, `MOVIE_CACHE_TTL_SECONDS`)
+
+## 5. 데이터베이스 스키마
 
 ```
 movie (tmdb_id PK)
@@ -59,12 +70,12 @@ keyword / movie_keyword (Many-to-Many)
 person / movie_cast / movie_crew (Many-to-Many)
 ```
 
-### 4.2 Feature Store (추후 사용)
+### Feature Store (선행 준비)
 
 ```
 movie_feature (tmdb_id PK)
-├── tags_weight (JSONB): { genre, keyword, auto, user }
-├── embedding (vector): pgvector 타입
+├── tags_weight (JSONB)
+├── embedding (vector)
 └── sentiment_stats (JSONB)
 
 user_profile (user_id PK)
@@ -72,51 +83,41 @@ user_profile (user_id PK)
 └── embedding (vector)
 ```
 
-## 5. 모듈 상호작용
+- Analysis/Reco 서비스 연동을 위해 마련된 스키마이며, Review Service와 동일한 용어 체계를 따릅니다.
 
-Catalog Service는 다음 흐름을 중심으로 모듈이 협력합니다.
+## 6. 모듈 상호작용
 
-- **요청 처리 경로**: `movies` 모듈이 HTTP 진입점을 담당하며, 캐시 계층(`cache`) → 데이터베이스(`database`) → 외부 통합(`tmdb`) 순으로 의존합니다. Lazy Hydration 과정에서 `sync` 모듈이 백그라운드 업데이트를 트리거합니다.
-- **Warm Pool 동기화**: `sync` 모듈은 스케줄러 또는 수동 트리거를 통해 인기/트렌딩 영화를 주기적으로 갱신하고, 결과를 `movies` 모듈과 캐시에 반영합니다.
-- **검색 파사드**: `search` 모듈은 동일한 데이터 소스를 사용하지만, 전용 DTO/정렬 전략을 통해 검색 특화 API를 제공합니다.
-- **확장 지점**: 이벤트 발행 및 Feature Store 업데이트는 `sync`와 `movies` 모듈에서 발생하며, 세부 시나리오는 아래 확장 계획을 참고합니다.
+- **Movies 모듈**: HTTP 진입점이자 도메인 UseCase 실행 위치
+- **Cache 모듈**: 조회 흐름에서 1차 필터, 업데이트 시에도 Port를 통해 추상화
+- **Database 모듈**: `CatalogPrismaAccessor`가 트랜잭션 경계를 관리
+- **TMDB 모듈**: 외부 API Adapter이면서 Resilience Layer의 중심
+- **Sync 모듈**: Warm Pool 스케줄링 및 Import Job 연계
+- **Search 모듈**: 동일한 데이터 소스를 검색 친화 DTO로 가공
 
-자세한 REST 엔드포인트와 성능 목표는 `README.md`의 관련 섹션을 참고하세요.
+## 7. 확장 로드맵
 
-## 6. 추후 확장 계획
+- **이벤트 발행**: `movie.synced`, `movie.feature.updated`, `user.profile.updated`
+- **Analysis Service**: 리뷰 분석 결과를 Feature Store에 반영
+- **Reco Service**: 임베딩 기반 추천 및 ANN 탐색으로 확장
+- **Review Service**: Catalog의 Resilience Layer를 참고해 WebClient 호출 안정화
 
-### 6.1 이벤트 기반 아키텍처
-- `movie.synced`: 영화 동기화 완료 시 발행 (Analysis Service 구독)
-- `movie.feature.updated`: 영화 Feature 업데이트 시 발행 (Reco Service 구독)
-- `user.profile.updated`: 사용자 프로필 업데이트 시 발행 (Reco Service 구독)
+## 8. 모니터링 & 운영
 
-### 6.2 Analysis Service 연동
-- 리뷰 NLP 분석 결과를 `movie_feature`에 저장
-- 태그 정규화 및 TMDB keyword 매핑
-- 사용자 프로필 업데이트
+- **카탈로그 지표**: 캐시 히트율, 동기화 지연, 응답 시간(p50/p95/p99)
+- **Resilience 지표**: 재시도 횟수, 서킷브레이커 상태 이벤트, 레이트리밋 대기 시간
+- **헬스체크**: `/api/v1/health`
+- **배포 고려사항**: Prisma Migrate, Redis 고가용성, PostgreSQL 리드 리플리카
 
-### 6.3 Reco Service 연동
-- Feature Store를 통한 영화 추천
-- ANN(Approximate Nearest Neighbor) 검색을 위한 임베딩 활용
-- 콘텐츠 기반 → 협업 필터링 점진적 전환
+## 9. 공용 용어 (Review ↔ Catalog)
 
-## 7. 모니터링 메트릭
+| 용어 | 정의 | 비고 |
+| --- | --- | --- |
+| **Port** | 애플리케이션 계층에서 정의한 외부 의존성 계약 | 인터페이스, 추상클래스 포함 |
+| **Adapter** | Port를 구현해 실제 시스템과 연결하는 계층 | TMDB, Prisma, Redis 등 |
+| **Resilience Layer** | Retry, Circuit Breaker, Rate Limiter 등 보호 메커니즘 묶음 | Review Service의 WebClient Resilience 전략과 동일 개념 |
+| **Warm Pool** | 인기/트렌딩 N건을 미리 적재하는 배치 파이프라인 | `sync` 모듈 담당 |
+| **Lazy Hydration** | 요청 시에만 데이터를 가져와 저장하는 전략 | Review의 Lazy Load 패턴과 연결 |
+| **Feature Store** | 추천/분석을 위한 확장 스키마 | Analysis/Reco 연동 예정 |
 
-### 7.1 카탈로그 서비스
-- 캐시 히트율
-- TMDB API 호출 실패율
-- 동기화 지연 시간
-- 응답 시간 (p50, p95, p99)
-
-### 7.2 TMDB 클라이언트
-- 서킷브레이커 상태 변화
-- 레이트리밋 대기 시간
-- 리트라이 횟수 및 성공률
-
-## 8. 배포 고려사항
-
-- **데이터베이스 마이그레이션**: Prisma Migrate 사용
-- **Redis 고가용성**: Redis Cluster 또는 AWS ElastiCache
-- **PostgreSQL**: 읽기 전용 복제본 활용 가능 (읽기 부하 분산 시)
-- **헬스체크**: `/api/health` 엔드포인트 (추가 구현 필요)
+이 가이드는 Review Service와 동일한 문체로 작성되어 있으므로, 두 문서를 교차 검토하며 헥사고날 아키텍처와 Resilience 패턴을 학습할 수 있습니다.
 

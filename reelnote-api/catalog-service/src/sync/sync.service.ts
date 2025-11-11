@@ -45,9 +45,16 @@ export class SyncService {
       const idsToSync = allTmdbIds.slice(0, this.warmPoolSize);
 
       this.logger.log(`트렌딩 영화 ${idsToSync.length}개 동기화 시작`);
-      await this.moviesFacade.importMovies(idsToSync);
+      const result = await this.moviesFacade.importMovies({
+        tmdbIds: idsToSync,
+        language: 'ko-KR',
+      });
 
-      this.logger.log(`트렌딩 영화 동기화 완료`);
+      if (result.kind === 'queued') {
+        this.logger.log(`트렌딩 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`);
+      } else {
+        this.logger.log(`트렌딩 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`);
+      }
     } catch (error) {
       this.logger.error('트렌딩 영화 동기화 실패', error);
       throw error;
@@ -78,9 +85,16 @@ export class SyncService {
       const idsToSync = allTmdbIds.slice(0, this.warmPoolSize);
 
       this.logger.log(`인기 영화 ${idsToSync.length}개 동기화 시작`);
-      await this.moviesFacade.importMovies(idsToSync);
+      const result = await this.moviesFacade.importMovies({
+        tmdbIds: idsToSync,
+        language: 'ko-KR',
+      });
 
-      this.logger.log('인기 영화 동기화 완료');
+      if (result.kind === 'queued') {
+        this.logger.log(`인기 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`);
+      } else {
+        this.logger.log(`인기 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`);
+      }
     } catch (error) {
       this.logger.error('인기 영화 동기화 실패', error);
       throw error;

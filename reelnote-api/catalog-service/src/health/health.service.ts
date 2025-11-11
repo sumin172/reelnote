@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CatalogCorePrismaService } from '../database/catalog-core/catalog-core.prisma.service';
+import { CatalogPrismaAccessor } from '../infrastructure/db/catalog-prisma.accessor';
 
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
 
-  constructor(private readonly catalogCorePrisma: CatalogCorePrismaService) {}
+  constructor(private readonly catalogPrisma: CatalogPrismaAccessor) {}
 
   /**
    * 기본 헬스체크
@@ -24,9 +24,9 @@ export class HealthService {
   async readiness() {
     try {
       // DB 연결 테스트 (PrismaClient의 메서드 사용)
-      await this.catalogCorePrisma.ensureConnection();
+      await this.catalogPrisma.ensureConnection();
       // 간단한 쿼리로 연결 확인
-      await this.catalogCorePrisma.countMovies();
+      await this.catalogPrisma.countMovies();
       return {
         status: 'ready',
         timestamp: new Date().toISOString(),
