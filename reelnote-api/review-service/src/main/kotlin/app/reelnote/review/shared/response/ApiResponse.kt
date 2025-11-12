@@ -12,25 +12,34 @@ data class ApiResponse<T>(
     val data: T? = null,
     val message: String? = null,
     val error: ErrorDetail? = null,
-    val timestamp: String = Instant.now().toString()
+    val timestamp: String = Instant.now().toString(),
 ) {
     companion object {
-        fun <T> success(data: T, message: String? = null): ApiResponse<T> = ApiResponse(
-            success = true,
-            data = data,
-            message = message
-        )
-        
-        fun <T> success(message: String): ApiResponse<T> = ApiResponse(
-            success = true,
-            message = message
-        )
-        
-        fun <T> error(error: ErrorDetail, message: String? = null): ApiResponse<T> = ApiResponse(
-            success = false,
-            error = error,
-            message = message
-        )
+        fun <T> success(
+            data: T,
+            message: String? = null,
+        ): ApiResponse<T> =
+            ApiResponse(
+                success = true,
+                data = data,
+                message = message,
+            )
+
+        fun <T> success(message: String): ApiResponse<T> =
+            ApiResponse(
+                success = true,
+                message = message,
+            )
+
+        fun <T> error(
+            error: ErrorDetail,
+            message: String? = null,
+        ): ApiResponse<T> =
+            ApiResponse(
+                success = false,
+                error = error,
+                message = message,
+            )
     }
 }
 
@@ -41,7 +50,7 @@ data class ErrorDetail(
     val code: String,
     val message: String,
     val field: String? = null,
-    val details: Map<String, Any>? = null
+    val details: Map<String, Any>? = null,
 )
 
 /**
@@ -56,7 +65,3 @@ object ErrorCodes {
     const val UNAUTHORIZED = "UNAUTHORIZED"
     const val FORBIDDEN = "FORBIDDEN"
 }
-
-
-
-

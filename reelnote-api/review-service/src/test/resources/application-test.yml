@@ -5,30 +5,32 @@ spring:
   application:
     name: review-service-test
   
-  # 테스트용 H2 인메모리 데이터베이스
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
+  # ⚠️⚠️⚠️ 매우 중요: 데이터소스 설정 ⚠️⚠️⚠️
+  # 
+  # 이 파일에는 데이터소스 설정이 없습니다. 이는 의도적인 것입니다.
+  # 모든 데이터소스 설정은 Testcontainers의 @DynamicPropertySource로 동적으로 설정됩니다.
+  #
+  # 만약 여기에 데이터소스 설정을 추가하면:
+  # 1. 로컬 개발 데이터베이스에 연결될 수 있습니다 (위험!)
+  # 2. 테스트가 로컬 DB의 데이터를 삭제할 수 있습니다 (매우 위험!)
+  #
+  # 모든 @SpringBootTest는 반드시 Testcontainers를 사용해야 합니다.
+  # @DynamicPropertySource가 없으면 테스트가 실패하도록 설계되었습니다.
   
   # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: create-drop  # 테스트용 임시 DB이므로 create-drop 사용 (Testcontainers 사용 시 안전)
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        default_schema: app
     open-in-view: false
   
-  # H2 콘솔 비활성화
-  h2:
-    console:
-      enabled: false
-  
-  # Flyway 비활성화 (테스트에서는 JPA DDL 사용)
+  # Flyway 비활성화 (테스트에서는 DDL 사용)
+  # ⚠️ 중요: Flyway가 활성화되면 로컬 DB의 마이그레이션을 실행할 수 있습니다.
   flyway:
     enabled: false
   

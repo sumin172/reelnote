@@ -6,12 +6,10 @@ import org.springframework.stereotype.Component
 
 @Component
 class DirectionConverter : Converter<String, Direction> {
-	override fun convert(source: String): Direction {
-		val s = source.trim()
-		return Direction.entries.firstOrNull {
-			it.value.equals(s, ignoreCase = true) || it.name.equals(s, ignoreCase = true)
-		} ?: Direction.DESC
-	}
+    override fun convert(source: String): Direction {
+        val s = source.trim()
+        return Direction.entries.firstOrNull {
+            it.value.equals(s, ignoreCase = true) || it.name.equals(s, ignoreCase = true)
+        } ?: Direction.DESC
+    }
 }
-
-

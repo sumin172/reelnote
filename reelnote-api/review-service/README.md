@@ -6,10 +6,10 @@
 
 ## 🛠 기술 스택
 
-- **Kotlin 2.0.21** + **Java 21** + **Spring Boot 3.4.1**
-- **JPA 3.x** + **H2** + **Flyway**
-- **WebClient** + **OpenAPI 3**
-- **JUnit 5** + **MockK** + **SpringMockK**
+- **Kotlin 2.0.21** + **Java 21** + **Spring Boot 3.5.7**
+- **JPA 3.x** + **PostgreSQL 42.7.8** + **Flyway 11.17.0**
+- **WebClient** + **SpringDoc OpenAPI 2.8.7**
+- **JUnit 5** + **MockK 1.14.5** + **SpringMockK 4.0.2** + **Testcontainers 1.20.3**
 
 ## 📁 프로젝트 구조
 
@@ -20,10 +20,21 @@ src/main/kotlin/app/reelnote/review/
 │   ├── BaseEntity.kt         # 공통 메타데이터 클래스
 │   └── ReviewRepository.kt   # 리포지토리 인터페이스
 ├── application/              # 애플리케이션 계층
-│   └── ReviewService.kt      # 리뷰 서비스
+│   ├── ReviewService.kt      # 리뷰 서비스 (생성/수정/삭제)
+│   └── ReviewQueryService.kt # 리뷰 조회 서비스 (읽기 전용)
 ├── infrastructure/           # 인프라 계층
 │   ├── catalog/              # Catalog 서비스 클라이언트
+│   │   ├── CatalogClient.kt
+│   │   ├── CatalogClientConfig.kt
+│   │   └── CatalogApiProperties.kt
 │   └── config/               # 설정 클래스들
+│       ├── AuditingConfig.kt
+│       ├── CacheConfig.kt
+│       ├── SecurityConfig.kt
+│       ├── SecurityAuditorAware.kt
+│       ├── SoftDeleteConfig.kt
+│       ├── DirectionConverter.kt
+│       └── SortByConverter.kt
 ├── interfaces/               # 인터페이스 계층
 │   ├── rest/                 # REST 컨트롤러
 │   └── dto/                  # 데이터 전송 객체
@@ -39,6 +50,7 @@ src/main/kotlin/app/reelnote/review/
 - **값 객체**: `Rating` 클래스로 도메인 개념 명확화
 - **엔티티**: `Review`의 비즈니스 메서드 구현
 - **리포지토리**: 데이터 접근 계층 추상화
+- **CQRS 패턴**: `ReviewService`(명령)와 `ReviewQueryService`(조회) 분리로 성능 최적화
 
 ```kotlin
 // 값 객체: 불변성과 유효성 검증
@@ -62,18 +74,24 @@ data class Rating(val value: Int) {
 
 1. **DDD 패턴**: 값 객체의 불변성과 유효성 검증
    - *비즈니스 규칙을 도메인 객체에 캡슐화하여 유지보수성 향상*
-2. **고급 JPA**: @Embeddable, @ElementCollection, Optimistic Locking
+2. **CQRS 패턴**: 명령과 조회 분리
+   - *ReviewService(명령)와 ReviewQueryService(조회)로 읽기/쓰기 최적화*
+3. **고급 JPA**: @Embeddable, @ElementCollection, Optimistic Locking
    - *동시성 제어와 데이터 무결성 보장*
-3. **카탈로그 연동**: WebClient + Coroutines (Catalog 서비스 호출)
+4. **카탈로그 연동**: WebClient + Reactor (Catalog 서비스 호출)
    - *영화 메타데이터는 Catalog 서비스에서 일괄 관리*
-4. **캐싱 전략**: 다층 캐싱으로 성능 최적화
-   - *리뷰 조회 성능 3배 향상*
-5. **예외 처리**: @RestControllerAdvice + 도메인 예외
+   - *타임아웃 및 연결 설정으로 안정성 확보*
+5. **캐싱 전략**: 다층 캐싱으로 성능 최적화
+   - *리뷰 조회 성능 향상*
+6. **예외 처리**: @RestControllerAdvice + 도메인 예외
    - *일관된 에러 응답과 디버깅 효율성 증대*
-6. **테스트**: MockK + @WebMvcTest + SpringMockK
+7. **테스트**: MockK + @WebMvcTest + SpringMockK + Testcontainers
    - *단위 테스트와 통합 테스트로 안정성 확보*
-7. **운영**: 환경별 프로파일 + 구조화된 로깅
+   - *Testcontainers로 실제 PostgreSQL 환경에서 검증*
+8. **운영**: 환경별 프로파일 + 구조화된 로깅
    - *개발/운영 환경 분리로 안정성 확보*
+9. **이벤트 발행**: BaseEntity에 이벤트 발행 추적 기능 포함
+   - *도메인 이벤트 추적 및 재발행 지원*
 
 ## 🔧 구현 예시
 
@@ -81,26 +99,26 @@ data class Rating(val value: Int) {
 
 ```kotlin
 @Entity
-@Table(name = "reviews")
-@SQLDelete(sql = "UPDATE reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
+@Table(name = "reviews", schema = "app")
+@SQLDelete(sql = "UPDATE app.reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
 @SQLRestriction("deleted = false")
 data class Review(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    
+
     @Column(name = "deleted", nullable = false)
     val deleted: Boolean = false,
-    
+
     @Column(name = "deleted_at")
     val deletedAt: LocalDateTime? = null
-) : EventPublishableEntity()
+) : BaseEntity()
 
 // 서비스에서 사용
 fun deleteReview(id: Long, userSeq: Long) {
     val review = reviewRepository.findById(id)
         .orElseThrow { ReviewNotFoundException(id) }
-    
+
     // @SQLDelete 어노테이션이 자동으로 soft delete 처리
     reviewRepository.delete(review)
 }
@@ -110,6 +128,34 @@ fun deleteReview(id: Long, userSeq: Long) {
 - **@SQLRestriction**: JPQL 쿼리에서 `deleted = false` 조건 자동 추가로 성능 최적화
 - **@SQLDelete**: 실제 삭제 대신 플래그 업데이트로 데이터 복구 가능
 - **Optimistic Locking**: 동시 삭제 요청 시 데이터 무결성 보장
+
+### BaseEntity: 공통 메타데이터 관리
+
+모든 엔티티가 상속받는 `BaseEntity`는 다음 기능을 제공합니다:
+
+```kotlin
+@MappedSuperclass
+abstract class BaseEntity {
+    var createdAt: Instant          // 생성일시
+    var updatedAt: Instant          // 수정일시
+    var version: Long               // Optimistic Locking용 버전
+    var createdBy: Long            // 생성자 ID
+    var updatedBy: Long?           // 수정자 ID
+    var deleted: Boolean           // 삭제 여부
+    var deletedAt: Instant?        // 삭제일시
+    var eventPublished: Boolean    // 이벤트 발행 여부
+    var eventPublishedAt: Instant? // 이벤트 발행일시
+
+    fun markEventAsPublished()     // 이벤트 발행 완료 표시
+    fun restore()                  // 삭제 취소
+}
+```
+
+**특징:**
+- **자동 감사(Auditing)**: `@CreatedBy`, `@LastModifiedBy`로 생성자/수정자 자동 추적
+- **이벤트 추적**: 도메인 이벤트 발행 상태를 추적하여 재발행 지원
+- **소프트 삭제**: `deleted` 플래그와 `deletedAt`으로 삭제 추적
+- **Optimistic Locking**: `@Version`으로 동시성 제어
 
 ## 🤔 기술적 의사결정
 
@@ -121,7 +167,8 @@ fun deleteReview(id: Long, userSeq: Long) {
 ### 기술 스택 선택
 - **Kotlin + Java 21**: null safety와 최신 JVM 기능 활용
 - **WebClient**: 외부 API 호출 시 비동기 처리 지원
-- **H2 vs PostgreSQL**: 개발 환경의 빠른 피드백을 위한 선택
+- **PostgreSQL**: 프로덕션과 동일한 데이터베이스 사용으로 환경 차이 최소화
+- **Testcontainers**: 통합 테스트에서 실제 PostgreSQL 사용으로 방언/타입/DDL 검증
 - **MockK vs Mockito**: Kotlin의 null safety와 더 나은 통합
 
 ### 성능 최적화
@@ -146,12 +193,14 @@ fun deleteReview(id: Long, userSeq: Long) {
 - **Swagger UI**: http://localhost:8080/swagger-ui.html
 - **OpenAPI JSON**: http://localhost:8080/api-docs
 
-### 3. 데이터베이스 콘솔 (개발 환경)
+### 3. 데이터베이스 연결 (개발 환경)
 
-- **H2 Console**: http://localhost:8080/h2-console
-- **JDBC URL**: `jdbc:h2:mem:reviewdb`
-- **Username**: `sa`
-- **Password**: (비어있음)
+- **PostgreSQL**: `localhost:5433/review_db`
+- **Username**: `review_app`
+- **Password**: `review_1106`
+- **Schema**: `app`
+
+> **참고**: 개발 환경에서는 Docker Compose로 PostgreSQL을 실행합니다.
 
 ### 4. 참고사항
 
@@ -212,6 +261,46 @@ curl -X DELETE http://localhost:8080/api/v1/reviews/1 \
 
 ## 🧪 테스트
 
+### 테스트 전략
+
+- **단위 테스트**: `ReviewServiceTest`, `ReviewQueryServiceTest`, `ReviewControllerTest` - MockK를 사용한 비즈니스 로직 검증
+- **통합 테스트**: `SoftDeleteIntegrationTest` - Testcontainers로 실제 PostgreSQL 사용
+
+### Testcontainers 설정
+
+통합 테스트는 Testcontainers를 사용하여 실제 PostgreSQL 환경에서 실행됩니다:
+
+```kotlin
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+class SoftDeleteIntegrationTest {
+    companion object {
+        @Container
+        @JvmStatic
+        val postgres = PostgreSQLContainer("postgres:16-alpine").apply {
+            withReuse(true)  // 컨테이너 재사용으로 속도 향상
+        }
+
+        @DynamicPropertySource
+        @JvmStatic
+        fun props(registry: DynamicPropertyRegistry) {
+            registry.add("spring.datasource.url") { postgres.jdbcUrl }
+            registry.add("spring.datasource.username") { postgres.username }
+            registry.add("spring.datasource.password") { postgres.password }
+        }
+    }
+}
+```
+
+**장점:**
+- 실제 PostgreSQL 방언/타입/DDL 검증
+- 프로덕션 환경과 동일한 데이터베이스 동작 확인
+- 컨테이너 재사용으로 테스트 속도 향상
+
+### 테스트 실행
+
 ```bash
 # 전체 테스트 실행
 ./gradlew test
@@ -221,6 +310,9 @@ curl -X DELETE http://localhost:8080/api/v1/reviews/1 \
 
 # 컨트롤러 테스트 실행
 ./gradlew test --tests "ReviewControllerTest"
+
+# 통합 테스트 실행 (Testcontainers 사용)
+./gradlew test --tests "SoftDeleteIntegrationTest"
 ```
 
 
@@ -228,8 +320,9 @@ curl -X DELETE http://localhost:8080/api/v1/reviews/1 \
 
 ### 환경별 프로파일
 
-- **dev**: 개발 환경 (디버그 로깅, H2 콘솔 활성화)
-- **prod**: 프로덕션 환경 (최적화된 로깅, 보안 강화)
+- **dev**: 개발 환경 (디버그 로깅, PostgreSQL 연결)
+- **test**: 테스트 환경 (Testcontainers PostgreSQL, ddl-auto: create-drop)
+- **prod**: 프로덕션 환경 (최적화된 로깅, 보안 강화, Flyway 마이그레이션)
 
 ### 주요 설정값
 

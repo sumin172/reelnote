@@ -21,6 +21,18 @@
       "options": {
         "taskName": "test"
       }
+    },
+    "lint": {
+      "executor": "@nx/gradle:gradle",
+      "options": {
+        "taskName": "lint"
+      }
+    },
+    "ktlintFormat": {
+      "executor": "@nx/gradle:gradle",
+      "options": {
+        "taskName": "ktlintFormat"
+      }
     }
   },
   "tags": ["backend", "kotlin", "spring-boot"]

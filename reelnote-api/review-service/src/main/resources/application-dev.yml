@@ -4,7 +4,7 @@ spring:
 #    hibernate:
 #      ddl-auto: create  # 개발 중에만 사용 - 테이블 자동 생성 (유지)
     show-sql: true
-  
+
   h2:
     console:
       settings:
@@ -16,6 +16,8 @@ app:
     allowed-origins:
       - http://localhost:3000
       - http://127.0.0.1:3000
+      - http://localhost:3900
+      - http://127.0.0.1:3900
     allow-credentials: true
 
 logging:

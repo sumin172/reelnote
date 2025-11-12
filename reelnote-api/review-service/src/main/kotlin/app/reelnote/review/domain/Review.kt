@@ -1,13 +1,29 @@
 package app.reelnote.review.domain
 
-import jakarta.persistence.*
+import app.reelnote.review.infrastructure.config.SoftDeleteConfig
+import jakarta.persistence.CollectionTable
+import jakarta.persistence.Column
+import jakarta.persistence.ElementCollection
+import jakarta.persistence.Embeddable
+import jakarta.persistence.Embedded
+import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.Table
 import org.hibernate.annotations.SQLDelete
 import org.hibernate.annotations.SQLRestriction
 import java.time.LocalDate
 
+private const val REVIEW_SOFT_DELETE_SQL =
+    "UPDATE " + SoftDeleteConfig.SOFT_DELETE_SCHEMA + ".reviews SET deleted = true, deleted_at = NOW(), version = version + 1 " +
+        "WHERE id = ? AND version = ?"
+
 /**
  * 영화 리뷰 도메인 엔티티
- * 
+ *
  * @property id 리뷰 고유 식별자
  * @property userSeq 사용자 식별자 (멀티테넌시 지원)
  * @property movieId 영화 ID (Catalog 서비스 연동)
@@ -17,42 +33,41 @@ import java.time.LocalDate
  * @property watchedAt 시청일
  */
 @Entity
-@Table(name = "reviews")
-@SQLDelete(sql = "UPDATE reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
+@Table(name = "reviews", schema = SoftDeleteConfig.SOFT_DELETE_SCHEMA)
+@SQLDelete(sql = REVIEW_SOFT_DELETE_SQL)
 @SQLRestriction("deleted = false")
-class Review private constructor(
+class Review private constructor() : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
-    
+    var id: Long = 0
+        private set
+
     @Column(name = "user_seq", nullable = false)
-    val userSeq: Long,
-    
+    var userSeq: Long = 0
+        private set
+
     @Column(name = "movie_id", nullable = false)
-    val movieId: Long,
-    
+    var movieId: Long = 0
+        private set
+
     @Embedded
-    var rating: Rating,
-    
+    var rating: Rating = Rating.of(1)
+        private set
+
     @Column(length = 1000)
-    var reason: String? = null,
-    
+    var reason: String? = null
+        private set
+
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "review_tags", joinColumns = [JoinColumn(name = "review_id")])
+    @CollectionTable(name = "review_tags", schema = SoftDeleteConfig.SOFT_DELETE_SCHEMA, joinColumns = [JoinColumn(name = "review_id")])
     @Column(name = "tag", length = 50)
-    var tags: Set<String> = emptySet(),
+    var tags: MutableSet<String> = mutableSetOf()
+        private set
 
     @Column(name = "watched_at")
     var watchedAt: LocalDate? = null
-) : BaseEntity() {
-    
-    init {
-        require(userSeq > 0) { "사용자 식별자는 양수여야 합니다. 입력값: $userSeq" }
-        require(movieId > 0) { "영화 ID는 양수여야 합니다. 입력값: $movieId" }
-        require((reason?.length ?: 0) <= 1000) { "리뷰 내용은 1000자를 초과할 수 없습니다. 현재 길이: ${reason?.length ?: 0}" }
-        require(tags.all { it.length <= 50 }) { "태그는 50자를 초과할 수 없습니다. 위반 태그: ${tags.filter { it.length > 50 }}" }
-    }
-    
+        private set
+
     /**
      * ID 기반 equals/hashCode
      */
@@ -61,11 +76,9 @@ class Review private constructor(
         if (other !is Review) return false
         return id != 0L && id == other.id
     }
-    
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
-    
+
+    override fun hashCode(): Int = id.hashCode()
+
     /**
      * 리뷰 내용 수정 - 더티 체킹 사용
      */
@@ -73,26 +86,28 @@ class Review private constructor(
         rating: Rating = this.rating,
         reason: String? = this.reason,
         tags: Set<String> = this.tags,
-        watchedAt: LocalDate? = this.watchedAt
+        watchedAt: LocalDate? = this.watchedAt,
     ) {
-        // 검증 로직
-        require((reason?.length ?: 0) <= 1000) { "리뷰 내용은 1000자를 초과할 수 없습니다. 현재 길이: ${reason?.length ?: 0}" }
-        require(tags.all { it.length <= 50 }) { "태그는 50자를 초과할 수 없습니다. 위반 태그: ${tags.filter { it.length > 50 }}" }
-        
+        validateReason(reason)
+        validateTags(tags)
+
         // 더티 체킹으로 자동 업데이트
         this.rating = rating
         this.reason = reason
-        this.tags = tags
+        this.tags =
+            tags
+                .map { it.trim() }
+                .toMutableSet()
         this.watchedAt = watchedAt
     }
-    
+
     /**
      * 이벤트 발행 완료 표시
      */
     fun markAsPublished() {
         markEventAsPublished()
     }
-    
+
     companion object {
         /**
          * 새로운 리뷰 생성 - 비즈니스 로직 검증 포함
@@ -100,22 +115,41 @@ class Review private constructor(
         fun create(
             userSeq: Long,
             movieId: Long,
-            rating: Rating,
-            reason: String? = null,
-            tags: Set<String> = emptySet(),
-            watchedAt: LocalDate? = null
+            content: ReviewContent,
         ): Review {
-            return Review(
-                userSeq = userSeq,
-                movieId = movieId,
-                rating = rating,
-                reason = reason,
-                tags = tags,
-                watchedAt = watchedAt
-            )
+            require(userSeq > 0) { "사용자 식별자는 양수여야 합니다. 입력값: $userSeq" }
+            require(movieId > 0) { "영화 ID는 양수여야 합니다. 입력값: $movieId" }
+            validateReason(content.reason)
+            validateTags(content.tags)
+
+            return Review().apply {
+                this.userSeq = userSeq
+                this.movieId = movieId
+                this.rating = content.rating
+                this.reason = content.reason
+                this.tags =
+                    content.tags
+                        .map { it.trim() }
+                        .toMutableSet()
+                this.watchedAt = content.watchedAt
+            }
         }
     }
-    
+}
+
+data class ReviewContent(
+    val rating: Rating,
+    val reason: String? = null,
+    val tags: Set<String> = emptySet(),
+    val watchedAt: LocalDate? = null,
+)
+
+private fun validateReason(reason: String?) {
+    require((reason?.length ?: 0) <= 1000) { "리뷰 내용은 1000자를 초과할 수 없습니다. 현재 길이: ${reason?.length ?: 0}" }
+}
+
+private fun validateTags(tags: Collection<String>) {
+    require(tags.all { it.length <= 50 }) { "태그는 50자를 초과할 수 없습니다. 위반 태그: ${tags.filter { it.length > 50 }}" }
 }
 
 /**
@@ -124,12 +158,12 @@ class Review private constructor(
 @Embeddable
 data class Rating(
     @Column(name = "rating_value", nullable = false)
-    val value: Int
+    val value: Int,
 ) {
     init {
         require(value in 1..5) { "평점은 1-5 사이여야 합니다" }
     }
-    
+
     companion object {
         fun of(value: Int) = Rating(value)
     }

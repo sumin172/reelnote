@@ -1,0 +1,47 @@
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+
+processors:
+  active: true
+  exclude:
+    - 'DetektProgressListener'
+
+style:
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    active: true
+    maxLineLength: 140
+  ReturnCount:
+    active: true
+    max: 4
+  UnusedPrivateMember:
+    active: true
+    ignoreAnnotated:
+      - 'Suppress'
+  OptionalUnit:
+    active: false
+  UtilityClassWithPublicConstructor:
+    active: false
+
+naming:
+  FunctionNaming:
+    active: true
+    ignoreAnnotated:
+      - 'Test'
+      - 'ParameterizedTest'
+      - 'DisplayName'
+  TopLevelPropertyNaming:
+    active: true
+    constantPattern: '[A-Z][_A-Z0-9]*'
+  PackageNaming:
+    active: true
+
+performance:
+  SpreadOperator:
+    active: false
+
