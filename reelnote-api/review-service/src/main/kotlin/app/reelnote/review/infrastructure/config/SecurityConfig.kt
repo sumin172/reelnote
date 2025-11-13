@@ -4,6 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.env.Environment
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.core.userdetails.User
@@ -15,17 +16,15 @@ import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
-/**
- * Spring Security 설정
- */
+/** Spring Security 설정 */
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties(CorsProperties::class)
 class SecurityConfig(
     private val corsProperties: CorsProperties,
+    private val environment: Environment,
 ) {
-    @Bean
-    fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
+    @Bean fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
     fun userDetailsService(): InMemoryUserDetailsManager {
@@ -51,7 +50,7 @@ class SecurityConfig(
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain =
         http
-            .cors { }
+            .cors {}
             .authorizeHttpRequests { authz ->
                 authz
                     // Actuator 엔드포인트는 인증 필요
@@ -62,17 +61,28 @@ class SecurityConfig(
                     // 나머지는 모두 허용
                     .anyRequest()
                     .permitAll()
-            }.httpBasic { } // Basic Authentication 사용
+            }.httpBasic {} // Basic Authentication 사용
             .csrf { it.disable() } // CSRF 비활성화 (API 서버이므로)
             .build()
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val config = CorsConfiguration()
-        config.allowedOrigins =
-            corsProperties.allowedOrigins.ifEmpty {
-                listOf("http://localhost:3000", "http://localhost:3900") // 개발 환경 기본값
-            }
+
+        // 개발 환경이고 allowedOrigins가 비어있으면 localhost 패턴 허용
+        val activeProfiles = environment.activeProfiles
+        val isDevProfile = activeProfiles.contains("dev")
+        val hasConfiguredOrigins = corsProperties.allowedOrigins.isNotEmpty()
+
+        // 프로파일이 없거나 dev이고, 설정된 origin이 없으면 localhost 패턴 허용
+        if ((activeProfiles.isEmpty() || isDevProfile) && !hasConfiguredOrigins) {
+            // development: localhost:* 패턴 허용 (유연성)
+            config.allowedOriginPatterns = listOf("http://localhost:*", "http://127.0.0.1:*")
+        } else {
+            // e2e / prod: 설정된 origin만 허용 (엄격)
+            config.allowedOrigins = corsProperties.allowedOrigins
+        }
+
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         config.allowedHeaders =
             listOf(

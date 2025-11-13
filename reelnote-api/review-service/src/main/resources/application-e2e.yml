@@ -1,0 +1,18 @@
+# E2E 테스트 환경 설정
+spring:
+  jpa:
+    show-sql: false  # E2E에서는 SQL 로그 최소화
+
+# E2E 환경 CORS 설정 (엄격한 정책)
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3900
+    allow-credentials: true
+
+logging:
+  level:
+    app.reelnote.review: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+

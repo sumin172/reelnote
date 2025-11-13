@@ -104,7 +104,7 @@ class ReviewController(
     /** 유저+영화 단건 리뷰 조회 */
     @GetMapping
     @Operation(
-        summary = "단건 dd리뷰 조회",
+        summary = "단건 리뷰 조회",
         description = "userSeq와 movieId에 해당하는 리뷰 1건을 조회합니다",
     )
     fun searchReviews(
