@@ -1,7 +1,6 @@
 import { dirname, resolve } from "path";
 import { existsSync } from "fs";
 import { fileURLToPath, pathToFileURL } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,35 +25,18 @@ if (!baseConfigModule) {
 
 const baseConfig = baseConfigModule.default;
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const nextConfigs = compat
-  .extends("next/core-web-vitals", "next/typescript")
-  .map((config) => {
-    const existingPlugins = config.plugins
-      ? Object.fromEntries(
-          Object.entries(config.plugins).filter(
-            ([name]) => name !== "@typescript-eslint",
-          ),
-        )
-      : {};
-
-    return {
-      ...config,
-      plugins: {
-        ...existingPlugins,
-        "react-hooks": reactHooksPlugin,
-      },
-    };
-  });
-
 const config = [
   // Nx base 설정 (모듈 경계 규칙 포함)
   ...baseConfig,
-  // Next.js 전용 규칙
-  ...nextConfigs,
+  // React Hooks 플러그인 추가
+  {
+    plugins: {
+      "react-hooks": reactHooksPlugin,
+    },
+    rules: {
+      ...reactHooksPlugin.configs.recommended.rules,
+    },
+  },
   {
     ignores: [
       "node_modules/**",

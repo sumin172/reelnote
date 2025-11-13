@@ -1,17 +1,17 @@
 # ReelNote Frontend
 
-> Next.js 15와 최신 React 생태계를 활용한 영화 리뷰 플랫폼 프론트엔드
+> Next.js 16과 최신 React 생태계를 활용한 영화 리뷰 플랫폼 프론트엔드
 
 마이크로서비스 백엔드와 연동하는 현대적인 웹 애플리케이션으로, 타입 안전성과 개발자 경험을 중시한 프론트엔드 아키텍처를 구현했습니다.
 
 ## 🛠 기술 스택
 
-- **Next.js 15.5.4** (App Router) + **React 19.1.0** + **TypeScript 5**
-- **Tailwind CSS 4** + **shadcn/ui** (Radix UI 기반)
+- **Next.js 16.0.1** (App Router) + **React 19.2.0** + **TypeScript 5.9.3**
+- **Tailwind CSS 4.1.17** + **shadcn/ui** (Radix UI 기반)
 - **React Query 5** (@tanstack/react-query) + **Zustand**
 - **React Hook Form** + **Zod** (폼 관리 및 검증)
-- **MSW** (Mock Service Worker) - 개발 환경 모킹
-- **Vitest** + **Testing Library** + **Playwright** (테스트)
+- **MSW 2.12.1** (Mock Service Worker) - 개발 환경 모킹
+- **Vitest 4.0.8** + **Testing Library** + **Playwright 1.56.1** (테스트)
 
 ## 📁 프로젝트 구조
 
@@ -21,9 +21,16 @@ src/
 │   ├── layout.tsx            # 루트 레이아웃 (Providers, Header)
 │   ├── providers.tsx         # 전역 Provider 설정
 │   ├── page.tsx              # 홈 페이지
+│   ├── (desktop)/            # 데스크톱 레이아웃 그룹
+│   │   └── layout.tsx        # 데스크톱 레이아웃
+│   ├── (mobile)/             # 모바일 레이아웃 그룹
+│   │   └── layout.tsx        # 모바일 레이아웃
 │   ├── reviews/              # 리뷰 관련 페이지
 │   │   ├── page.tsx          # 리뷰 목록 페이지
-│   │   └── ReviewsList.tsx   # 리뷰 목록 컴포넌트
+│   │   ├── ReviewsList.tsx   # 리뷰 목록 컴포넌트
+│   │   └── new/              # 리뷰 작성 페이지
+│   │       ├── page.tsx      # 리뷰 작성 페이지
+│   │       └── ReviewCreateForm.tsx # 리뷰 작성 폼 컴포넌트
 │   └── catalog/              # 카탈로그 관련 페이지
 │       ├── page.tsx          # 카탈로그 검색 페이지
 │       └── CatalogSearch.tsx # 카탈로그 검색 컴포넌트
@@ -183,10 +190,10 @@ React.useEffect(() => {
 
 ### 기술 스택 선택
 
-- **Next.js 15**: React 19 지원 및 성능 최적화 기능 활용
-- **Tailwind CSS 4**: 유틸리티 퍼스트 CSS로 빠른 개발
+- **Next.js 16**: React 19 지원 및 성능 최적화 기능 활용
+- **Tailwind CSS 4.1**: 유틸리티 퍼스트 CSS로 빠른 개발
 - **shadcn/ui**: 접근성과 커스터마이징이 용이한 컴포넌트 라이브러리
-- **MSW**: 실제 네트워크 레벨에서의 모킹으로 현실적인 테스트 환경 제공
+- **MSW 2.12**: 실제 네트워크 레벨에서의 모킹으로 현실적인 테스트 환경 제공
 
 ### 개발 경험 최적화
 
@@ -294,6 +301,8 @@ const queryClient = new QueryClient({
 ### 현재 구현된 기능
 
 - ✅ 기본 라우팅 구조 (홈, 리뷰 목록, 카탈로그)
+- ✅ 반응형 레이아웃 (데스크톱/모바일)
+- ✅ 리뷰 작성 UI
 - ✅ API 클라이언트 및 환경 변수 관리
 - ✅ MSW 기반 개발 환경 모킹
 - ✅ React Query 통합
@@ -302,7 +311,7 @@ const queryClient = new QueryClient({
 
 ### 향후 구현 예정
 
-- 리뷰 작성/수정/삭제 UI
+- 리뷰 수정/삭제 UI
 - 영화 검색 및 상세 정보
 - 리뷰 필터링 및 정렬
 - 사용자 인증 및 권한 관리
