@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { DatabaseModule } from '../../database/database.module';
-import { CatalogPrismaAccessor } from './catalog-prisma.accessor';
+import { Module } from "@nestjs/common";
+import { DatabaseModule } from "../../database/database.module.js";
+import { CatalogPrismaAccessor } from "./catalog-prisma.accessor.js";
 
 @Module({
   imports: [DatabaseModule],
@@ -8,5 +8,3 @@ import { CatalogPrismaAccessor } from './catalog-prisma.accessor';
   exports: [CatalogPrismaAccessor],
 })
 export class CatalogPrismaModule {}
-
-

@@ -1,27 +1,25 @@
-import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app/app.module';
+import { Logger, ValidationPipe, VersioningType } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
+import { AppModule } from "./app/app.module.js";
+import { buildCorsOptions } from "./config/cors.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 글로벌 접두사
-  const globalPrefix = 'api';
+  const globalPrefix = "api";
   app.setGlobalPrefix(globalPrefix);
 
   // API 버전 관리
-  const defaultVersion = '1';
+  const defaultVersion = "1";
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion,
   });
 
-  // CORS 설정
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
-    credentials: true,
-  });
+  // CORS 설정 (정책 해석기 사용)
+  app.enableCors(buildCorsOptions());
 
   // Validation 파이프
   app.useGlobalPipes(
@@ -34,20 +32,22 @@ async function bootstrap() {
 
   // Swagger 설정
   const config = new DocumentBuilder()
-    .setTitle('Catalog Service API')
-    .setDescription('ReelNote Catalog Service - 영화 메타데이터 관리')
-    .setVersion('1.0')
-    .addTag('movies', '영화 관리')
-    .addTag('sync', '동기화')
-    .addTag('search', '검색')
+    .setTitle("Catalog Service API")
+    .setDescription("ReelNote Catalog Service - 영화 메타데이터 관리")
+    .setVersion("1.0")
+    .addTag("movies", "영화 관리")
+    .addTag("sync", "동기화")
+    .addTag("search", "검색")
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup("api/docs", app, document);
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
 
-  Logger.log(`🚀 Catalog Service is running on: http://localhost:${port}/${globalPrefix}/v${defaultVersion}`);
+  Logger.log(
+    `🚀 Catalog Service is running on: http://localhost:${port}/${globalPrefix}/v${defaultVersion}`,
+  );
   Logger.log(`📚 Swagger Docs: http://localhost:${port}/${globalPrefix}/docs`);
 }
 

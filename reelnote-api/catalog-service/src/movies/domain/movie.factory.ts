@@ -1,5 +1,5 @@
-import { createHash } from 'crypto';
-import { Movie, MovieSnapshot } from './movie';
+import { createHash } from "crypto";
+import { Movie, MovieSnapshot } from "./movie.js";
 
 export interface TmdbMoviePayload {
   id?: number;
@@ -19,15 +19,21 @@ export interface TmdbMoviePayload {
 }
 
 export class MovieFactory {
-  static fromTmdb(tmdbId: number, payload: TmdbMoviePayload, syncedAt: Date): Movie {
+  static fromTmdb(
+    tmdbId: number,
+    payload: TmdbMoviePayload,
+    syncedAt: Date,
+  ): Movie {
     const sourceUpdatedAt = extractSourceUpdatedAt(payload);
     const sourceHash = computePayloadHash(payload);
 
     const snapshot: MovieSnapshot = {
       tmdbId,
-      title: payload.title ?? '',
-      originalTitle: payload.original_title ?? '',
-      year: payload.release_date ? new Date(payload.release_date).getFullYear() : undefined,
+      title: payload.title ?? "",
+      originalTitle: payload.original_title ?? "",
+      year: payload.release_date
+        ? new Date(payload.release_date).getFullYear()
+        : undefined,
       runtime: payload.runtime ?? undefined,
       language: payload.original_language ?? undefined,
       country: payload.production_countries?.[0]?.name ?? undefined,
@@ -38,8 +44,11 @@ export class MovieFactory {
       syncedAt,
       sourceUpdatedAt,
       sourceHash,
-      genres: payload.genres?.map(genre => genre.name).filter(Boolean) ?? [],
-      keywords: payload.keywords?.keywords?.map(keyword => keyword.name).filter(Boolean) ?? [],
+      genres: payload.genres?.map((genre) => genre.name).filter(Boolean) ?? [],
+      keywords:
+        payload.keywords?.keywords
+          ?.map((keyword) => keyword.name)
+          .filter(Boolean) ?? [],
       rawPayload: payload,
     };
 
@@ -65,16 +74,16 @@ function extractSourceUpdatedAt(payload: TmdbMoviePayload): Date | undefined {
 function computePayloadHash(payload: TmdbMoviePayload): string {
   const normalized = sortObject(payload);
   const json = JSON.stringify(normalized);
-  return createHash('sha256').update(json).digest('hex');
+  return createHash("sha256").update(json).digest("hex");
 }
 
 function sortObject(value: unknown): unknown {
-  if (value === null || typeof value !== 'object') {
+  if (value === null || typeof value !== "object") {
     return value;
   }
 
   if (Array.isArray(value)) {
-    return value.map(item => sortObject(item));
+    return value.map((item) => sortObject(item));
   }
 
   const sorted: Record<string, unknown> = {};
@@ -83,4 +92,3 @@ function sortObject(value: unknown): unknown {
   }
   return sorted;
 }
-

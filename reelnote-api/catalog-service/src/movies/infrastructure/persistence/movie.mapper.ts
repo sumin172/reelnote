@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
-import { MovieSnapshot } from '../../domain/movie';
+import { Prisma } from "@prisma/client";
+import { MovieSnapshot } from "../../domain/movie.js";
 
 export type MovieWithRelations = Prisma.MovieGetPayload<{
   include: {
@@ -8,7 +8,9 @@ export type MovieWithRelations = Prisma.MovieGetPayload<{
   };
 }>;
 
-export function toPersistence(snapshot: MovieSnapshot): Prisma.MovieUncheckedCreateInput {
+export function toPersistence(
+  snapshot: MovieSnapshot,
+): Prisma.MovieUncheckedCreateInput {
   return {
     tmdbId: snapshot.tmdbId,
     title: snapshot.title,
@@ -44,10 +46,8 @@ export function toSnapshot(movie: MovieWithRelations): MovieSnapshot {
     syncedAt: movie.syncedAt,
     sourceUpdatedAt: movie.sourceUpdatedAt ?? undefined,
     sourceHash: movie.sourceHash ?? undefined,
-    genres: movie.genres?.map(g => g.genre.name) ?? [],
-    keywords: movie.keywords?.map(k => k.keyword.name) ?? [],
+    genres: movie.genres?.map((g) => g.genre.name) ?? [],
+    keywords: movie.keywords?.map((k) => k.keyword.name) ?? [],
     rawPayload: movie.rawJson,
   };
 }
-
-

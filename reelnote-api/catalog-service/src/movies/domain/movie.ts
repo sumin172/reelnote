@@ -50,7 +50,9 @@ export class Movie {
   }
 
   get sourceUpdatedAt(): Date | undefined | null {
-    return this.props.sourceUpdatedAt ? new Date(this.props.sourceUpdatedAt) : this.props.sourceUpdatedAt ?? undefined;
+    return this.props.sourceUpdatedAt
+      ? new Date(this.props.sourceUpdatedAt)
+      : (this.props.sourceUpdatedAt ?? undefined);
   }
 
   get sourceHash(): string | undefined | null {
@@ -62,7 +64,8 @@ export class Movie {
   }
 
   isStale(thresholdDays: number, referenceDate: Date = new Date()): boolean {
-    const diffMilliseconds = referenceDate.getTime() - this.props.syncedAt.getTime();
+    const diffMilliseconds =
+      referenceDate.getTime() - this.props.syncedAt.getTime();
     const diffDays = diffMilliseconds / (1000 * 60 * 60 * 24);
     return diffDays > thresholdDays;
   }
@@ -71,7 +74,9 @@ export class Movie {
     const next: MovieSnapshot = {
       ...this.props,
       ...partial,
-      syncedAt: partial.syncedAt ? new Date(partial.syncedAt) : this.props.syncedAt,
+      syncedAt: partial.syncedAt
+        ? new Date(partial.syncedAt)
+        : this.props.syncedAt,
       genres: partial.genres ?? this.props.genres,
       keywords: partial.keywords ?? this.props.keywords,
     };
@@ -83,11 +88,11 @@ export class Movie {
     return {
       ...this.props,
       syncedAt: new Date(this.props.syncedAt),
-      sourceUpdatedAt: this.props.sourceUpdatedAt ? new Date(this.props.sourceUpdatedAt) : this.props.sourceUpdatedAt ?? undefined,
+      sourceUpdatedAt: this.props.sourceUpdatedAt
+        ? new Date(this.props.sourceUpdatedAt)
+        : (this.props.sourceUpdatedAt ?? undefined),
       genres: [...this.props.genres],
       keywords: [...this.props.keywords],
     };
   }
 }
-
-

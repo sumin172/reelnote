@@ -1,8 +1,12 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { CacheService } from '../../cache/cache.service';
-import { SearchLocalReadAdapter } from '../infrastructure/search-local.read.adapter';
-import { SearchTmdbReadAdapter } from '../infrastructure/search-tmdb.read.adapter';
-import { SearchQuery, SearchReadPort, SearchResult } from './search-read.port';
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { CacheService } from "../../cache/cache.service.js";
+import { SearchLocalReadAdapter } from "../infrastructure/search-local.read.adapter.js";
+import { SearchTmdbReadAdapter } from "../infrastructure/search-tmdb.read.adapter.js";
+import {
+  SearchQuery,
+  SearchReadPort,
+  SearchResult,
+} from "./search-read.port.js";
 
 const SEARCH_CACHE_TTL_SECONDS = 60;
 
@@ -21,11 +25,11 @@ export class SearchReadAggregator extends SearchReadPort {
   async search(query: SearchQuery): Promise<SearchResult> {
     const normalizedQuery = query.query?.trim();
     if (!normalizedQuery) {
-      throw new BadRequestException('검색어(q)는 필수입니다.');
+      throw new BadRequestException("검색어(q)는 필수입니다.");
     }
 
     const page = query.page && query.page > 0 ? query.page : 1;
-    const language = query.language ?? 'ko-KR';
+    const language = query.language ?? "ko-KR";
     const cacheKey = this.createCacheKey(normalizedQuery, page, language);
 
     const cached = await this.cacheService.get<SearchResult>(cacheKey);
@@ -39,8 +43,10 @@ export class SearchReadAggregator extends SearchReadPort {
       this.tmdbAdapter.search(normalizedQuery, page, language),
     ]);
 
-    const localTmdbIds = new Set(local.map(movie => movie.tmdbId));
-    const filteredTmdb = tmdb.filter(movie => !localTmdbIds.has(movie.tmdbId));
+    const localTmdbIds = new Set(local.map((movie) => movie.tmdbId));
+    const filteredTmdb = tmdb.filter(
+      (movie) => !localTmdbIds.has(movie.tmdbId),
+    );
 
     const result: SearchResult = {
       query: normalizedQuery,
@@ -54,8 +60,11 @@ export class SearchReadAggregator extends SearchReadPort {
     return result;
   }
 
-  private createCacheKey(query: string, page: number, language: string): string {
+  private createCacheKey(
+    query: string,
+    page: number,
+    language: string,
+  ): string {
     return `search:${query}:${page}:${language}`;
   }
 }
-

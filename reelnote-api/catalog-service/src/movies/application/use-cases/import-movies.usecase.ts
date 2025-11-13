@@ -1,6 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { SyncManyProgress, SyncMovieFailure, SyncMovieUseCase } from './sync-movie.usecase';
-import { MovieSnapshot } from '../../domain/movie';
+import { Injectable, Logger } from "@nestjs/common";
+import {
+  SyncManyProgress,
+  SyncMovieFailure,
+  SyncMovieUseCase,
+} from "./sync-movie.usecase.js";
+import { MovieSnapshot } from "../../domain/movie.js";
 
 export interface ImportMoviesCommand {
   tmdbIds: number[];
@@ -38,36 +42,49 @@ export class ImportMoviesUseCase {
 
   constructor(private readonly syncMovieUseCase: SyncMovieUseCase) {}
 
-  async execute(command: ImportMoviesCommand, options: ImportMoviesOptions = {}): Promise<ImportMoviesResult> {
+  async execute(
+    command: ImportMoviesCommand,
+    options: ImportMoviesOptions = {},
+  ): Promise<ImportMoviesResult> {
     const { tmdbIds, language, cacheTtlSeconds } = command;
     const { concurrencyLimit = 5, chunkSize, onProgress } = options;
 
     const uniqueTmdbIds = Array.from(new Set(tmdbIds));
-    const commands = uniqueTmdbIds.map(tmdbId => ({
+    const commands = uniqueTmdbIds.map((tmdbId) => ({
       tmdbId,
       language,
       cacheTtlSeconds,
-      strategy: 'batch' as const,
+      strategy: "batch" as const,
     }));
 
-    const { snapshots, failures } = await this.syncMovieUseCase.syncMany(commands, {
-      strategy: 'batch',
-      concurrencyLimit: Number.isFinite(concurrencyLimit) && concurrencyLimit > 0 ? Math.floor(concurrencyLimit) : 1,
-      chunkSize,
-      onProgress: (progress: SyncManyProgress) => {
-        onProgress?.({
-          total: progress.total,
-          processed: progress.processed,
-          succeeded: progress.succeeded,
-          failed: progress.failed,
-          lastTmdbId: progress.lastTmdbId,
-        });
+    const { snapshots, failures } = await this.syncMovieUseCase.syncMany(
+      commands,
+      {
+        strategy: "batch",
+        concurrencyLimit:
+          Number.isFinite(concurrencyLimit) && concurrencyLimit > 0
+            ? Math.floor(concurrencyLimit)
+            : 1,
+        chunkSize,
+        onProgress: (progress: SyncManyProgress) => {
+          onProgress?.({
+            total: progress.total,
+            processed: progress.processed,
+            succeeded: progress.succeeded,
+            failed: progress.failed,
+            lastTmdbId: progress.lastTmdbId,
+          });
+        },
       },
-    });
+    );
 
-    const mappedFailures: ImportMoviesFailure[] = failures.map(failure => this.mapFailure(failure));
+    const mappedFailures: ImportMoviesFailure[] = failures.map((failure) =>
+      this.mapFailure(failure),
+    );
 
-    this.logger.log(`Imported ${snapshots.length}/${uniqueTmdbIds.length} movies (failed: ${mappedFailures.length}).`);
+    this.logger.log(
+      `Imported ${snapshots.length}/${uniqueTmdbIds.length} movies (failed: ${mappedFailures.length}).`,
+    );
     return { snapshots, failures: mappedFailures };
   }
 

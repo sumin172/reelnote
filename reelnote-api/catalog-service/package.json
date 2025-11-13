@@ -2,9 +2,16 @@
   "name": "catalog-service",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "nx serve catalog-service",
-    "start": "nx serve catalog-service"
+    "start": "nx serve catalog-service",
+    "test": "jest --config jest.config.cjs --passWithNoTests",
+    "test:nx": "nx test catalog-service",
+    "generate:openapi": "ts-node --transpile-only --project tsconfig.openapi.json src/scripts/generate-openapi.ts",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "pnpm run format:check && eslint ."
   },
   "nx": {
     "targets": {
@@ -91,8 +98,10 @@
         }
       },
       "test": {
+        "executor": "nx:run-commands",
         "options": {
-          "passWithNoTests": true
+          "command": "jest --config jest.config.cjs --passWithNoTests",
+          "cwd": "reelnote-api/catalog-service"
         }
       },
       "prisma:generate": {
@@ -113,6 +122,27 @@
         "executor": "nx:run-commands",
         "options": {
           "command": "prisma studio",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "lint": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm run lint",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "format:write": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm run format:write",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "format:check": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "pnpm run format:check",
           "cwd": "reelnote-api/catalog-service"
         }
       }

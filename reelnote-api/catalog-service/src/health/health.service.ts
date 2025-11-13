@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CatalogPrismaAccessor } from '../infrastructure/db/catalog-prisma.accessor';
+import { Injectable, Logger } from "@nestjs/common";
+import { CatalogPrismaAccessor } from "../infrastructure/db/catalog-prisma.accessor.js";
 
 @Injectable()
 export class HealthService {
@@ -12,9 +12,9 @@ export class HealthService {
    */
   async check() {
     return {
-      status: 'ok',
+      status: "ok",
       timestamp: new Date().toISOString(),
-      service: 'catalog-service',
+      service: "catalog-service",
     };
   }
 
@@ -28,21 +28,21 @@ export class HealthService {
       // 간단한 쿼리로 연결 확인
       await this.catalogPrisma.countMovies();
       return {
-        status: 'ready',
+        status: "ready",
         timestamp: new Date().toISOString(),
         checks: {
-          database: 'ok',
+          database: "ok",
         },
       };
     } catch (error) {
-      this.logger.error('Readiness check failed', error);
+      this.logger.error("Readiness check failed", error);
       return {
-        status: 'not ready',
+        status: "not ready",
         timestamp: new Date().toISOString(),
         checks: {
-          database: 'error',
+          database: "error",
         },
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : "Unknown error",
       };
     }
   }
@@ -52,9 +52,8 @@ export class HealthService {
    */
   async liveness() {
     return {
-      status: 'alive',
+      status: "alive",
       timestamp: new Date().toISOString(),
     };
   }
 }
-

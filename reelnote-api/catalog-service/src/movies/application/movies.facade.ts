@@ -1,10 +1,19 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { MoviePresenter } from './dto/movie.presenter';
-import { GetMovieUseCase } from './use-cases/get-movie.usecase';
-import { ImportMoviesUseCase, ImportMoviesFailure, ImportMoviesResult } from './use-cases/import-movies.usecase';
-import { MovieResponseDto } from '../dto/movie.dto';
-import { ImportMoviesJobService, ImportMoviesJobDetail, ImportMoviesJobStatus, ImportMoviesJobSummary } from './jobs/import-movies.job-service';
+import { BadRequestException, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { MoviePresenter } from "./dto/movie.presenter.js";
+import { GetMovieUseCase } from "./use-cases/get-movie.usecase.js";
+import {
+  ImportMoviesUseCase,
+  ImportMoviesFailure,
+  ImportMoviesResult,
+} from "./use-cases/import-movies.usecase.js";
+import { MovieResponseDto } from "../dto/movie.dto.js";
+import {
+  ImportMoviesJobService,
+  ImportMoviesJobDetail,
+  ImportMoviesJobStatus,
+  ImportMoviesJobSummary,
+} from "./jobs/import-movies.job-service.js";
 
 @Injectable()
 export class MoviesFacade {
@@ -21,7 +30,10 @@ export class MoviesFacade {
     private readonly importMoviesJobService: ImportMoviesJobService,
   ) {}
 
-  async getMovie(tmdbId: number, language: string = 'ko-KR'): Promise<MovieResponseDto> {
+  async getMovie(
+    tmdbId: number,
+    language = "ko-KR",
+  ): Promise<MovieResponseDto> {
     const { staleThresholdDays, cacheTtlSeconds } = this.resolveConfig();
 
     const snapshot = await this.getMovieUseCase.execute({
@@ -39,17 +51,21 @@ export class MoviesFacade {
     language: string;
     resumeJobId?: string;
   }): Promise<
-    | { kind: 'immediate'; result: { movies: MovieResponseDto[]; failures: ImportMoviesFailure[] } }
-    | { kind: 'queued'; job: ImportMoviesJobSummary }
+    | {
+        kind: "immediate";
+        result: { movies: MovieResponseDto[]; failures: ImportMoviesFailure[] };
+      }
+    | { kind: "queued"; job: ImportMoviesJobSummary }
   > {
     const { tmdbIds, language, resumeJobId } = params;
     const { cacheTtlSeconds } = this.resolveConfig();
-    const { concurrencyLimit, queueThreshold, chunkSize } = this.resolveImportConfig();
+    const { concurrencyLimit, queueThreshold, chunkSize } =
+      this.resolveImportConfig();
 
     const effectiveIds = this.resolveTmdbIds(tmdbIds, resumeJobId);
     if (effectiveIds.length === 0) {
       return {
-        kind: 'immediate',
+        kind: "immediate",
         result: {
           movies: [],
           failures: [],
@@ -70,7 +86,7 @@ export class MoviesFacade {
         },
       );
 
-      return { kind: 'queued', job };
+      return { kind: "queued", job };
     }
 
     const result = await this.importMoviesUseCase.execute(
@@ -86,14 +102,20 @@ export class MoviesFacade {
     );
 
     return {
-      kind: 'immediate',
+      kind: "immediate",
       result: this.mapImportResult(result),
     };
   }
 
-  getImportJob(jobId: string): { detail: ImportMoviesJobDetail; movies?: MovieResponseDto[]; failures: ImportMoviesFailure[] } {
+  getImportJob(jobId: string): {
+    detail: ImportMoviesJobDetail;
+    movies?: MovieResponseDto[];
+    failures: ImportMoviesFailure[];
+  } {
     const detail = this.importMoviesJobService.getJob(jobId);
-    const mapped = detail.result ? this.mapImportResult(detail.result) : undefined;
+    const mapped = detail.result
+      ? this.mapImportResult(detail.result)
+      : undefined;
 
     return {
       detail,
@@ -102,9 +124,18 @@ export class MoviesFacade {
     };
   }
 
-  private resolveConfig(): { staleThresholdDays: number; cacheTtlSeconds: number } {
-    const staleThresholdDays = this.configService.get<number>('MOVIE_STALE_THRESHOLD_DAYS', this.defaultStaleThresholdDays);
-    const cacheTtlSeconds = this.configService.get<number>('MOVIE_CACHE_TTL_SECONDS', this.defaultCacheTtlSeconds);
+  private resolveConfig(): {
+    staleThresholdDays: number;
+    cacheTtlSeconds: number;
+  } {
+    const staleThresholdDays = this.configService.get<number>(
+      "MOVIE_STALE_THRESHOLD_DAYS",
+      this.defaultStaleThresholdDays,
+    );
+    const cacheTtlSeconds = this.configService.get<number>(
+      "MOVIE_CACHE_TTL_SECONDS",
+      this.defaultCacheTtlSeconds,
+    );
 
     return {
       staleThresholdDays,
@@ -112,14 +143,36 @@ export class MoviesFacade {
     };
   }
 
-  private resolveImportConfig(): { concurrencyLimit: number; queueThreshold: number; chunkSize: number } {
-    const concurrency = Number(this.configService.get<string>('MOVIE_IMPORT_CONCURRENCY') ?? this.defaultImportConcurrency);
-    const threshold = Number(this.configService.get<string>('MOVIE_IMPORT_QUEUE_THRESHOLD') ?? this.defaultImportQueueThreshold);
-    const chunk = Number(this.configService.get<string>('MOVIE_IMPORT_CHUNK_SIZE') ?? this.defaultImportChunkSize);
+  private resolveImportConfig(): {
+    concurrencyLimit: number;
+    queueThreshold: number;
+    chunkSize: number;
+  } {
+    const concurrency = Number(
+      this.configService.get<string>("MOVIE_IMPORT_CONCURRENCY") ??
+        this.defaultImportConcurrency,
+    );
+    const threshold = Number(
+      this.configService.get<string>("MOVIE_IMPORT_QUEUE_THRESHOLD") ??
+        this.defaultImportQueueThreshold,
+    );
+    const chunk = Number(
+      this.configService.get<string>("MOVIE_IMPORT_CHUNK_SIZE") ??
+        this.defaultImportChunkSize,
+    );
 
-    const concurrencyLimit = Number.isFinite(concurrency) && concurrency > 0 ? Math.floor(concurrency) : this.defaultImportConcurrency;
-    const queueThreshold = Number.isFinite(threshold) && threshold > 0 ? Math.floor(threshold) : this.defaultImportQueueThreshold;
-    const chunkSize = Number.isFinite(chunk) && chunk > 0 ? Math.floor(chunk) : this.defaultImportChunkSize;
+    const concurrencyLimit =
+      Number.isFinite(concurrency) && concurrency > 0
+        ? Math.floor(concurrency)
+        : this.defaultImportConcurrency;
+    const queueThreshold =
+      Number.isFinite(threshold) && threshold > 0
+        ? Math.floor(threshold)
+        : this.defaultImportQueueThreshold;
+    const chunkSize =
+      Number.isFinite(chunk) && chunk > 0
+        ? Math.floor(chunk)
+        : this.defaultImportChunkSize;
 
     return {
       concurrencyLimit,
@@ -133,8 +186,13 @@ export class MoviesFacade {
 
     if (resumeJobId) {
       const job = this.importMoviesJobService.getJob(resumeJobId);
-      if (job.status === ImportMoviesJobStatus.Pending || job.status === ImportMoviesJobStatus.Running) {
-        throw new BadRequestException(`Import job ${resumeJobId} is still in progress. Try again later.`);
+      if (
+        job.status === ImportMoviesJobStatus.Pending ||
+        job.status === ImportMoviesJobStatus.Running
+      ) {
+        throw new BadRequestException(
+          `Import job ${resumeJobId} is still in progress. Try again later.`,
+        );
       }
 
       for (const failure of job.failures) {
@@ -145,11 +203,15 @@ export class MoviesFacade {
     return Array.from(uniqueIds);
   }
 
-  private mapImportResult(result: ImportMoviesResult): { movies: MovieResponseDto[]; failures: ImportMoviesFailure[] } {
+  private mapImportResult(result: ImportMoviesResult): {
+    movies: MovieResponseDto[];
+    failures: ImportMoviesFailure[];
+  } {
     return {
-      movies: result.snapshots.map(snapshot => MoviePresenter.toResponse(snapshot)),
+      movies: result.snapshots.map((snapshot) =>
+        MoviePresenter.toResponse(snapshot),
+      ),
       failures: result.failures,
     };
   }
 }
-

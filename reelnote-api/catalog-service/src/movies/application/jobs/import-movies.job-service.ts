@@ -1,12 +1,19 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { ImportMoviesCommand, ImportMoviesFailure, ImportMoviesOptions, ImportMoviesProgress, ImportMoviesResult, ImportMoviesUseCase } from '../use-cases/import-movies.usecase';
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "crypto";
+import {
+  ImportMoviesCommand,
+  ImportMoviesFailure,
+  ImportMoviesOptions,
+  ImportMoviesProgress,
+  ImportMoviesResult,
+  ImportMoviesUseCase,
+} from "../use-cases/import-movies.usecase.js";
 
 export enum ImportMoviesJobStatus {
-  Pending = 'pending',
-  Running = 'running',
-  Completed = 'completed',
-  Failed = 'failed',
+  Pending = "pending",
+  Running = "running",
+  Completed = "completed",
+  Failed = "failed",
 }
 
 export interface ImportMoviesJobSummary {
@@ -51,7 +58,10 @@ export class ImportMoviesJobService {
 
   constructor(private readonly importMoviesUseCase: ImportMoviesUseCase) {}
 
-  enqueue(command: ImportMoviesCommand, options: ImportMoviesOptions): ImportMoviesJobSummary {
+  enqueue(
+    command: ImportMoviesCommand,
+    options: ImportMoviesOptions,
+  ): ImportMoviesJobSummary {
     const jobId = randomUUID();
     const uniqueTmdbIds = Array.from(new Set(command.tmdbIds));
     const effectiveCommand: ImportMoviesCommand = {
@@ -74,7 +84,9 @@ export class ImportMoviesJobService {
     };
 
     this.jobs.set(jobId, job);
-    this.logger.log(`Enqueued import job ${jobId} (total=${job.progress.total})`);
+    this.logger.log(
+      `Enqueued import job ${jobId} (total=${job.progress.total})`,
+    );
 
     setImmediate(() => this.process(job));
 
@@ -116,11 +128,13 @@ export class ImportMoviesJobService {
       job.progress.succeeded = result.snapshots.length;
       job.progress.failed = result.failures.length;
       job.status = ImportMoviesJobStatus.Completed;
-      this.logger.log(`Import job ${job.id} completed (success=${job.progress.succeeded}, failed=${job.progress.failed})`);
+      this.logger.log(
+        `Import job ${job.id} completed (success=${job.progress.succeeded}, failed=${job.progress.failed})`,
+      );
     } catch (error) {
       job.status = ImportMoviesJobStatus.Failed;
       const err = error instanceof Error ? error : new Error(String(error));
-      job.error = err.message ?? 'UNKNOWN_ERROR';
+      job.error = err.message ?? "UNKNOWN_ERROR";
       this.logger.error(`Import job ${job.id} failed: ${job.error}`, err.stack);
     } finally {
       job.completedAt = new Date();
@@ -149,4 +163,3 @@ export class ImportMoviesJobService {
     };
   }
 }
-

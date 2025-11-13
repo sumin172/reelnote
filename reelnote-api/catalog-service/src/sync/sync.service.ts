@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { MoviesFacade } from '../movies/application/movies.facade';
-import { TmdbService } from '../tmdb/tmdb.service';
-import { ConfigService } from '@nestjs/config';
+import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger } from "@nestjs/common";
+import { MoviesFacade } from "../movies/application/movies.facade.js";
+import { TmdbService } from "../tmdb/tmdb.service.js";
+import type { TmdbMovieListResponse } from "../tmdb/tmdb.types.js";
 
 /**
  * 동기화 서비스
@@ -17,13 +18,13 @@ export class SyncService {
     private readonly tmdbService: TmdbService,
     private readonly configService: ConfigService,
   ) {
-    this.warmPoolSize = this.configService.get<number>('WARM_POOL_SIZE', 100);
+    this.warmPoolSize = this.configService.get<number>("WARM_POOL_SIZE", 100);
   }
 
   /**
    * 트렌딩 영화 동기화
    */
-  async syncTrending(timeWindow: 'day' | 'week' = 'day'): Promise<void> {
+  async syncTrending(timeWindow: "day" | "week" = "day"): Promise<void> {
     this.logger.log(`트렌딩 영화 동기화 시작: ${timeWindow}`);
 
     try {
@@ -32,8 +33,9 @@ export class SyncService {
       const allTmdbIds: number[] = [];
 
       for (let page = 1; page <= pagesToSync; page++) {
-        const response: any = await this.tmdbService.getTrendingMovies(timeWindow, page);
-        const tmdbIds = response.results?.map((movie: any) => movie.id) || [];
+        const response: TmdbMovieListResponse =
+          await this.tmdbService.getTrendingMovies(timeWindow, page);
+        const tmdbIds = response.results?.map((movie) => movie.id) ?? [];
         allTmdbIds.push(...tmdbIds);
 
         if (allTmdbIds.length >= this.warmPoolSize) {
@@ -47,16 +49,20 @@ export class SyncService {
       this.logger.log(`트렌딩 영화 ${idsToSync.length}개 동기화 시작`);
       const result = await this.moviesFacade.importMovies({
         tmdbIds: idsToSync,
-        language: 'ko-KR',
+        language: "ko-KR",
       });
 
-      if (result.kind === 'queued') {
-        this.logger.log(`트렌딩 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`);
+      if (result.kind === "queued") {
+        this.logger.log(
+          `트렌딩 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`,
+        );
       } else {
-        this.logger.log(`트렌딩 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`);
+        this.logger.log(
+          `트렌딩 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`,
+        );
       }
     } catch (error) {
-      this.logger.error('트렌딩 영화 동기화 실패', error);
+      this.logger.error("트렌딩 영화 동기화 실패", error);
       throw error;
     }
   }
@@ -65,7 +71,7 @@ export class SyncService {
    * 인기 영화 동기화
    */
   async syncPopular(): Promise<void> {
-    this.logger.log('인기 영화 동기화 시작');
+    this.logger.log("인기 영화 동기화 시작");
 
     try {
       const pagesToSync = Math.ceil(this.warmPoolSize / 20);
@@ -73,8 +79,9 @@ export class SyncService {
       const allTmdbIds: number[] = [];
 
       for (let page = 1; page <= pagesToSync; page++) {
-        const response: any = await this.tmdbService.getPopularMovies(page);
-        const tmdbIds = response.results?.map((movie: any) => movie.id) || [];
+        const response: TmdbMovieListResponse =
+          await this.tmdbService.getPopularMovies(page);
+        const tmdbIds = response.results?.map((movie) => movie.id) ?? [];
         allTmdbIds.push(...tmdbIds);
 
         if (allTmdbIds.length >= this.warmPoolSize) {
@@ -87,18 +94,21 @@ export class SyncService {
       this.logger.log(`인기 영화 ${idsToSync.length}개 동기화 시작`);
       const result = await this.moviesFacade.importMovies({
         tmdbIds: idsToSync,
-        language: 'ko-KR',
+        language: "ko-KR",
       });
 
-      if (result.kind === 'queued') {
-        this.logger.log(`인기 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`);
+      if (result.kind === "queued") {
+        this.logger.log(
+          `인기 영화 동기화가 비동기 작업으로 전환되었습니다 (jobId=${result.job.jobId}).`,
+        );
       } else {
-        this.logger.log(`인기 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`);
+        this.logger.log(
+          `인기 영화 동기화 완료 (성공 ${result.result.movies.length}, 실패 ${result.result.failures.length})`,
+        );
       }
     } catch (error) {
-      this.logger.error('인기 영화 동기화 실패', error);
+      this.logger.error("인기 영화 동기화 실패", error);
       throw error;
     }
   }
 }
-

@@ -1,5 +1,5 @@
-import { MovieSnapshot } from '../../domain/movie';
-import { MovieResponseDto } from '../../dto/movie.dto';
+import { MovieSnapshot } from "../../domain/movie.js";
+import { MovieResponseDto } from "../../dto/movie.dto.js";
 
 export class MoviePresenter {
   static toResponse(snapshot: MovieSnapshot): MovieResponseDto {
@@ -21,4 +21,3 @@ export class MoviePresenter {
     };
   }
 }
-

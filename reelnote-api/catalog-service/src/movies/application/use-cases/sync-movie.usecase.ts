@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { MovieFactory } from '../../domain/movie.factory';
-import { MovieRepositoryPort, SaveStrategy } from '../../domain/ports/movie-repository.port';
-import { MovieExternalPort } from '../../domain/ports/movie-external.port';
-import { Movie, MovieSnapshot } from '../../domain/movie';
-import { MovieCachePort } from '../ports/movie-cache.port';
+import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { MovieFactory } from "../../domain/movie.factory.js";
+import {
+  MovieRepositoryPort,
+  SaveStrategy,
+} from "../../domain/ports/movie-repository.port.js";
+import { MovieExternalPort } from "../../domain/ports/movie-external.port.js";
+import { Movie, MovieSnapshot } from "../../domain/movie.js";
+import { MovieCachePort } from "../ports/movie-cache.port.js";
 
 export interface SyncMovieCommand {
   tmdbId: number;
@@ -48,7 +51,7 @@ export class SyncMovieUseCase {
   ) {}
 
   async execute(command: SyncMovieCommand): Promise<MovieSnapshot> {
-    const { tmdbId, language, cacheTtlSeconds, strategy = 'single' } = command;
+    const { tmdbId, language, cacheTtlSeconds, strategy = "single" } = command;
 
     const movie = await this.buildMovie(command);
     const persisted = await this.movieRepository.save(movie, { strategy });
@@ -68,7 +71,7 @@ export class SyncMovieUseCase {
       return { snapshots: [], failures: [] };
     }
 
-    const strategy = options.strategy ?? 'batch';
+    const strategy = options.strategy ?? "batch";
     const concurrencyLimit = Math.max(1, options.concurrencyLimit ?? 5);
     const chunkSize = Math.max(1, options.chunkSize ?? 100);
 
@@ -94,10 +97,8 @@ export class SyncMovieUseCase {
 
     while (queue.length > 0) {
       const chunkCommands = queue.splice(0, chunkSize);
-      const {
-        movies: builtMovies,
-        failures: buildFailures,
-      } = await this.buildMovies(chunkCommands, concurrencyLimit);
+      const { movies: builtMovies, failures: buildFailures } =
+        await this.buildMovies(chunkCommands, concurrencyLimit);
 
       for (const failure of buildFailures) {
         failures.push(failure);
@@ -112,7 +113,7 @@ export class SyncMovieUseCase {
 
       try {
         const persisted = await this.movieRepository.saveMany(
-          builtMovies.map(item => item.movie),
+          builtMovies.map((item) => item.movie),
           { strategy, chunkSize: builtMovies.length },
         );
 
@@ -128,14 +129,19 @@ export class SyncMovieUseCase {
           }
 
           const snapshot = movie.toSnapshot();
-          await this.movieCache.set(command.tmdbId, command.language, snapshot, command.cacheTtlSeconds);
+          await this.movieCache.set(
+            command.tmdbId,
+            command.language,
+            snapshot,
+            command.cacheTtlSeconds,
+          );
           snapshots.push(snapshot);
           succeeded += 1;
           processed += 1;
           notifyProgress(command.tmdbId);
         }
       } catch (error) {
-        const reason = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
+        const reason = error instanceof Error ? error.message : "UNKNOWN_ERROR";
         this.logger.error(`Failed to persist movie chunk`, error as Error);
         for (const item of builtMovies) {
           failures.push({ tmdbId: item.command.tmdbId, reason });
@@ -154,10 +160,15 @@ export class SyncMovieUseCase {
 
     if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
       this.logger.warn(`Invalid TMDB ID requested for sync: ${tmdbId}`);
-      throw new BadRequestException('유효하지 않은 TMDB ID 입니다. 양의 정수를 입력해주세요.');
+      throw new BadRequestException(
+        "유효하지 않은 TMDB ID 입니다. 양의 정수를 입력해주세요.",
+      );
     }
 
-    const payload = await this.movieExternalPort.fetchMovieDetail(tmdbId, language);
+    const payload = await this.movieExternalPort.fetchMovieDetail(
+      tmdbId,
+      language,
+    );
     return MovieFactory.fromTmdb(tmdbId, payload, new Date());
   }
 
@@ -181,7 +192,8 @@ export class SyncMovieUseCase {
           const movie = await this.buildMovie(command);
           movies.push({ command, movie });
         } catch (error) {
-          const reason = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
+          const reason =
+            error instanceof Error ? error.message : "UNKNOWN_ERROR";
           failures.push({ tmdbId: command.tmdbId, reason });
         }
       }
@@ -194,5 +206,3 @@ export class SyncMovieUseCase {
     return { movies, failures };
   }
 }
-
-

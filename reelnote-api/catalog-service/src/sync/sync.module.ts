@@ -1,8 +1,8 @@
-import { Module } from '@nestjs/common';
-import { SyncController } from './sync.controller';
-import { SyncService } from './sync.service';
-import { MoviesModule } from '../movies/movies.module';
-import { TmdbModule } from '../tmdb/tmdb.module';
+import { Module } from "@nestjs/common";
+import { SyncController } from "./sync.controller.js";
+import { SyncService } from "./sync.service.js";
+import { MoviesModule } from "../movies/movies.module.js";
+import { TmdbModule } from "../tmdb/tmdb.module.js";
 
 @Module({
   imports: [MoviesModule, TmdbModule],
@@ -10,4 +10,3 @@ import { TmdbModule } from '../tmdb/tmdb.module';
   providers: [SyncService],
 })
 export class SyncModule {}
-

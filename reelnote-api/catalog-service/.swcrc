@@ -1,7 +1,7 @@
 {
   "sourceMaps": true,
   "module": {
-    "type": "commonjs"
+    "type": "es6"
   },
   "jsc": {
     "target": "es2021",
@@ -19,4 +19,3 @@
   },
   "minify": false
 }
-

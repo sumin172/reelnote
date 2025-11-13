@@ -10,7 +10,7 @@ export type SearchMovieResult = {
   originalTitle?: string | null;
   posterPath?: string | null;
   year?: number | null;
-  source: 'local' | 'tmdb';
+  source: "local" | "tmdb";
 };
 
 export type SearchResult = {
@@ -23,4 +23,3 @@ export type SearchResult = {
 export abstract class SearchReadPort {
   abstract search(query: SearchQuery): Promise<SearchResult>;
 }
-

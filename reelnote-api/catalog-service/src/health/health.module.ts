@@ -1,7 +1,7 @@
-import { Module } from '@nestjs/common';
-import { HealthController } from './health.controller';
-import { HealthService } from './health.service';
-import { CatalogPrismaModule } from '../infrastructure/db/catalog-prisma.module';
+import { Module } from "@nestjs/common";
+import { HealthController } from "./health.controller.js";
+import { HealthService } from "./health.service.js";
+import { CatalogPrismaModule } from "../infrastructure/db/catalog-prisma.module.js";
 
 @Module({
   imports: [CatalogPrismaModule],
@@ -9,4 +9,3 @@ import { CatalogPrismaModule } from '../infrastructure/db/catalog-prisma.module'
   providers: [HealthService],
 })
 export class HealthModule {}
-

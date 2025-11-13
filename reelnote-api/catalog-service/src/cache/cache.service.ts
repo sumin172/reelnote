@@ -1,6 +1,6 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import type { Cache } from 'cache-manager';
+import { Injectable, Inject, Logger } from "@nestjs/common";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import type { Cache } from "cache-manager";
 
 @Injectable()
 export class CacheService {
@@ -23,11 +23,14 @@ export class CacheService {
     }
   }
 
-  async set(key: string, value: any, ttl?: number): Promise<void> {
+  async set<T>(key: string, value: T, ttl?: number): Promise<void> {
     try {
-      const ttlMs = typeof ttl === 'number' && Number.isFinite(ttl) ? ttl * 1000 : undefined;
+      const ttlMs =
+        typeof ttl === "number" && Number.isFinite(ttl)
+          ? ttl * 1000
+          : undefined;
       await this.cacheManager.set(key, value, ttlMs);
-      this.logger.debug(`Cache SET: ${key} (TTL: ${ttl ?? 'default'} seconds)`);
+      this.logger.debug(`Cache SET: ${key} (TTL: ${ttl ?? "default"} seconds)`);
     } catch (error) {
       this.logger.error(`Cache SET 오류: ${key}`, error);
     }
@@ -45,10 +48,9 @@ export class CacheService {
   async reset(): Promise<void> {
     try {
       await this.cacheManager.clear();
-      this.logger.log('Cache RESET 완료');
+      this.logger.log("Cache RESET 완료");
     } catch (error) {
-      this.logger.error('Cache RESET 오류', error);
+      this.logger.error("Cache RESET 오류", error);
     }
   }
 }
-

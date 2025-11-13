@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
-import { PrismaService } from '../../database/prisma.service';
+import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
+import { PrismaService } from "../../database/prisma.service.js";
 
 export type CatalogPrismaTransaction = Prisma.TransactionClient;
 
@@ -52,9 +52,9 @@ export class CatalogPrismaAccessor {
     return this.prisma.movie.count();
   }
 
-  async runInTransaction<T>(handler: (tx: CatalogPrismaTransaction) => Promise<T>): Promise<T> {
+  async runInTransaction<T>(
+    handler: (tx: CatalogPrismaTransaction) => Promise<T>,
+  ): Promise<T> {
     return this.prisma.$transaction(handler);
   }
 }
-
-

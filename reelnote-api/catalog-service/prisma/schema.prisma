@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("CATALOG_DB_URL")
 }
 
 // 영화 메인 테이블 (TMDB 원본 데이터)

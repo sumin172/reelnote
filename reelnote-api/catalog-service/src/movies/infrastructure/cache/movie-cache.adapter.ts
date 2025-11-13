@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { CacheService } from '../../../cache/cache.service';
-import { MovieCachePort } from '../../application/ports/movie-cache.port';
-import { MovieSnapshot } from '../../domain/movie';
+import { Injectable } from "@nestjs/common";
+import { CacheService } from "../../../cache/cache.service.js";
+import { MovieCachePort } from "../../application/ports/movie-cache.port.js";
+import { MovieSnapshot } from "../../domain/movie.js";
 
 @Injectable()
 export class MovieCacheAdapter extends MovieCachePort {
@@ -19,19 +19,29 @@ export class MovieCacheAdapter extends MovieCachePort {
     return {
       ...value,
       syncedAt: new Date(value.syncedAt),
-      sourceUpdatedAt: value.sourceUpdatedAt ? new Date(value.sourceUpdatedAt) : value.sourceUpdatedAt ?? undefined,
+      sourceUpdatedAt: value.sourceUpdatedAt
+        ? new Date(value.sourceUpdatedAt)
+        : (value.sourceUpdatedAt ?? undefined),
       genres: [...(value.genres ?? [])],
       keywords: [...(value.keywords ?? [])],
     };
   }
 
-  async set(tmdbId: number, language: string, snapshot: MovieSnapshot, ttlSeconds: number): Promise<void> {
+  async set(
+    tmdbId: number,
+    language: string,
+    snapshot: MovieSnapshot,
+    ttlSeconds: number,
+  ): Promise<void> {
     const key = this.buildKey(tmdbId, language);
-    const { rawPayload, ...cached } = snapshot;
+    const { rawPayload: _rawPayload, ...cached } = snapshot;
+    void _rawPayload;
     const payload = {
       ...cached,
       syncedAt: cached.syncedAt.toISOString(),
-      sourceUpdatedAt: cached.sourceUpdatedAt ? cached.sourceUpdatedAt.toISOString() : cached.sourceUpdatedAt ?? undefined,
+      sourceUpdatedAt: cached.sourceUpdatedAt
+        ? cached.sourceUpdatedAt.toISOString()
+        : (cached.sourceUpdatedAt ?? undefined),
     };
     await this.cacheService.set(key, payload, ttlSeconds);
   }
@@ -40,4 +50,3 @@ export class MovieCacheAdapter extends MovieCachePort {
     return `movie:${tmdbId}:${language}`;
   }
 }
-

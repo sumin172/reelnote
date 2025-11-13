@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { CatalogPrismaAccessor } from '../../infrastructure/db/catalog-prisma.accessor';
-import { SearchMovieResult } from '../application/search-read.port';
+import { Injectable } from "@nestjs/common";
+import { CatalogPrismaAccessor } from "../../infrastructure/db/catalog-prisma.accessor.js";
+import { SearchMovieResult } from "../application/search-read.port.js";
 
 const SEARCH_PAGE_SIZE = 20;
 
@@ -12,8 +12,8 @@ export class SearchLocalReadAdapter {
     const results = await this.catalogPrisma.movie.findMany({
       where: {
         OR: [
-          { title: { contains: query, mode: 'insensitive' } },
-          { originalTitle: { contains: query, mode: 'insensitive' } },
+          { title: { contains: query, mode: "insensitive" } },
+          { originalTitle: { contains: query, mode: "insensitive" } },
         ],
       },
       select: {
@@ -28,15 +28,17 @@ export class SearchLocalReadAdapter {
     });
 
     return results
-      .filter((movie): movie is typeof movie & { tmdbId: number } => movie.tmdbId !== null)
-      .map(movie => ({
+      .filter(
+        (movie): movie is typeof movie & { tmdbId: number } =>
+          movie.tmdbId !== null,
+      )
+      .map((movie) => ({
         tmdbId: movie.tmdbId,
-        title: movie.title ?? '제목 미상',
+        title: movie.title ?? "제목 미상",
         originalTitle: movie.originalTitle,
         posterPath: movie.posterPath,
         year: movie.year,
-        source: 'local',
+        source: "local",
       }));
   }
 }
-

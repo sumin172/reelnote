@@ -6,12 +6,12 @@ Catalog Service는 TMDB API를 통해 영화 메타데이터를 수집·정제�
 
 ## 🛠 기술 스택
 
-- **Runtime**: Node.js 20 + TypeScript 5.x
-- **Framework**: NestJS 10
-- **Persistence**: PostgreSQL + Prisma ORM
-- **Cache**: Redis (옵션) + In-memory fallback
-- **Resilience**: Axios + `axios-retry`, `opossum`, `p-limit`
-- **Orchestration**: Nx Workspace + pnpm
+- **Runtime**: Node.js 24 LTS + TypeScript 5.9 (ESM 모듈)
+- **Framework**: NestJS 11 + `@nestjs/cache-manager`
+- **Persistence**: PostgreSQL + Prisma ORM 6.x
+- **Cache**: `cache-manager` v7 + ioredis(`Redis`) + 인메모리 폴백
+- **Resilience**: Axios + `axios-retry` 4.x + `opossum` 9.x + `p-limit` 7.x
+- **Tooling**: Nx 21 Workspace + pnpm 10
 
 ## 📁 프로젝트 구조
 
@@ -19,29 +19,40 @@ Catalog Service는 TMDB API를 통해 영화 메타데이터를 수집·정제�
 src/
 ├── main.ts                 # 애플리케이션 진입점
 ├── app/                    # 루트 모듈
-├── cache/                  # Redis / In-memory 캐시 어댑터
-├── database/               # Prisma 서비스 (DB 어댑터)
-├── movies/                 # 도메인 + 애플리케이션 계층
-├── search/                 # 검색 파사드
-├── sync/                   # Warm Pool 배치/트리거
-└── tmdb/                   # 외부 API 어댑터 (Resilience Layer 포함)
+├── cache/                  # cache-manager v7 + Redis(ioredis) 스토어
+├── config/                 # CORS 등 공통 설정
+├── database/               # Prisma 모듈 및 서비스
+├── health/                 # 헬스/레디니스/라이브니스 엔드포인트
+├── infrastructure/         # 공용 인프라 어댑터 (예: Prisma Accessor)
+├── movies/                 # 도메인, 애플리케이션, 인프라, 파사드/컨트롤러
+│   ├── application/        # UseCase, Facade, Port, Job Service
+│   ├── domain/             # 엔티티/팩토리
+│   ├── dto/                # DTO & 프레젠터
+│   └── infrastructure/     # 캐시/외부/퍼시스턴스 어댑터
+├── scripts/                # OpenAPI 생성 스크립트
+├── search/                 # 로컬+TMDB 검색 Aggregator 및 어댑터
+├── sync/                   # Warm Pool 배치/트리거 서비스
+└── tmdb/                   # TMDB 클라이언트 + Resilience Layer
 ```
 
 ## 🏗 아키텍처 & 설계
 
 ### 다층 Port/Adapter
+
 - **Domain & Application**: `movies/domain`, `movies/application`에서 엔티티와 UseCase를 정의합니다.
 - **Inbound Ports**: `movies/application`의 파사드/UseCase가 핵심 진입점입니다.
 - **Outbound Ports**: `movies/application/ports`에 저장소, 캐시, 외부 API 포트가 명시됩니다.
 - **Adapters**: `database/`, `cache/`, `tmdb/`가 각각 Prisma, Redis, TMDB 통합을 담당합니다.
 
 ### Resilience Layer
+
 - **Concurrency**: `p-limit`을 통한 동시성 제어 (`TMDB_API_MAX_CONCURRENCY`)
 - **Retry**: `axios-retry` 지수 백오프 + 지터 (`TMDB_API_MAX_RETRY`)
 - **Circuit Breaker**: `opossum` 기반 보호 (`TMDB_BREAKER_*`)
 - **Warm Pool**: 인기/트렌딩 콘텐츠를 주기적으로 채우는 배치 파이프라인 (`sync` 모듈)
 
 ### 데이터 전략
+
 - **Lazy Hydration**: 요청 시 캐시 → DB → TMDB 순서로 조회
 - **Warm Pool**: `WARM_POOL_SIZE`만큼 인기/트렌딩 데이터를 미리 적재
 - **Stale Tolerance**: `synced_at`이 만료되었어도 응답 후 비동기 갱신
@@ -49,21 +60,23 @@ src/
 
 ## 💡 핵심 구현 특징
 
-1. **Hexagonal 구조**: Review Service와 동일한 Port/Adapter 패턴으로 계층 역할을 명시
-2. **다층 캐싱**: Redis + In-memory 조합으로 p95 ≤ 120ms 목표 달성
-3. **Resilience 내장**: Retry, Circuit Breaker, Rate Limiter를 서비스 내부에 통합
-4. **배치 & 온디맨드 병행**: Warm Pool 스케줄링과 Lazy Hydration이 상호 보완
-5. **확장 로드맵**: Feature Store, 추천/분석 서비스 연동을 위한 스키마 준비
+1. **정제된 Hexagonal 계층**: `movies/application`의 Facade·UseCase·Port와 `movies/infrastructure` 어댑터 분리
+2. **다층 캐싱**: cache-manager v7 기반으로 Redis(ioredis) + 인메모리 폴백을 추상화 (`CacheService`)
+3. **Resilience 강화**: `p-limit` 동적 로딩 + `axios-retry` 지터 + `opossum` 회로차단기로 TMDB 호출 보호
+4. **비동기 임포트 큐**: 소량은 즉시 처리, 대량은 `ImportMoviesJobService`가 인메모리 큐로 비동기 전환
+5. **검색 Aggregator**: 로컬 DB + TMDB 결과를 병합하고 60초 TTL 캐시에 저장하여 빠른 검색 제공
 
 ## 🔐 환경 변수
 
 `.env` 파일을 `reelnote-api/catalog-service` 루트에 생성하고 아래 값을 채웁니다.
 
 ### 필수
-- `DATABASE_URL`: PostgreSQL 연결 문자열
+
+- `CATALOG_DB_URL`: PostgreSQL 연결 문자열
 - `TMDB_API_KEY`: TMDB API Key
 
 ### 선택 (주요 항목)
+
 - `TMDB_API_BASE_URL` (기본값 `https://api.themoviedb.org/3`)
 - `TMDB_API_TIMEOUT` (기본값 `10000`)
 - `TMDB_API_MAX_CONCURRENCY`, `TMDB_API_MAX_RETRY`
@@ -71,11 +84,11 @@ src/
 - `MOVIE_IMPORT_CONCURRENCY`, `MOVIE_IMPORT_QUEUE_THRESHOLD`, `MOVIE_IMPORT_CHUNK_SIZE`
 - `WARM_POOL_SIZE`, `MOVIE_STALE_THRESHOLD_DAYS`, `MOVIE_CACHE_TTL_SECONDS`
 - `CACHE_TTL_SECONDS`, `CACHE_NAMESPACE`, `REDIS_URL`
-- `PORT`, `NODE_ENV`, `CORS_ORIGIN`
+- `PORT`, `NODE_ENV`, `CORS_ORIGINS`
 
 ```bash
 # 예시
-DATABASE_URL="postgresql://user:password@localhost:5432/catalog_db?schema=public"
+CATALOG_DB_URL="postgresql://user:password@localhost:5432/catalog_db?schema=public"
 TMDB_API_KEY=your_tmdb_api_key
 WARM_POOL_SIZE=100
 MOVIE_IMPORT_CONCURRENCY=5
@@ -89,11 +102,13 @@ MOVIE_IMPORT_CONCURRENCY=5
 ## 🚀 실행 방법
 
 ### 1. 의존성 설치
+
 ```bash
 pnpm install
 ```
 
 ### 2. Prisma 준비
+
 ```bash
 # 서비스 디렉터리에서
 cd reelnote-api/catalog-service
@@ -106,11 +121,13 @@ nx run catalog-service:prisma:migrate -- --name init
 ```
 
 ### 3. 서비스 실행
+
 ```bash
 nx serve catalog-service
 ```
 
 ### 4. 동작 확인
+
 ```bash
 curl http://localhost:3001/api/v1/health
 curl http://localhost:3001/api/v1/movies/550
@@ -124,6 +141,7 @@ npx nx daemon --start
 ```
 
 ### 5. 프로덕션 빌드
+
 ```bash
 nx build catalog-service
 ```
@@ -132,9 +150,11 @@ nx build catalog-service
 
 - `GET /api/v1/movies/:tmdbId` : Lazy Hydration 기반 상세 조회
 - `POST /api/v1/movies/import` : 온디맨드 일괄 인입 (큐 임계치에 따라 Job 전환)
+- `GET /api/v1/movies/import/jobs/:jobId` : 비동기 임포트 작업 진행 상황 조회
 - `POST /api/v1/sync/trending` : 트렌딩 Warm Pool 동기화
 - `POST /api/v1/sync/popular` : 인기 Warm Pool 동기화
-- `GET /api/v1/search` : 검색 파사드
+- `GET /api/v1/search` : 로컬 DB + TMDB 하이브리드 검색
+- `GET /api/v1/health` · `/api/v1/health/ready` · `/api/v1/health/live` : 헬스/레디니스/라이브니스 체크
 - `GET /api/docs` : Swagger 문서
 
 ## 🗂 데이터베이스 & 스키마
@@ -165,4 +185,3 @@ nx build catalog-service
 - **Lazy Hydration**: 요청 시점에 외부 데이터를 당겨와 DB에 저장하는 전략
 
 Review Service README에서도 동일한 용어를 사용하므로, 두 서비스를 오가며 헥사고날 패턴과 Resilience 전략을 비교하며 학습할 수 있습니다.
-
