@@ -6,11 +6,28 @@
 # Database
 data/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.e2e
+# Keep env.example files
+!**/env.example
+!.env.example
+
 # Build outputs
 build/
 dist/
 **/dist/
 .next/
+out-tsc/
+**/out-tsc/
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
 
 # Dependencies
 node_modules/
@@ -29,13 +46,82 @@ static/
 package-lock.json
 yarn.lock
 
+# Package manager logs and cache
+.pnpm-debug.log*
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.turbo/
+
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
 
 # Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 test-output
+
+# Test artifacts
+playwright-report/
+blob-report/
+test-results/
+coverage/
+*.lcov
+**/build/
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Generated files
+packages/api-schema/generated/
+**/openapi/
+next-env.d.ts
+**/next-env.d.ts
+
+# Gradle
+**/.gradle/
+.gradle/
+
+# Spring/Java (for review-service)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Kotlin
+.kotlin
+
+# Prisma (generated client is in node_modules, but explicit for clarity)
+node_modules/.prisma/
+
+# Vercel
+.vercel
+
+# Certificates and keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Temporary files
+tmp/
+*.tmp
+*.temp
+.cache/
+*.cache

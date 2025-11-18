@@ -7,31 +7,31 @@
     "build": {
       "executor": "@nx/gradle:gradle",
       "options": {
-        "taskName": "build"
+        "taskName": ":review-service:build"
       }
     },
     "serve": {
       "executor": "@nx/gradle:gradle",
       "options": {
-        "taskName": "bootRun"
+        "taskName": ":review-service:bootRun"
       }
     },
     "test": {
       "executor": "@nx/gradle:gradle",
       "options": {
-        "taskName": "test"
+        "taskName": ":review-service:test"
       }
     },
     "lint": {
       "executor": "@nx/gradle:gradle",
       "options": {
-        "taskName": "lint"
+        "taskName": ":review-service:lint"
       }
     },
     "ktlintFormat": {
       "executor": "@nx/gradle:gradle",
       "options": {
-        "taskName": "ktlintFormat"
+        "taskName": ":review-service:ktlintFormat"
       }
     }
   },

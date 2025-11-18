@@ -38,9 +38,6 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
-    url: ${REVIEW_DB_URL:jdbc:postgresql://localhost:5433/review_db}
-    user: ${REVIEW_DB_USERNAME:review_app}
-    password: ${REVIEW_DB_PASSWORD:review_1106}
     default-schema: ${REVIEW_DB_SCHEMA:app}
     schemas: ${REVIEW_DB_SCHEMA:app}
 

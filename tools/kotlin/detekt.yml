@@ -1,3 +1,6 @@
+# Kotlin 공통 detekt 설정
+# 모든 Kotlin 프로젝트에서 공유하는 코드 품질 규칙
+
 build:
   maxIssues: 0
   excludeCorrectable: false

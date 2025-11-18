@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/card";
 
 export default function ReviewsList() {
-  // Client component for demo simplicity
-  // In real app, consider Server Components with React Query hydration when needed
   const { data, isLoading, isError } = useQuery({
     queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
     queryFn: () => fetchReviews({ page: 0, size: 10 }),

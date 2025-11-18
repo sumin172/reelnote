@@ -20,7 +20,7 @@
 
 ### Catalog Service 마무리
 
-- `.env` 생성 및 환경 변수 값 채우기 (`DATABASE_URL`, `TMDB_API_KEY`, `REDIS_URL` 등)
+- `.env` 생성 및 환경 변수 값 채우기 (`CATALOG_DB_URL`, `TMDB_API_KEY`, `REDIS_URL` 등)
 - `pnpm install`, `nx run catalog-service:prisma:*` 실행으로 스키마 반영
 - PostgreSQL 인스턴스 연결 및 마이그레이션 확인
 - `nx serve catalog-service` 실행 테스트 및 TMDB 연동 검증
