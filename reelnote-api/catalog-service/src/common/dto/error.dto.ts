@@ -1,0 +1,49 @@
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+
+/**
+ * 표준 에러 응답 스키마
+ * HTTP status code와 함께 사용되며, 성공 응답에는 사용되지 않습니다.
+ */
+export class ErrorDetailDto {
+  @ApiProperty({
+    description: "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)",
+    example: "REVIEW_NOT_FOUND",
+  })
+  code!: string;
+
+  @ApiProperty({
+    description: "사람 친화적 에러 메시지",
+    example: "리뷰를 찾을 수 없습니다.",
+  })
+  message!: string;
+
+  @ApiPropertyOptional({
+    description: "추가 상세 정보 (필드별 에러, 컨텍스트 등)",
+    example: {
+      path: "/api/v1/reviews/123",
+      fieldErrors: {
+        rating: "평점은 1-5 사이여야 합니다.",
+      },
+    },
+  })
+  details?: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    description: "분산 트레이싱 / 로그 상관관계용 추적 ID",
+    example: "1234-5678-90ab-cdef",
+  })
+  traceId?: string;
+}
+
+/**
+ * 에러 코드 상수
+ */
+export const ErrorCodes = {
+  VALIDATION_ERROR: "VALIDATION_ERROR",
+  NOT_FOUND: "NOT_FOUND",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
+  EXTERNAL_API_ERROR: "EXTERNAL_API_ERROR",
+  CONFLICT: "CONFLICT",
+  UNAUTHORIZED: "UNAUTHORIZED",
+  FORBIDDEN: "FORBIDDEN",
+} as const;

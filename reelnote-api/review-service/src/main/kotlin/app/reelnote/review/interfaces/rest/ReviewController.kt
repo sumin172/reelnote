@@ -8,17 +8,16 @@ import app.reelnote.review.interfaces.dto.MyReviewSearchCriteria
 import app.reelnote.review.interfaces.dto.PageResponse
 import app.reelnote.review.interfaces.dto.ReviewResponse
 import app.reelnote.review.interfaces.dto.UpdateReviewRequest
-import app.reelnote.review.shared.response.ApiResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Min
 import org.slf4j.LoggerFactory
-import org.springframework.context.MessageSource
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
@@ -34,7 +33,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import java.util.Locale
 
 /** 리뷰 REST API 컨트롤러 */
 @RestController
@@ -44,20 +42,8 @@ import java.util.Locale
 class ReviewController(
     private val reviewService: ReviewService,
     private val reviewQueryService: ReviewQueryService,
-    private val messageSource: MessageSource,
 ) {
     private val logger = LoggerFactory.getLogger(ReviewController::class.java)
-
-    /** 메시지 조회 헬퍼 메서드 */
-    private fun getMessage(
-        key: String,
-        vararg args: Any,
-    ): String =
-        try {
-            messageSource.getMessage(key, args, Locale.getDefault())
-        } catch (_: Exception) {
-            key
-        }
 
     /** 리뷰 생성 */
     @PostMapping
@@ -69,7 +55,7 @@ class ReviewController(
     @ApiResponses(
         value =
             [
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "201",
                     description = "리뷰 생성 성공",
                     content =
@@ -83,7 +69,7 @@ class ReviewController(
                             ),
                         ],
                 ),
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "400",
                     description = "잘못된 요청 데이터",
                 ),
@@ -92,13 +78,13 @@ class ReviewController(
     fun createReview(
         @Valid @RequestBody request: CreateReviewRequest,
         @RequestHeader("X-User-Seq") userSeq: Long,
-    ): ResponseEntity<ApiResponse<ReviewResponse>> {
+    ): ResponseEntity<ReviewResponse> {
         logger.info("리뷰 생성 API 호출: userSeq={}, movieId={}", userSeq, request.movieId)
 
         val review = reviewService.createReview(request, userSeq)
         return ResponseEntity
             .status(HttpStatus.CREATED)
-            .body(ApiResponse.success(review, getMessage("review.create.success")))
+            .body(review)
     }
 
     /** 유저+영화 단건 리뷰 조회 */
@@ -110,11 +96,11 @@ class ReviewController(
     fun searchReviews(
         @Parameter(description = "사용자 ID", required = true) @RequestParam @Min(1) userSeq: Long,
         @Parameter(description = "영화 ID", required = true) @RequestParam @Min(1) movieId: Long,
-    ): ResponseEntity<ApiResponse<ReviewResponse>> {
+    ): ResponseEntity<ReviewResponse> {
         logger.debug("단건 리뷰 검색 API 호출: userSeq={}, movieId={}", userSeq, movieId)
 
         val review = reviewQueryService.getUserMovieReview(userSeq, movieId)
-        return ResponseEntity.ok(ApiResponse.success(review))
+        return ResponseEntity.ok(review)
     }
 
     /** 개인 리뷰 목록 조회 (다중 필터링 지원) */
@@ -126,7 +112,7 @@ class ReviewController(
     suspend fun searchMyReviews(
         @RequestHeader("X-User-Seq") userSeq: Long,
         @Valid @ModelAttribute criteria: MyReviewSearchCriteria,
-    ): ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> {
+    ): ResponseEntity<PageResponse<ReviewResponse>> {
         logger.debug(
             "개인 리뷰 검색 API 호출: userSeq={}, movieTitle={}, tags={}, page={}, size={}",
             userSeq,
@@ -137,7 +123,7 @@ class ReviewController(
         )
 
         val result = reviewQueryService.searchMyReviews(criteria.toRequest(userSeq))
-        return ResponseEntity.ok(ApiResponse.success(result))
+        return ResponseEntity.ok(result)
     }
 
     /** 영화별 리뷰 목록 조회 (다른 사람들의 리뷰, 다중 필터링 지원) */
@@ -152,7 +138,7 @@ class ReviewController(
         @RequestHeader(value = "X-User-Seq", required = false)
         excludeUserSeq: Long?,
         @Valid @ModelAttribute criteria: MovieReviewSearchCriteria,
-    ): ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> {
+    ): ResponseEntity<PageResponse<ReviewResponse>> {
         logger.debug(
             "영화별 리뷰 검색 API 호출: movieId={}, excludeUserSeq={}, page={}, size={}",
             movieId,
@@ -163,7 +149,7 @@ class ReviewController(
 
         val result =
             reviewQueryService.searchMovieReviews(criteria.toRequest(movieId, excludeUserSeq))
-        return ResponseEntity.ok(ApiResponse.success(result))
+        return ResponseEntity.ok(result)
     }
 
     /** 리뷰 수정 */
@@ -175,11 +161,11 @@ class ReviewController(
     @ApiResponses(
         value =
             [
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "200",
                     description = "리뷰 수정 성공",
                 ),
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "404",
                     description = "리뷰를 찾을 수 없음",
                 ),
@@ -189,11 +175,11 @@ class ReviewController(
         @Parameter(description = "리뷰 ID", required = true) @PathVariable id: Long,
         @RequestHeader("X-User-Seq") userSeq: Long,
         @Valid @RequestBody request: UpdateReviewRequest,
-    ): ResponseEntity<ApiResponse<ReviewResponse>> {
+    ): ResponseEntity<ReviewResponse> {
         logger.info("리뷰 수정 API 호출: id={}, userSeq={}", id, userSeq)
 
         val review = reviewService.updateReview(id, request, userSeq)
-        return ResponseEntity.ok(ApiResponse.success(review, getMessage("review.update.success")))
+        return ResponseEntity.ok(review)
     }
 
     /** 리뷰 삭제 */
@@ -206,11 +192,11 @@ class ReviewController(
     @ApiResponses(
         value =
             [
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "204",
                     description = "리뷰 삭제 성공",
                 ),
-                io.swagger.v3.oas.annotations.responses.ApiResponse(
+                ApiResponse(
                     responseCode = "404",
                     description = "리뷰를 찾을 수 없음",
                 ),
@@ -219,13 +205,11 @@ class ReviewController(
     fun deleteReview(
         @Parameter(description = "리뷰 ID", required = true) @PathVariable id: Long,
         @RequestHeader("X-User-Seq") userSeq: Long,
-    ): ResponseEntity<ApiResponse<Nothing>> {
+    ): ResponseEntity<Void> {
         logger.info("리뷰 삭제 API 호출: id={}, userSeq={}", id, userSeq)
 
         reviewService.deleteReview(id, userSeq)
-        return ResponseEntity
-            .status(HttpStatus.NO_CONTENT)
-            .body(ApiResponse.success(getMessage("review.delete.success")))
+        return ResponseEntity.noContent().build()
     }
 
     /** 최근 리뷰 조회 */
@@ -234,11 +218,11 @@ class ReviewController(
         summary = "최근 리뷰 조회",
         description = "최근 생성된 리뷰 10개를 조회합니다",
     )
-    fun getRecentReviews(): ResponseEntity<ApiResponse<List<ReviewResponse>>> {
+    fun getRecentReviews(): ResponseEntity<List<ReviewResponse>> {
         logger.debug("최근 리뷰 조회 API 호출")
 
         val reviews = reviewQueryService.getRecentReviews()
-        return ResponseEntity.ok(ApiResponse.success(reviews))
+        return ResponseEntity.ok(reviews)
     }
 
     /** 인기 태그 조회 */
@@ -247,11 +231,11 @@ class ReviewController(
         summary = "인기 태그 조회",
         description = "사용 빈도가 높은 태그 목록을 조회합니다",
     )
-    fun getPopularTags(): ResponseEntity<ApiResponse<Map<String, Long>>> {
+    fun getPopularTags(): ResponseEntity<Map<String, Long>> {
         logger.debug("인기 태그 조회 API 호출")
 
         val tags = reviewQueryService.getPopularTags()
-        return ResponseEntity.ok(ApiResponse.success(tags))
+        return ResponseEntity.ok(tags)
     }
 
     /** 평점 통계 조회 */
@@ -260,10 +244,10 @@ class ReviewController(
         summary = "평점 통계 조회",
         description = "평점별 리뷰 수 통계를 조회합니다",
     )
-    fun getRatingStatistics(): ResponseEntity<ApiResponse<Map<Int, Long>>> {
+    fun getRatingStatistics(): ResponseEntity<Map<Int, Long>> {
         logger.debug("평점 통계 조회 API 호출")
 
         val stats = reviewQueryService.getRatingStatistics()
-        return ResponseEntity.ok(ApiResponse.success(stats))
+        return ResponseEntity.ok(stats)
     }
 }

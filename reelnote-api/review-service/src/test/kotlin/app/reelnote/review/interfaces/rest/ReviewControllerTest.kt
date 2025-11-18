@@ -82,9 +82,8 @@ class ReviewControllerTest {
                     .with(csrf()),
             ).andExpect(status().isCreated)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.movieId").value(12345))
-            .andExpect(jsonPath("$.data.rating").value(5))
+            .andExpect(jsonPath("$.movieId").value(12345))
+            .andExpect(jsonPath("$.rating").value(5))
     }
 
     @Test
@@ -114,8 +113,7 @@ class ReviewControllerTest {
                     .contentType(MediaType.APPLICATION_JSON),
             ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.movieId").value(12345))
+            .andExpect(jsonPath("$.movieId").value(12345))
     }
 
     @Test
@@ -165,8 +163,7 @@ class ReviewControllerTest {
             .perform(asyncDispatch(mvcResult))
             .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.content[0].userSeq").value(1))
+            .andExpect(jsonPath("$.content[0].userSeq").value(1))
     }
 
     @Test
@@ -206,8 +203,7 @@ class ReviewControllerTest {
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
-            .andExpect(jsonPath("$.data.rating").value(5))
+            .andExpect(jsonPath("$.rating").value(5))
     }
 
     @Test
@@ -251,7 +247,7 @@ class ReviewControllerTest {
                     .contentType(MediaType.APPLICATION_JSON),
             ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$[0].movieId").value(100))
     }
 
     @Test
@@ -265,7 +261,7 @@ class ReviewControllerTest {
                     .contentType(MediaType.APPLICATION_JSON),
             ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.액션").exists())
     }
 
     @Test
@@ -277,8 +273,9 @@ class ReviewControllerTest {
             .perform(
                 get("/api/v1/reviews/statistics/rating")
                     .contentType(MediaType.APPLICATION_JSON),
-            ).andExpect(status().isOk)
+            )            .andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$['1']").value(2))
+            .andExpect(jsonPath("$['5']").value(7))
     }
 }

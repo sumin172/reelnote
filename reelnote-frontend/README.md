@@ -71,15 +71,12 @@ src/
 - **상태 관리**: React Query (서버 상태) + Zustand (클라이언트 상태)
 
 ```typescript
-// API 클라이언트: 공통 응답 래핑 처리
+// API 클라이언트: 표준 HTTP 응답 처리
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const res = await fetch(url, { ... });
 
-  // 공통 응답 형식 { success, data, ... } 자동 언래핑
-  if (json && 'success' in json && 'data' in json) {
-    return (json as { data: T }).data;
-  }
-
+  // 성공 응답: 리소스를 그대로 반환 (래퍼 없음)
+  // 에러 응답: 표준 에러 스키마 { code, message, details, traceId } 처리
   return json as T;
 }
 ```

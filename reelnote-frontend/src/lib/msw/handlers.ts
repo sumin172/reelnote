@@ -79,8 +79,24 @@ export function createHandlers(): RequestHandler[] {
 
         // 입력 데이터 검증 (간단한 예시)
         if (!body.movieId || !body.rating) {
+          const fieldErrors: Record<string, string> = {};
+          if (!body.movieId) {
+            fieldErrors.movieId = "movieId는 필수입니다.";
+          }
+          if (!body.rating) {
+            fieldErrors.rating = "rating은 필수입니다.";
+          }
+
           return HttpResponse.json(
-            { error: "필수 필드가 누락되었습니다." },
+            {
+              code: "VALIDATION_ERROR",
+              message: "필수 필드가 누락되었습니다.",
+              details: {
+                path: "/api/v1/reviews",
+                fieldErrors,
+              },
+              traceId: crypto.randomUUID(),
+            },
             { status: 400 },
           );
         }
@@ -95,7 +111,14 @@ export function createHandlers(): RequestHandler[] {
         );
       } catch {
         return HttpResponse.json(
-          { error: "잘못된 JSON 형식입니다." },
+          {
+            code: "VALIDATION_ERROR",
+            message: "잘못된 JSON 형식입니다.",
+            details: {
+              path: "/api/v1/reviews",
+            },
+            traceId: crypto.randomUUID(),
+          },
           { status: 400 },
         );
       }
@@ -103,9 +126,15 @@ export function createHandlers(): RequestHandler[] {
 
     // ===== 에러 핸들링 =====
     http.get(/\/api\/v[12]\/.*/, ({ request }) => {
-      console.warn(`🚨 MSW: 처리되지 않은 API 요청: ${request.url}`);
       return HttpResponse.json(
-        { error: "API 엔드포인트를 찾을 수 없습니다." },
+        {
+          code: "NOT_FOUND",
+          message: "API 엔드포인트를 찾을 수 없습니다.",
+          details: {
+            path: new URL(request.url).pathname,
+          },
+          traceId: crypto.randomUUID(),
+        },
         { status: 404 },
       );
     }),
