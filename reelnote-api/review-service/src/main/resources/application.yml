@@ -77,6 +77,8 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      probes:
+        enabled: true  # liveness/readiness 프로브 활성화
 
 # OpenAPI 설정
 springdoc:
@@ -87,8 +89,9 @@ springdoc:
     operationsSorter: method
 
 # App custom settings
+app:
+  version: ${spring.info.build.version:unknown}  # build-info.properties에서 읽음
 # CORS 설정은 환경별 파일에서 관리
-# app:
 #   cors:
 #     allowed-origins:
 #       - http://localhost:3000

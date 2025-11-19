@@ -1,22 +1,18 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { CatalogPrismaAccessor } from "../infrastructure/db/catalog-prisma.accessor.js";
+import {Injectable, Logger} from "@nestjs/common";
+import {CatalogPrismaAccessor} from "../infrastructure/db/catalog-prisma.accessor.js";
+import {VersionService} from "./version.service.js";
+import {HealthMetricsService} from "./health-metrics.service.js";
 
 @Injectable()
 export class HealthService {
   private readonly logger = new Logger(HealthService.name);
+  private readonly serviceName = "catalog-service";
 
-  constructor(private readonly catalogPrisma: CatalogPrismaAccessor) {}
-
-  /**
-   * 기본 헬스체크
-   */
-  async check() {
-    return {
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      service: "catalog-service",
-    };
-  }
+  constructor(
+    private readonly catalogPrisma: CatalogPrismaAccessor,
+    private readonly versionService: VersionService,
+    private readonly healthMetrics: HealthMetricsService,
+  ) {}
 
   /**
    * Readiness 체크 (DB 연결 확인)
@@ -27,22 +23,32 @@ export class HealthService {
       await this.catalogPrisma.ensureConnection();
       // 간단한 쿼리로 연결 확인
       await this.catalogPrisma.countMovies();
+
       return {
-        status: "ready",
+        status: "UP" as const,
         timestamp: new Date().toISOString(),
+        service: this.serviceName,
         checks: {
-          database: "ok",
+          database: "UP" as const,
         },
+        version: this.versionService.getVersion(),
       };
     } catch (error) {
-      this.logger.error("Readiness check failed", error);
+      // 실패 시에만 로그 및 메트릭 기록
+      this.logger.warn(
+        "Readiness check failed: database check failed",
+        error instanceof Error ? error.stack : error,
+      );
+      this.healthMetrics.incrementFailure("ready", "database");
+
       return {
-        status: "not ready",
+        status: "DOWN" as const,
         timestamp: new Date().toISOString(),
+        service: this.serviceName,
         checks: {
-          database: "error",
+          database: "DOWN" as const,
         },
-        error: error instanceof Error ? error.message : "Unknown error",
+        version: this.versionService.getVersion(),
       };
     }
   }
@@ -52,8 +58,10 @@ export class HealthService {
    */
   async liveness() {
     return {
-      status: "alive",
+      status: "UP" as const,
       timestamp: new Date().toISOString(),
+      service: this.serviceName,
+      version: this.versionService.getVersion(),
     };
   }
 }

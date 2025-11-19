@@ -123,8 +123,8 @@ user_profile (user_id PK)
 
 - **카탈로그 지표**: 캐시 히트율, 동기화 지연, 응답 시간(p50/p95/p99)
 - **Resilience 지표**: 재시도 횟수, 서킷브레이커 상태 이벤트, 레이트리밋 대기 시간
-- **헬스체크**: `/api/v1/health`
-- **레디니스/라이브니스**: `/api/v1/health/ready`, `/api/v1/health/live`
+- **헬스체크**: `/health/live` (Liveness), `/health/ready` (Readiness) - K8s 프로브용
+- **메트릭**: 헬스 체크 실패 카운터 (`health_check_failures_total`)
 - **배포 고려사항**: Prisma Migrate, Redis 고가용성, PostgreSQL 리드 리플리카
 - **CORS 정책**: `NODE_ENV=development`에서는 localhost 허용, 운영/테스트는 `CORS_ORIGINS`로 명시적 제어
 

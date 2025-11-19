@@ -1,9 +1,19 @@
 plugins {
     id("reelnote.kotlin.spring-service")
     id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
+    id("org.springframework.boot") version "3.5.7"
 }
 
 description = "review-service"
+
+// 버전 정보를 application.yml에 주입
+springBoot {
+    buildInfo {
+        properties {
+            version.set(project.version.toString())
+        }
+    }
+}
 
 dependencyManagement {
     imports {

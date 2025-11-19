@@ -46,6 +46,8 @@ src/main/kotlin/app/reelnote/review/
 
 ## 🏗️ 아키텍처 & 설계
 
+> **상세 아키텍처 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요. Catalog Service와 동일한 Port/Adapter 언어로 작성되어 있어 두 서비스를 비교하며 학습할 수 있습니다.
+
 ### 도메인 주도 설계 구현
 - **값 객체**: `Rating` 클래스로 도메인 개념 명확화
 - **엔티티**: `Review`의 비즈니스 메서드 구현
