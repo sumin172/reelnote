@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
+import { randomUUID } from "crypto";
 import { ErrorDetailDto } from "../dto/error.dto.js";
 import { BaseAppException } from "../error/base-app-exception.js";
 import { CatalogErrorCode } from "../error/catalog-error-code.js";
@@ -106,13 +107,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   /**
    * UUID v4 형식의 traceId 생성
+   * Node.js 표준 crypto.randomUUID() 사용 (암호학적 랜덤 보장)
    */
   private generateTraceId(): string {
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
+    return randomUUID();
   }
 
   /**

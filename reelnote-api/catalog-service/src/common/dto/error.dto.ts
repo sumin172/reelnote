@@ -4,6 +4,10 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
  * 표준 에러 응답 스키마
  * HTTP status code와 함께 사용되며, 성공 응답에는 사용되지 않습니다.
  * ERROR_SPECIFICATION.md와 일치해야 함
+ *
+ * JSON 직렬화 규칙:
+ * - 선택적 필드(`details`, `traceId`)는 `undefined`인 경우 JSON에서 자동으로 제외됩니다.
+ * - 이는 NestJS의 기본 동작이며, Review Service의 `@JsonInclude(NON_NULL)`과 동일한 효과입니다.
  */
 export class ErrorDetailDto {
   @ApiProperty({

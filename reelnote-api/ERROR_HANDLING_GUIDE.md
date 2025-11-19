@@ -230,6 +230,7 @@ VALIDATION_RATING_OUT_OF_RANGE
 - **표준**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`)
 - **예시**: `550e8400-e29b-41d4-a716-446655440000`
 - **길이**: 36자 (하이픈 포함)
+- **포맷 검증**: 외부에서 들어온 `X-Trace-Id`가 UUID v4 포맷이 아니면 무시하고 새로 생성
 
 ### 처리 규칙
 
@@ -237,9 +238,16 @@ VALIDATION_RATING_OUT_OF_RANGE
 
 ```
 1. X-Trace-Id 헤더 확인
-   ├─ 있음 → 해당 값 사용
+   ├─ 있음 → UUID v4 포맷 검증
+   │   ├─ 유효한 UUID v4 → 해당 값 사용
+   │   └─ 유효하지 않음 → 무시하고 새로 생성
    └─ 없음 → 새로 생성 (UUID v4)
 ```
+
+**포맷 검증 정책:**
+- 외부에서 들어온 `X-Trace-Id`가 UUID v4 포맷이 아니면 버리고 새로 생성
+- 이는 향후 Gateway/BFF에서 traceId를 생성하는 경우에도 일관성 유지
+- 포맷 검증은 선택사항이지만, 권장됨 (보안 및 일관성 측면)
 
 #### 2. 로깅 시
 
@@ -257,28 +265,66 @@ VALIDATION_RATING_OUT_OF_RANGE
 - 모든 에러 응답에 `traceId` 필드 포함
 - 성공 응답에는 포함하지 않음 (선택사항)
 
+### 생성 방식 통일
+
+**모든 서비스는 표준 라이브러리/API를 사용하여 UUID v4를 생성합니다:**
+
+- **Node.js/TypeScript (Catalog Service)**: `crypto.randomUUID()` 사용
+  - Node.js 14.17.0+ / 16+ 기본 지원
+  - 암호학적 랜덤 보장
+  - 추가 의존성 불필요
+
+- **Kotlin/Java (Review Service)**: `UUID.randomUUID().toString()` 사용
+  - Java 표준 라이브러리
+  - 암호학적 랜덤 보장
+
+- **Frontend (TypeScript)**: `crypto.randomUUID()` 우선 사용, 없으면 fallback
+
+**중요:** `Math.random()` 기반의 수동 UUID 생성은 사용하지 않습니다.
+- 암호학적 랜덤이 아님
+- 구현 버그 가능성
+- 서비스 간 일관성 저하
+
 ### 구현 예시
 
 #### NestJS (Catalog Service)
 
 ```typescript
+import { randomUUID } from "crypto";
+
 // 필터에서 traceId 처리
 private getOrCreateTraceId(request: Request): string {
   const traceIdHeader = request.headers["x-trace-id"] as string | undefined;
   if (traceIdHeader) {
+    // 선택사항: UUID v4 포맷 검증
+    // if (this.isValidUUIDv4(traceIdHeader)) {
+    //   return traceIdHeader;
+    // }
     return traceIdHeader;
   }
   return this.generateTraceId(); // UUID v4 생성
+}
+
+// UUID v4 형식의 traceId 생성
+// Node.js 표준 crypto.randomUUID() 사용 (암호학적 랜덤 보장)
+private generateTraceId(): string {
+  return randomUUID();
 }
 ```
 
 #### Spring Boot (Review Service)
 
 ```kotlin
+import java.util.UUID
+
 // GlobalExceptionHandler에서 traceId 처리
 private fun getOrCreateTraceId(request: WebRequest): String {
   val traceIdHeader = request.getHeader("X-Trace-Id")
   if (!traceIdHeader.isNullOrBlank()) {
+    // 선택사항: UUID v4 포맷 검증
+    // if (isValidUUIDv4(traceIdHeader)) {
+    //   return traceIdHeader
+    // }
     return traceIdHeader
   }
   // MDC에서 확인
@@ -286,7 +332,7 @@ private fun getOrCreateTraceId(request: WebRequest): String {
   if (!mdcTraceId.isNullOrBlank()) {
     return mdcTraceId
   }
-  // 새로 생성
+  // 새로 생성 (Java 표준 UUID.randomUUID() 사용)
   return UUID.randomUUID().toString()
 }
 ```
@@ -294,7 +340,8 @@ private fun getOrCreateTraceId(request: WebRequest): String {
 ### TraceId 전파 체크리스트
 
 - [ ] 요청 헤더에서 `X-Trace-Id` 확인
-- [ ] 없으면 UUID v4 생성
+- [ ] 없으면 표준 라이브러리로 UUID v4 생성 (`crypto.randomUUID()` 또는 `UUID.randomUUID()`)
+- [ ] (권장) 외부에서 들어온 `X-Trace-Id`가 UUID v4 포맷이 아니면 무시하고 새로 생성
 - [ ] MDC에 저장하여 로그에 자동 포함
 - [ ] 서비스 간 호출 시 헤더에 포함
 - [ ] 에러 응답에 `traceId` 필드 포함

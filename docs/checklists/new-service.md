@@ -80,6 +80,10 @@
   - `ErrorDetail` 스키마 사용 (code, message, details, traceId)
   - 표준 에러 코드 사용 (`VALIDATION_ERROR`, `NOT_FOUND`, `INTERNAL_ERROR` 등)
   - HTTP 상태 코드 매핑 표준 준수
+  - **JSON 직렬화 규칙 준수** (`ERROR_SPECIFICATION.md` 참조)
+    - 선택적 필드(`details`, `traceId`)는 `null`/`undefined`인 경우 JSON에서 제외
+    - Kotlin: `@JsonInclude(JsonInclude.Include.NON_NULL)` 사용
+    - TypeScript: `undefined` 필드는 자동 제외 (기본 동작)
 - [ ] **예외 처리 가이드 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
   - 에러 코드 네이밍 규칙 준수 (공통/도메인/검증 에러 코드 분류)
   - TraceId 정책 준수 (요청 헤더 확인, 전파, 로그 포함)
