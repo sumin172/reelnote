@@ -21,49 +21,50 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 @EnableWebSecurity
 @EnableConfigurationProperties(CorsProperties::class)
 class SecurityConfig(
-        private val corsProperties: CorsProperties,
-        private val environment: Environment,
+    private val corsProperties: CorsProperties,
+    private val environment: Environment,
 ) {
     @Bean fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
     fun userDetailsService(): InMemoryUserDetailsManager {
         val admin =
-                User.builder()
-                        .username("admin")
-                        .password(passwordEncoder().encode("admin123"))
-                        .roles("ADMIN")
-                        .build()
+            User
+                .builder()
+                .username("admin")
+                .password(passwordEncoder().encode("admin123"))
+                .roles("ADMIN")
+                .build()
 
         val monitor =
-                User.builder()
-                        .username("monitor")
-                        .password(passwordEncoder().encode("monitor123"))
-                        .roles("MONITOR")
-                        .build()
+            User
+                .builder()
+                .username("monitor")
+                .password(passwordEncoder().encode("monitor123"))
+                .roles("MONITOR")
+                .build()
 
         return InMemoryUserDetailsManager(admin, monitor)
     }
 
     @Bean
     fun filterChain(http: HttpSecurity): SecurityFilterChain =
-            http
-                    .cors {}
-                    .authorizeHttpRequests { authz ->
-                        authz
-                                // K8s 프로브용 헬스 체크는 인증 없음 (내부망 전제)
-                                .requestMatchers("/health/**")
-                                .permitAll()
-                                // Actuator 엔드포인트는 인증 필요 (사람/모니터링 도구 전용)
-                                .requestMatchers("/actuator/**")
-                                .hasRole("ADMIN")
-                                // 나머지는 모두 허용
-                                .anyRequest()
-                                .permitAll()
-                    }
-                    .httpBasic {} // Basic Authentication 사용
-                    .csrf { it.disable() } // CSRF 비활성화 (API 서버이므로)
-                    .build()
+        http
+            .cors {}
+            .authorizeHttpRequests { authz ->
+                authz
+                    // K8s 프로브용 헬스 체크는 인증 없음 (내부망 전제)
+                    .requestMatchers("/health/**")
+                    .permitAll()
+                    // Actuator 엔드포인트는 인증 필요 (사람/모니터링 도구 전용)
+                    .requestMatchers("/actuator/**")
+                    .hasRole("ADMIN")
+                    // 나머지는 모두 허용
+                    .anyRequest()
+                    .permitAll()
+            }.httpBasic {} // Basic Authentication 사용
+            .csrf { it.disable() } // CSRF 비활성화 (API 서버이므로)
+            .build()
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
@@ -85,15 +86,15 @@ class SecurityConfig(
 
         config.allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         config.allowedHeaders =
-                listOf(
-                        "Content-Type",
-                        "Authorization",
-                        "Accept",
-                        "Origin",
-                        "X-Requested-With",
-                        "X-User-Seq",
-                        "X-Trace-Id",
-                )
+            listOf(
+                "Content-Type",
+                "Authorization",
+                "Accept",
+                "Origin",
+                "X-Requested-With",
+                "X-User-Seq",
+                "X-Trace-Id",
+            )
         config.exposedHeaders = listOf("Location")
         config.allowCredentials = corsProperties.allowCredentials
         config.maxAge = 3600
@@ -106,6 +107,6 @@ class SecurityConfig(
 
 @ConfigurationProperties(prefix = "app.cors")
 data class CorsProperties(
-        var allowedOrigins: List<String> = emptyList(),
-        var allowCredentials: Boolean = true,
+    var allowedOrigins: List<String> = emptyList(),
+    var allowCredentials: Boolean = true,
 )

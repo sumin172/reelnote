@@ -8,13 +8,20 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ErrorDetailDto } from "../dto/error.dto.js";
-import { CatalogException } from "../error/catalog-exception.js";
+import { BaseAppException } from "../error/base-app-exception.js";
 import { CatalogErrorCode } from "../error/catalog-error-code.js";
 import { MessageService } from "../../i18n/message.service.js";
 
 /**
  * 글로벌 HTTP 예외 필터
  * 표준 에러 스키마를 사용하여 일관된 에러 응답을 제공합니다.
+ *
+ * 처리 순서:
+ * 1. BaseAppException (프레임워크 독립 예외) - 우선 처리
+ * 2. HttpException (NestJS 프레임워크 예외)
+ * 3. 기타 예외
+ *
+ * @see ERROR_HANDLING_GUIDE.md
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -29,24 +36,37 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const traceId = this.getOrCreateTraceId(request);
 
-    // CatalogException (HttpException 상속) 우선 처리
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    if (exception instanceof CatalogException) {
-      // { code, message } 자동 반환
-      status = exception.getStatus();
-      const exceptionResponse = exception.getResponse() as {
-        code: string;
-        message: string;
-      };
-      response.status(status).json({
-        ...exceptionResponse,
+    // BaseAppException (프레임워크 독립 예외) 우선 처리
+    if (exception instanceof BaseAppException) {
+      const errorDetail: ErrorDetailDto = {
+        code: exception.errorCode,
+        message: exception.message,
         details: {
           path: request.url,
+          ...exception.details,
         },
         traceId,
-      });
+      };
+
+      // 로그 기록
+      if (exception.httpStatus >= 500) {
+        this.logger.error(
+          `예상치 못한 예외 발생: ${errorDetail.message}, traceId=${traceId}`,
+          exception.stack,
+        );
+      } else {
+        this.logger.warn(
+          `예외 발생: ${errorDetail.message}, traceId=${traceId}`,
+        );
+      }
+
+      response.status(exception.httpStatus).json(errorDetail);
       return;
-    } else if (exception instanceof HttpException) {
+    }
+
+    // HttpException 처리 (NestJS 프레임워크 예외)
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    if (exception instanceof HttpException) {
       status = exception.getStatus();
     }
 

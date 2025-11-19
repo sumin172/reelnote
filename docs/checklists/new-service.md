@@ -52,10 +52,16 @@
 
 - [ ] 구조화된 로깅 포맷 정의
 - [ ] 메트릭/트레이싱(OpenTelemetry, Jaeger 등) 도입 여부 결정
-- [ ] `X-Trace-Id` 헤더 처리 구현
-  - 요청에 헤더가 있으면 사용, 없으면 새로 생성
+- [ ] **`X-Trace-Id` 헤더 처리 구현** (`ERROR_HANDLING_GUIDE.md` 참조)
+  - 요청 헤더 `X-Trace-Id` 확인 (있으면 사용, 없으면 UUID v4 생성)
   - 서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파
   - 모든 로그에 `traceId` 포함 (MDC/Span 등 활용)
+  - 에러 응답에 `traceId` 필드 포함
+- [ ] **로깅 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+  - 로그 레벨 가이드라인: 4xx → WARN, 5xx → ERROR
+  - 5xx 오류에 스택 트레이스 포함
+  - 민감 정보(비밀번호, 토큰, 개인정보) 로그에 포함 금지
+  - 모든 로그에 `traceId` 포함
 - [ ] 상관관계 ID 미들웨어/필터 구현
 
 ## 8. API 응답 형식 표준화
@@ -74,6 +80,77 @@
   - `ErrorDetail` 스키마 사용 (code, message, details, traceId)
   - 표준 에러 코드 사용 (`VALIDATION_ERROR`, `NOT_FOUND`, `INTERNAL_ERROR` 등)
   - HTTP 상태 코드 매핑 표준 준수
+- [ ] **예외 처리 가이드 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+  - 에러 코드 네이밍 규칙 준수 (공통/도메인/검증 에러 코드 분류)
+  - TraceId 정책 준수 (요청 헤더 확인, 전파, 로그 포함)
+  - 로깅 정책 준수 (4xx: WARN, 5xx: ERROR, 스택 트레이스 포함 여부)
+  - BaseAppException 패턴 사용 (프레임워크 독립 베이스 예외)
+
+#### BaseAppException 패턴 (프레임워크 독립 베이스 예외)
+
+모든 서비스는 **프레임워크 독립적인 베이스 예외 클래스**를 사용하여 일관된 예외 처리를 구현해야 합니다. 이는 프레임워크 차이를 수용하되, 개념적 일관성을 유지하기 위함입니다.
+
+**공통 속성:**
+- `errorCode`: 에러 코드 (string)
+- `httpStatus`: HTTP 상태 코드
+- `message`: 사용자 친화적 메시지
+- `details`: 추가 컨텍스트 정보 (선택)
+
+**프레임워크별 구현:**
+
+**NestJS (TypeScript):**
+```typescript
+// BaseAppException - 프레임워크 독립 베이스
+export abstract class BaseAppException extends Error {
+  constructor(
+    public readonly errorCode: string,
+    message: string,
+    public readonly httpStatus: HttpStatus,
+    public readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
+// 서비스별 예외 클래스
+export class ServiceException extends BaseAppException {
+  constructor(
+    public readonly code: ServiceErrorCode,
+    message: string,
+    status: HttpStatus,
+    details?: Record<string, unknown>,
+  ) {
+    super(code, message, status, details);
+  }
+}
+```
+
+**Spring Boot (Kotlin):**
+```kotlin
+// BaseAppException - 프레임워크 독립 베이스
+abstract class BaseAppException(
+    message: String,
+    val errorCode: String,
+    val httpStatus: HttpStatus,
+    val details: Map<String, Any>? = null,
+    cause: Throwable? = null,
+) : RuntimeException(message, cause)
+
+// 서비스별 예외 클래스
+sealed class ServiceException(
+    message: String,
+    errorCode: String,
+    httpStatus: HttpStatus,
+    details: Map<String, Any>? = null,
+    cause: Throwable? = null,
+) : BaseAppException(message, errorCode, httpStatus, details, cause)
+```
+
+**예외 핸들러/필터:**
+- NestJS: `HttpExceptionFilter`에서 `BaseAppException` 우선 처리
+- Spring Boot: `GlobalExceptionHandler`에서 `BaseAppException` 처리
+- 로그 레벨 자동 결정: 5xx → ERROR, 4xx → WARN
 
 #### 에러 처리 패턴 (Catalog Service 참고)
 
@@ -117,22 +194,29 @@ export class MessageService {
 }
 ```
 
-**3. 예외 생성 팩토리 패턴**
+**3. BaseAppException 기반 예외 클래스**
 
-하드코딩된 문자열을 제거하고, 예외 생성 로직을 중앙에서 관리합니다:
+프레임워크 독립성을 위해 `BaseAppException`을 상속합니다:
 
 ```typescript
-// 표준 예외 클래스
-export class CatalogException extends HttpException {
+// BaseAppException 상속 (HttpException 대신)
+export class CatalogException extends BaseAppException {
   constructor(
     public readonly code: CatalogErrorCode,
     message: string,
     status: HttpStatus,
+    details?: Record<string, unknown>,
   ) {
-    super({ code, message }, status);
+    super(code, message, status, details);
   }
 }
+```
 
+**4. 예외 생성 팩토리 패턴**
+
+하드코딩된 문자열을 제거하고, 예외 생성 로직을 중앙에서 관리합니다:
+
+```typescript
 // ExceptionFactoryService - 예외 생성 중앙 관리
 @Injectable()
 export class ExceptionFactoryService {
@@ -143,11 +227,23 @@ export class ExceptionFactoryService {
       CatalogErrorCode.MOVIE_NOT_FOUND,
       this.messageService.get(CatalogErrorCode.MOVIE_NOT_FOUND, { tmdbId }),
       HttpStatus.NOT_FOUND,
+      { tmdbId }, // details에 컨텍스트 정보 포함
     );
   }
 }
 
 // 사용: throw this.exceptionFactory.movieNotFound(tmdbId);
+```
+
+**Spring Boot (Kotlin) 예시:**
+```kotlin
+// Companion object에 팩토리 메서드 추가 (권장)
+sealed class ServiceException(...) : BaseAppException(...) {
+    companion object {
+        fun notFound(id: Long): ServiceNotFoundException =
+            ServiceNotFoundException(id)
+    }
+}
 ```
 
 **이점:**
@@ -157,18 +253,37 @@ export class ExceptionFactoryService {
 - 테스트 용이: 에러 코드로 예외 타입 식별 가능
 
 **체크리스트:**
-- [ ] 에러 코드 enum 정의 (도메인별, 검증별, 범용 분류)
-- [ ] 메시지 리소스 파일 생성 (`messages.ko.json` 등)
-- [ ] MessageService 구현 (에러 코드 → 메시지 변환, 파라미터 치환)
-- [ ] 표준 예외 클래스 정의 (`ServiceException extends HttpException`)
-- [ ] ExceptionFactoryService 구현 (각 예외 타입별 팩토리 메서드)
-- [ ] 글로벌 예외 핸들러/필터 구현
-  - 모든 예외를 `ErrorDetail` 형식으로 변환
-  - `traceId`가 모든 에러 응답에 포함되도록 보장
-  - MessageService를 통한 표준 메시지 조회
-- [ ] OpenAPI/Swagger 문서화
-  - `ErrorDetail` 스키마가 API 문서에 포함되도록 설정
-  - 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
+- [ ] **BaseAppException 구현**
+  - [ ] `BaseAppException` 베이스 클래스 생성 (프레임워크 독립)
+  - [ ] 서비스별 예외 클래스가 `BaseAppException` 상속
+  - [ ] 필수 필드: `errorCode`, `httpStatus`, `message`
+  - [ ] 선택 필드: `details` (추가 컨텍스트 정보)
+- [ ] **에러 코드 정의**
+  - [ ] 에러 코드 enum/object 정의 (도메인별, 검증별, 범용 분류)
+  - [ ] 네이밍 규칙 준수 (`ERROR_HANDLING_GUIDE.md` 참조)
+    - 공통: `VALIDATION_ERROR`, `NOT_FOUND` 등 (prefix 없음)
+    - 도메인: `{SERVICE}_{ENTITY}_{ACTION}_{RESULT}` (예: `CATALOG_MOVIE_NOT_FOUND`)
+    - 검증: `VALIDATION_{FIELD}_{RULE}` (예: `VALIDATION_SEARCH_QUERY_REQUIRED`)
+- [ ] **메시지 관리**
+  - [ ] 메시지 리소스 파일 생성 (`messages.ko.json`, `messages.properties` 등)
+  - [ ] MessageService 구현 (에러 코드 → 메시지 변환, 파라미터 치환)
+- [ ] **예외 생성 패턴**
+  - [ ] ExceptionFactoryService 구현 (NestJS) 또는 Companion object 팩토리 메서드 (Spring Boot)
+  - [ ] 각 예외 타입별 팩토리 메서드 제공
+  - [ ] `details` 필드에 컨텍스트 정보 포함 (예: `{ tmdbId: 123 }`)
+- [ ] **글로벌 예외 핸들러/필터 구현**
+  - [ ] `BaseAppException` 우선 처리
+  - [ ] 모든 예외를 `ErrorDetail` 형식으로 변환
+  - [ ] `traceId`가 모든 에러 응답에 포함되도록 보장
+  - [ ] 로그 레벨 자동 결정 (5xx: ERROR, 4xx: WARN)
+  - [ ] 5xx 오류에 스택 트레이스 포함
+- [ ] **TraceId 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+  - [ ] 요청 헤더 `X-Trace-Id` 확인 및 전파
+  - [ ] 모든 로그에 `traceId` 포함 (MDC/Span 활용)
+  - [ ] 서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파
+- [ ] **OpenAPI/Swagger 문서화**
+  - [ ] `ErrorDetail` 스키마가 API 문서에 포함되도록 설정
+  - [ ] 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
 
 ## 9. 보안 및 시크릿
 

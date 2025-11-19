@@ -1,20 +1,22 @@
-import { HttpException, HttpStatus } from "@nestjs/common";
+import { HttpStatus } from "@nestjs/common";
 import { CatalogErrorCode } from "./catalog-error-code.js";
+import { BaseAppException } from "./base-app-exception.js";
 
 /**
  * Catalog Service 예외 클래스
  *
- * HttpException을 상속하여 { code, message } 형태로 응답합니다.
- * HttpExceptionFilter에서 자동으로 처리됩니다.
+ * BaseAppException을 상속하여 프레임워크 독립성을 유지합니다.
+ * HttpExceptionFilter에서 자동으로 HTTP 응답으로 변환됩니다.
+ *
+ * @see ERROR_HANDLING_GUIDE.md
  */
-export class CatalogException extends HttpException {
+export class CatalogException extends BaseAppException {
   constructor(
     public readonly code: CatalogErrorCode,
     message: string,
     status: HttpStatus,
+    details?: Record<string, unknown>,
   ) {
-    // HttpException에 { code, message } 객체 전달
-    super({ code, message }, status);
-    this.name = this.constructor.name;
+    super(code, message, status, details);
   }
 }

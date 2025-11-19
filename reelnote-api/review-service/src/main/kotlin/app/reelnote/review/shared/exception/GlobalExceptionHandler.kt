@@ -16,19 +16,14 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.Locale
 import java.util.UUID
 
-/**
- * 글로벌 예외 처리기
- * 표준 에러 스키마를 사용하여 일관된 에러 응답을 제공합니다.
- */
+/** 글로벌 예외 처리기 표준 에러 스키마를 사용하여 일관된 에러 응답을 제공합니다. */
 @RestControllerAdvice
 class GlobalExceptionHandler(
     private val messageSource: MessageSource,
 ) {
     private val logger = LoggerFactory.getLogger(GlobalExceptionHandler::class.java)
 
-    /**
-     * 메시지 조회 헬퍼 메서드
-     */
+    /** 메시지 조회 헬퍼 메서드 */
     private fun getMessage(
         key: String,
         vararg args: Any,
@@ -36,10 +31,7 @@ class GlobalExceptionHandler(
         runCatching { messageSource.getMessage(key, args, Locale.getDefault()) }
             .getOrDefault(key)
 
-    /**
-     * TraceId 생성 또는 조회
-     * 요청 헤더에 X-Trace-Id가 있으면 사용하고, 없으면 새로 생성합니다.
-     */
+    /** TraceId 생성 또는 조회 요청 헤더에 X-Trace-Id가 있으면 사용하고, 없으면 새로 생성합니다. */
     private fun getOrCreateTraceId(request: WebRequest): String {
         val traceIdHeader = request.getHeader("X-Trace-Id")
         if (!traceIdHeader.isNullOrBlank()) {
@@ -54,33 +46,38 @@ class GlobalExceptionHandler(
         return UUID.randomUUID().toString()
     }
 
-    /**
-     * 비즈니스 예외 처리
-     */
-    @ExceptionHandler(ReviewException::class)
-    fun handleReviewException(
-        ex: ReviewException,
+    /** BaseAppException 처리 (프레임워크 독립 예외) ReviewException을 포함한 모든 BaseAppException을 처리합니다. */
+    @ExceptionHandler(BaseAppException::class)
+    fun handleBaseAppException(
+        ex: BaseAppException,
         request: WebRequest,
     ): ResponseEntity<ErrorDetail> {
         val traceId = getOrCreateTraceId(request)
-        logger.warn("비즈니스 예외 발생: ${ex.message}, traceId=$traceId", ex)
+
+        // 로그 레벨 결정 (5xx는 ERROR, 4xx는 WARN)
+        if (ex.httpStatus.is5xxServerError) {
+            logger.error("예상치 못한 예외 발생: ${ex.message}, traceId=$traceId", ex)
+        } else {
+            logger.warn("비즈니스 예외 발생: ${ex.message}, traceId=$traceId", ex)
+        }
 
         val error =
             ErrorDetail(
                 code = ex.errorCode,
                 message = ex.message ?: getMessage("error.unknown"),
-                details = requestMetadata(request),
+                details =
+                    requestMetadata(
+                        request,
+                        ex.details?.mapValues { (_, value) -> value as Any? }
+                            ?: emptyMap(),
+                    ),
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(ex.httpStatus)
-            .body(error)
+        return ResponseEntity.status(ex.httpStatus).body(error)
     }
 
-    /**
-     * 검증 예외 처리
-     */
+    /** 검증 예외 처리 */
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationException(
         ex: MethodArgumentNotValidException,
@@ -102,14 +99,10 @@ class GlobalExceptionHandler(
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(error)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
     }
 
-    /**
-     * @Validated 검증 예외 처리 (ConstraintViolationException)
-     */
+    /** @Validated 검증 예외 처리 (ConstraintViolationException) */
     @ExceptionHandler(ConstraintViolationException::class)
     fun handleConstraintViolationException(
         ex: ConstraintViolationException,
@@ -131,9 +124,7 @@ class GlobalExceptionHandler(
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(error)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
     }
 
     /**
@@ -156,14 +147,10 @@ class GlobalExceptionHandler(
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(HttpStatus.UNPROCESSABLE_ENTITY)
-            .body(error)
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(error)
     }
 
-    /**
-     * 타입 변환 예외 처리
-     */
+    /** 타입 변환 예외 처리 */
     @ExceptionHandler(MethodArgumentTypeMismatchException::class)
     fun handleTypeMismatchException(
         ex: MethodArgumentTypeMismatchException,
@@ -187,14 +174,10 @@ class GlobalExceptionHandler(
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .body(error)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
     }
 
-    /**
-     * 일반적인 예외 처리
-     */
+    /** 일반적인 예외 처리 */
     @ExceptionHandler(Exception::class)
     fun handleGenericException(
         ex: Exception,
@@ -211,14 +194,10 @@ class GlobalExceptionHandler(
                 traceId = traceId,
             )
 
-        return ResponseEntity
-            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .body(error)
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error)
     }
 
-    /**
-     * 요청 메타데이터 수집
-     */
+    /** 요청 메타데이터 수집 */
     private fun requestMetadata(
         request: WebRequest,
         extra: Map<String, Any?> = emptyMap(),
