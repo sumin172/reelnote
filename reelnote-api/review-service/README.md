@@ -119,7 +119,7 @@ data class Review(
 // 서비스에서 사용
 fun deleteReview(id: Long, userSeq: Long) {
     val review = reviewRepository.findById(id)
-        .orElseThrow { ReviewNotFoundException(id) }
+        .orElseThrow { exceptionFactory.notFound(id) }
 
     // @SQLDelete 어노테이션이 자동으로 soft delete 처리
     reviewRepository.delete(review)

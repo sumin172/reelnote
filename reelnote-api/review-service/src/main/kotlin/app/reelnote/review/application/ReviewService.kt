@@ -7,34 +7,20 @@ import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.interfaces.dto.CreateReviewRequest
 import app.reelnote.review.interfaces.dto.ReviewResponse
 import app.reelnote.review.interfaces.dto.UpdateReviewRequest
-import app.reelnote.review.shared.exception.ReviewException
-import app.reelnote.review.shared.exception.ReviewNotFoundException
+import app.reelnote.review.shared.exception.ReviewExceptionFactory
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
-import org.springframework.context.MessageSource
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.Locale
 
 /** 리뷰 서비스 */
 @Service
 @Transactional(readOnly = true)
 class ReviewService(
     private val reviewRepository: ReviewRepository,
-    private val messageSource: MessageSource,
+    private val exceptionFactory: ReviewExceptionFactory,
 ) {
     private val logger = LoggerFactory.getLogger(ReviewService::class.java)
-
-    /** 메시지 조회 헬퍼 메서드 */
-    private fun getMessage(
-        key: String,
-        vararg args: Any,
-    ): String =
-        try {
-            messageSource.getMessage(key, args, Locale.getDefault())
-        } catch (_: Exception) {
-            key
-        }
 
     /** 리뷰 생성 */
     @Transactional
@@ -53,7 +39,7 @@ class ReviewService(
         // 중복 리뷰 체크
         val existingReview = reviewRepository.findByUserSeqAndMovieId(userSeq, request.movieId)
         if (existingReview.isPresent) {
-            throw ReviewException.alreadyExists(userSeq, request.movieId)
+            throw exceptionFactory.alreadyExists(userSeq, request.movieId)
         }
 
         // 도메인 객체 생성 (비즈니스 로직은 도메인에)
@@ -87,11 +73,11 @@ class ReviewService(
         logger.info("리뷰 수정 요청: id={}, userSeq={}", id, userSeq)
 
         val existingReview =
-            reviewRepository.findById(id).orElseThrow { ReviewNotFoundException(id) }
+            reviewRepository.findById(id).orElseThrow { exceptionFactory.notFound(id) }
 
         // 권한 체크
         if (existingReview.userSeq != userSeq) {
-            throw ReviewException.unauthorizedUpdate(id, userSeq)
+            throw exceptionFactory.unauthorizedUpdate(id, userSeq)
         }
 
         // 기존 인스턴스 수정 (필드 값 변경 감지)
@@ -119,11 +105,11 @@ class ReviewService(
         logger.info("리뷰 삭제 요청: id={}, userSeq={}", id, userSeq)
 
         val existingReview =
-            reviewRepository.findById(id).orElseThrow { ReviewNotFoundException(id) }
+            reviewRepository.findById(id).orElseThrow { exceptionFactory.notFound(id) }
 
         // 권한 체크
         if (existingReview.userSeq != userSeq) {
-            throw ReviewException.unauthorizedDelete(id, userSeq)
+            throw exceptionFactory.unauthorizedDelete(id, userSeq)
         }
 
         // @SQLDelete 어노테이션이 자동으로 soft delete 처리

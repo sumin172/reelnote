@@ -20,12 +20,31 @@
 - [ ] `.env.example` 작성 및 필수 환경 변수 문서화
 - [ ] `.gitignore` 업데이트
 - [ ] 서비스 README에 기술 스택, 구조, 실행 방법, API 문서 링크 정리
+- [ ] **데이터베이스 마이그레이션 관리**
+  - 마이그레이션 파일을 버전 관리에 포함
+  - **Prisma**: `prisma/migrations` 디렉터리를 저장소에 포함 (초기 마이그레이션 포함)
+  - **Flyway**: `db/migration` 디렉터리의 모든 `V*.sql` 파일 포함
+  - 마이그레이션 파일 네이밍 규칙 준수
+    - Flyway: `V{version}__{description}.sql` (예: `V1__Create_reviews_table.sql`)
+    - Prisma: `{timestamp}_{description}` (자동 생성)
+  - 롤백 전략 문서화 (필요 시)
 
 ## 4. 테스트 설정
 
 - [ ] 단위/통합 테스트 프레임워크 설정 (Jest, Vitest, JUnit, pytest 등)
 - [ ] 필요 시 `*-e2e` 프로젝트와 시나리오 정의
 - [ ] `nx.json`의 `targetDefaults.test`와 호환되는지 확인
+- [ ] **최소 테스트 커버리지 요구사항**
+  - 핵심 비즈니스 로직: 단위 테스트 작성 (도메인 서비스, UseCase 등)
+  - 컨트롤러: 통합 테스트 또는 `@WebMvcTest` / `@WebFluxTest` 작성
+  - 예외 처리: 글로벌 예외 핸들러/필터 테스트
+  - 에러 코드 ↔ 메시지 매핑 검증 테스트 (드리프트 방지)
+  - 외부 서비스 클라이언트: Mock/Stub 사용하여 테스트
+- [ ] **필수 테스트 항목**
+  - 에러 코드 ↔ 메시지 리소스 일치 검증 테스트
+  - BaseAppException 패턴 테스트
+  - TraceId 전파 테스트 (서비스 간 호출 시)
+  - Health Check 엔드포인트 테스트
 
 ## 5. CI/CD
 
@@ -48,15 +67,73 @@
   - [ ] 메트릭: 헬스 체크 실패 카운터 추가 (`health_check_failures_total`)
   - [ ] 인증 정책: `/health/**`는 인증 없음 (내부망 전제), 상세 health는 인증 필요
 
-## 7. 관측성
+## 7. 서비스 간 통신 (Service-to-Service Communication)
+
+서비스 간 HTTP 통신을 구현할 때 다음 사항을 준수해야 합니다.
+
+### 7.1 TraceId 전파 (필수)
+
+- [ ] **`X-Trace-Id` 헤더 자동 전파** (`ERROR_HANDLING_GUIDE.md` 참조)
+  - 모든 서비스 간 HTTP 호출에 `X-Trace-Id` 헤더 포함
+  - 현재 요청의 TraceId를 다음 호출로 자동 전파
+  - 클라이언트 필터/인터셉터에서 자동 처리 (수동 설정 불필요)
+  - **구현 예시:**
+    - **NestJS (Axios)**: Interceptor에서 `X-Trace-Id` 헤더 자동 추가
+    - **Spring Boot (WebClient)**: Filter에서 `X-Trace-Id` 헤더 자동 추가
+    - **Kotlin Coroutines**: CoroutineContext에서 TraceId 전파
+
+### 7.2 Resilience 패턴 (권장)
+
+- [ ] **외부 서비스 호출에 Resilience 패턴 적용**
+  - **Retry**: 일시적 네트워크 오류/타임아웃에 대한 재시도
+    - 지수 백오프 전략 사용 (예: 1s → 2s → 4s)
+    - 재시도 대상: 네트워크 오류, 타임아웃, 5xx, 429 (Too Many Requests)
+    - 최대 재시도 횟수 설정 (기본: 3회)
+  - **Circuit Breaker**: 연속 실패 시 일시적 차단
+    - 상태: CLOSED → OPEN → HALF_OPEN
+    - 임계값: 실패율 50% 이상, 최소 요청 수 충족 시 OPEN
+    - 타임아웃 후 HALF_OPEN으로 전환하여 재시도
+  - **Timeout**: 요청 타임아웃 설정
+    - 연결 타임아웃: 기본 5초
+    - 읽기/쓰기 타임아웃: 기본 10초
+  - **Rate Limiting**: 동시 요청 수 제한 (필요 시)
+    - 동시성 제어로 대상 서비스 보호
+
+**구현 가이드:**
+- **NestJS**: `axios-retry` + `opossum` 패턴 (Catalog Service 참고)
+- **Spring Boot**: `spring-retry` + Resilience4j 또는 WebClient의 `retry()` + `resilience4j-circuitbreaker` 패턴
+- **설정**: 환경 변수로 재시도 횟수, 타임아웃, Circuit Breaker 임계값 관리
+
+### 7.3 클라이언트 설정 표준화
+
+- [ ] **외부 서비스 클라이언트 설정 일관성**
+  - 타임아웃 설정을 환경 변수로 관리
+  - 연결 풀 크기 설정 (필요 시)
+  - 클라이언트별 설정 클래스 분리 (예: `CatalogApiProperties`)
+  - 테스트 환경에서 Mock 클라이언트 사용 가능하도록 인터페이스 분리
+
+### 7.4 에러 처리
+
+- [ ] **외부 서비스 호출 실패 처리**
+  - `EXTERNAL_API_ERROR` 에러 코드 사용
+  - 에러 응답에 대상 서비스 정보 포함 (`details.apiName`, `details.statusCode` 등)
+  - Circuit Breaker OPEN 상태는 `SERVICE_UNAVAILABLE` (503)으로 처리
+  - 로그에 대상 서비스, 요청 경로, 응답 상태 코드 기록
+
+## 8. 관측성
 
 - [ ] 구조화된 로깅 포맷 정의
+- [ ] **메트릭 수집 방식 결정** (표준 라이브러리 권장)
+  - **Spring Boot**: Micrometer 사용 (Actuator 기본 제공)
+  - **NestJS**: `@prometheus/client` 또는 `prom-client` 사용
+  - 인메모리 메트릭은 운영 환경에서 제한적 (서버 재시작 시 초기화)
+  - Prometheus/Grafana 연동 준비
 - [ ] 메트릭/트레이싱(OpenTelemetry, Jaeger 등) 도입 여부 결정
 - [ ] **`X-Trace-Id` 헤더 처리 구현** (`ERROR_HANDLING_GUIDE.md` 참조)
   - 요청 헤더 `X-Trace-Id` 확인 (있으면 사용, 없으면 UUID v4 생성)
-  - 서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파
   - 모든 로그에 `traceId` 포함 (MDC/Span 등 활용)
   - 에러 응답에 `traceId` 필드 포함
+  - ⚠️ **서비스 간 호출 시 전파는 "7. 서비스 간 통신" 섹션 참조**
 - [ ] **로깅 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
   - 로그 레벨 가이드라인: 4xx → WARN, 5xx → ERROR
   - 5xx 오류에 스택 트레이스 포함
@@ -64,7 +141,20 @@
   - 모든 로그에 `traceId` 포함
 - [ ] 상관관계 ID 미들웨어/필터 구현
 
-## 8. API 응답 형식 표준화
+## 9. API 문서화
+
+- [ ] **OpenAPI/Swagger 설정**
+  - OpenAPI 3.0 스펙 준수
+  - **경로 통일**: 모든 서비스에서 동일한 경로 사용
+    - Swagger UI: `/api/docs` (권장) 또는 `/swagger-ui.html`
+    - OpenAPI JSON: `/api-docs` (권장) 또는 `/api/docs-json`
+  - 운영 환경에서는 문서 노출 비활성화 (`application-prod.yml` 등)
+  - DTO 및 에러 응답 스키마 문서화
+  - 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
+  - 태그(Tag) 사용으로 엔드포인트 그룹화
+  - 예시 요청/응답 포함
+
+## 10. API 응답 형식 표준화
 
 ### 성공 응답
 - [ ] **DTO 직접 반환 원칙** (`ERROR_SPECIFICATION.md` 참조)
@@ -92,19 +182,34 @@
 
 #### BaseAppException 패턴 (프레임워크 독립 베이스 예외)
 
-모든 서비스는 **프레임워크 독립적인 베이스 예외 클래스**를 사용하여 일관된 예외 처리를 구현해야 합니다. 이는 프레임워크 차이를 수용하되, 개념적 일관성을 유지하기 위함입니다.
+ReelNote MSA의 모든 서비스는 **프레임워크 독립적인 베이스 예외 클래스**를 사용하여 일관된 예외 처리를 구현해야 합니다. 이는 프레임워크 차이를 수용하되, 개념적 일관성을 유지하기 위함입니다.
 
-**공통 속성:**
-- `errorCode`: 에러 코드 (string)
-- `httpStatus`: HTTP 상태 코드
-- `message`: 사용자 친화적 메시지
-- `details`: 추가 컨텍스트 정보 (선택)
+**설계 원칙:**
 
-**프레임워크별 구현:**
+1. **프레임워크 독립성**: 프레임워크 특정 예외 클래스 상속 최소화
+2. **일관된 인터페이스**: 모든 서비스에서 동일한 속성 구조 사용
+3. **표준 응답 형식**: 모든 예외가 `ErrorDetail` 스키마로 변환 가능
 
-**NestJS (TypeScript):**
+**공통 속성 (모든 서비스에서 동일):**
+
+| 속성 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| `errorCode` | `string` | ✅ | 에러 코드 (예: `REVIEW_NOT_FOUND`) |
+| `httpStatus` | `HttpStatus` | ✅ | HTTP 상태 코드 |
+| `message` | `string` | ✅ | 사용자 친화적 메시지 |
+| `details` | `object` | ❌ | 추가 컨텍스트 정보 |
+
+**구현 요구사항:**
+
+- 모든 서비스별 예외 클래스는 `BaseAppException`을 상속해야 함
+- 예외 클래스는 메시지를 파라미터로 받되, 생성은 팩토리를 통해서만 수행
+- 글로벌 예외 핸들러/필터에서 `BaseAppException`을 우선 처리하여 `ErrorDetail`로 변환
+- 로그 레벨 자동 결정: 5xx → ERROR, 4xx → WARN
+
+**프레임워크별 구현 예시 (참고용):**
+
 ```typescript
-// BaseAppException - 프레임워크 독립 베이스
+// NestJS: BaseAppException - 프레임워크 독립 베이스
 export abstract class BaseAppException extends Error {
   constructor(
     public readonly errorCode: string,
@@ -116,23 +221,10 @@ export abstract class BaseAppException extends Error {
     this.name = this.constructor.name;
   }
 }
-
-// 서비스별 예외 클래스
-export class ServiceException extends BaseAppException {
-  constructor(
-    public readonly code: ServiceErrorCode,
-    message: string,
-    status: HttpStatus,
-    details?: Record<string, unknown>,
-  ) {
-    super(code, message, status, details);
-  }
-}
 ```
 
-**Spring Boot (Kotlin):**
 ```kotlin
-// BaseAppException - 프레임워크 독립 베이스
+// Spring Boot: BaseAppException - 프레임워크 독립 베이스
 abstract class BaseAppException(
     message: String,
     val errorCode: String,
@@ -140,115 +232,108 @@ abstract class BaseAppException(
     val details: Map<String, Any>? = null,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause)
-
-// 서비스별 예외 클래스
-sealed class ServiceException(
-    message: String,
-    errorCode: String,
-    httpStatus: HttpStatus,
-    details: Map<String, Any>? = null,
-    cause: Throwable? = null,
-) : BaseAppException(message, errorCode, httpStatus, details, cause)
 ```
 
-**예외 핸들러/필터:**
-- NestJS: `HttpExceptionFilter`에서 `BaseAppException` 우선 처리
-- Spring Boot: `GlobalExceptionHandler`에서 `BaseAppException` 처리
-- 로그 레벨 자동 결정: 5xx → ERROR, 4xx → WARN
+#### 에러 처리 패턴
 
-#### 에러 처리 패턴 (Catalog Service 참고)
+ReelNote MSA의 모든 서비스는 **에러 코드 중심 설계**와 **예외 생성 팩토리 패턴**을 사용하여 일관된 예외 처리를 구현해야 합니다.
 
-에러 메시지를 하드코딩하지 말고, **에러 코드 중심으로 설계**하는 것이 유지보수성과 일관성을 보장합니다. Catalog Service에서는 다음과 같은 패턴을 사용합니다:
+**핵심 설계 원칙:**
 
-**1. 에러 코드 정의 및 메시지 분리**
+1. **에러 메시지 하드코딩 금지**: 모든 에러 메시지는 리소스 파일에서 관리
+2. **에러 코드 중심 설계**: 에러 코드가 Source of Truth, 메시지는 표현 레이어
+3. **예외 생성 팩토리 패턴**: 모든 예외는 팩토리를 통해 생성하여 중앙 관리
+4. **메시지 국제화 준비**: 메시지 리소스 분리로 향후 다국어 지원 용이
 
-**핵심 원칙: 에러 코드는 시스템 공통 기준, 메시지 키는 각 서비스/프레임워크에 최적화된 표현**
+**1. 에러 코드와 메시지 분리**
 
-- **에러 코드**: 머신 친화적 ID, HTTP 응답의 `code` 필드, 클라이언트/로그/모니터링 기준값
-- **메시지 키**: 사람이 읽는 문장 관리 레이어, 프레임워크별 형식 (JSON/Properties)
+**에러 코드 (Error Code)**
+- 머신 친화적 식별자
+- HTTP 응답의 `code` 필드에 사용
+- 클라이언트/로그/모니터링의 기준값
+- Source of Truth: 코드에서 정의된 에러 코드가 기준
 
-먼저 에러 코드 enum을 정의하고, 메시지는 별도 리소스 파일로 관리합니다:
+**메시지 (Message)**
+- 사람이 읽는 문장
+- 리소스 파일에서 관리 (`messages.properties`, `messages.ko.json` 등)
+- 프레임워크별 형식 허용 (Properties, JSON 등)
+- 파라미터 치환 지원 (예: `{0}`, `{tmdbId}`)
 
-```typescript
-// 에러 코드 enum (예: ServiceErrorCode, CatalogErrorCode)
-// Source of Truth: 이 enum이 기준이 됨
-export enum CatalogErrorCode {
-  // 도메인별 에러 (SERVICE_* prefix 권장)
-  MOVIE_NOT_FOUND = "CATALOG_MOVIE_NOT_FOUND",
+**구현 예시:**
 
-  // 검증 에러 (VALIDATION_* prefix)
-  VALIDATION_SEARCH_QUERY_REQUIRED = "VALIDATION_SEARCH_QUERY_REQUIRED",
-
-  // 범용 에러
-  INTERNAL_ERROR = "INTERNAL_ERROR",
+```kotlin
+// 에러 코드 정의 (Source of Truth)
+object ErrorCodes {
+    const val REVIEW_NOT_FOUND = "REVIEW_NOT_FOUND"
+    const val REVIEW_ALREADY_EXISTS = "REVIEW_ALREADY_EXISTS"
+    const val VALIDATION_ERROR = "VALIDATION_ERROR"
 }
 
-// 메시지 리소스 파일 (예: messages.ko.json)
-// Catalog Service: 에러 코드와 동일한 키 사용
+// 메시지 리소스 파일 (messages.properties)
+error.review.not.found=리뷰를 찾을 수 없습니다. ID: {0}
+error.review.already.exists=이미 해당 영화에 대한 리뷰가 존재합니다
+error.validation.failed=입력 데이터 검증에 실패했습니다
+```
+
+```typescript
+// 에러 코드 enum (Source of Truth)
+export enum CatalogErrorCode {
+  MOVIE_NOT_FOUND = "CATALOG_MOVIE_NOT_FOUND",
+  VALIDATION_SEARCH_QUERY_REQUIRED = "VALIDATION_SEARCH_QUERY_REQUIRED",
+}
+
+// 메시지 리소스 파일 (messages.ko.json)
 {
   "CATALOG_MOVIE_NOT_FOUND": "영화 정보를 찾을 수 없습니다. TMDB ID: {tmdbId}",
   "VALIDATION_SEARCH_QUERY_REQUIRED": "검색어는 필수입니다."
 }
 ```
 
-**Spring Boot (Kotlin) 예시:**
-```kotlin
-// 에러 코드 object (Source of Truth)
-object ErrorCodes {
-    const val REVIEW_NOT_FOUND = "REVIEW_NOT_FOUND"
-    const val VALIDATION_ERROR = "VALIDATION_ERROR"
-}
-
-// 메시지 리소스 파일 (messages.properties)
-// Review Service: 계층적 키 사용 (프레임워크 최적화)
-error.review.not.found=리뷰를 찾을 수 없습니다. ID: {0}
-error.validation.failed=입력 데이터 검증에 실패했습니다
-validation.search.keyword.required=검색어는 필수입니다
-```
-
 **2. 메시지 조회 서비스**
 
-에러 코드를 메시지로 변환하는 서비스를 구현합니다 (향후 다국어 지원 확장 가능):
+에러 코드를 메시지로 변환하는 서비스를 구현합니다. 프레임워크별로 제공되는 메시지 조회 메커니즘을 활용하되, 동일한 인터페이스로 접근합니다.
 
-```typescript
-// MessageService - 에러 코드 → 메시지 변환
-@Injectable()
-export class MessageService {
-  get(code: CatalogErrorCode | string, params?: MessageParams): string {
-    // 메시지 리소스에서 조회 및 파라미터 치환
-    // Catalog: 명명된 파라미터 {tmdbId}
-  }
-}
-```
+- **Spring Boot**: `MessageSource` 사용 (Spring 기본 제공)
+- **NestJS**: `MessageService` 구현 (커스텀 서비스)
 
-**Spring Boot (Kotlin) 예시:**
+**3. 예외 생성 팩토리 패턴 (필수)**
+
+**모든 서비스는 예외 생성 팩토리를 구현해야 합니다.** 이는 다음을 보장합니다:
+
+- 메시지 하드코딩 방지: 팩토리에서만 메시지 리소스 접근
+- 일관성 보장: 모든 예외가 동일한 방식으로 생성
+- 확장성: 향후 로깅/메트릭 추가 시 팩토리만 수정
+- 테스트 용이: 팩토리만 모킹하면 예외 생성 로직 테스트 가능
+
+**구현 예시:**
+
 ```kotlin
-// MessageSource 사용 (Spring 기본 제공)
-// Review: 위치 기반 파라미터 {0}, {1}
-messageSource.getMessage("error.review.not.found", arrayOf(reviewId), Locale.getDefault())
-```
+// ReviewExceptionFactory - 예외 생성 중앙 관리
+@Service
+class ReviewExceptionFactory(
+    private val messageSource: MessageSource,
+) {
+    fun notFound(reviewId: Long): ReviewNotFoundException {
+        val message = messageSource.getMessage(
+            "error.review.not.found",
+            arrayOf(reviewId),
+            Locale.getDefault()
+        )
+        return ReviewNotFoundException(reviewId, message)
+    }
 
-**3. BaseAppException 기반 예외 클래스**
-
-프레임워크 독립성을 위해 `BaseAppException`을 상속합니다:
-
-```typescript
-// BaseAppException 상속 (HttpException 대신)
-export class CatalogException extends BaseAppException {
-  constructor(
-    public readonly code: CatalogErrorCode,
-    message: string,
-    status: HttpStatus,
-    details?: Record<string, unknown>,
-  ) {
-    super(code, message, status, details);
-  }
+    fun alreadyExists(userSeq: Long, movieId: Long): ReviewAlreadyExistsException {
+        val message = messageSource.getMessage(
+            "error.review.already.exists",
+            null,
+            Locale.getDefault()
+        )
+        return ReviewAlreadyExistsException(userSeq, movieId, message)
+    }
 }
+
+// 사용: throw exceptionFactory.notFound(reviewId)
 ```
-
-**4. 예외 생성 팩토리 패턴**
-
-하드코딩된 문자열을 제거하고, 예외 생성 로직을 중앙에서 관리합니다:
 
 ```typescript
 // ExceptionFactoryService - 예외 생성 중앙 관리
@@ -261,28 +346,23 @@ export class ExceptionFactoryService {
       CatalogErrorCode.MOVIE_NOT_FOUND,
       this.messageService.get(CatalogErrorCode.MOVIE_NOT_FOUND, { tmdbId }),
       HttpStatus.NOT_FOUND,
-      { tmdbId }, // details에 컨텍스트 정보 포함
+      { tmdbId },
     );
   }
 }
 
-// 사용: throw this.exceptionFactory.movieNotFound(tmdbId);
+// 사용: throw this.exceptionFactory.movieNotFound(tmdbId)
 ```
 
-**Spring Boot (Kotlin) 예시:**
-```kotlin
-// Companion object에 팩토리 메서드 추가 (권장)
-sealed class ServiceException(...) : BaseAppException(...) {
-    companion object {
-        fun notFound(id: Long): ServiceNotFoundException =
-            ServiceNotFoundException(id)
-    }
-}
-```
+**⚠️ 주의사항:**
+
+- 예외 클래스 생성자에 메시지를 직접 전달하지 말고, 팩토리를 통해 생성
+- Companion object나 정적 팩토리 메서드에서도 메시지를 하드코딩하지 말고, 팩토리 사용
+- 예외 클래스는 메시지를 파라미터로 받되, 생성은 팩토리에서만 수행
 
 **이점:**
-- 하드코딩 제거: 에러 메시지가 코드와 분리되어 관리 용이
-- 일관성 보장: 모든 예외가 동일한 구조로 생성됨
+- 하드코딩 제거: 에러 메시지가 코드와 완전히 분리
+- 일관성 보장: 모든 예외가 동일한 구조로 생성
 - 확장성: 다국어 지원, 로깅/메트릭 추가 시 팩토리만 수정
 - 테스트 용이: 에러 코드로 예외 타입 식별 가능
 - 드리프트 방지: 매핑 검증 테스트로 에러 코드-메시지 동기화 보장
@@ -301,16 +381,19 @@ sealed class ServiceException(...) : BaseAppException(...) {
     - 검증: `VALIDATION_{FIELD}_{RULE}` (예: `VALIDATION_SEARCH_QUERY_REQUIRED`)
 - [ ] **메시지 관리** (`ERROR_SPECIFICATION.md` 섹션 2 참조)
   - [ ] 메시지 리소스 파일 생성 (`messages.ko.json`, `messages.properties` 등)
-  - [ ] MessageService 구현 (에러 코드 → 메시지 변환, 파라미터 치환)
+  - [ ] 메시지 조회 서비스 구현 (Spring Boot: `MessageSource`, NestJS: `MessageService`)
   - [ ] **에러 코드 ↔ 메시지 키 매핑 검증 테스트 작성** (드리프트 방지)
     - 모든 에러 코드가 메시지 리소스에 존재하는지 검증
     - 예: `message.service.spec.ts`, `MessageResourceValidationTest.kt`
   - [ ] **메시지 문구 통일**: 동일한 의미의 메시지는 사용자 기준으로 통일
   - [ ] **파라미터 스타일**: 서비스 내부 일관성 유지 (Catalog: `{fieldName}`, Review: `{0}`)
-- [ ] **예외 생성 패턴**
-  - [ ] ExceptionFactoryService 구현 (NestJS) 또는 Companion object 팩토리 메서드 (Spring Boot)
+- [ ] **예외 생성 팩토리 패턴 (필수)**
+  - [ ] `ExceptionFactoryService` 또는 `ReviewExceptionFactory` 구현
+  - [ ] 팩토리가 메시지 조회 서비스를 주입받아 사용
   - [ ] 각 예외 타입별 팩토리 메서드 제공
+  - [ ] **예외 클래스 생성자에 메시지를 직접 전달하지 않고, 팩토리를 통해서만 생성**
   - [ ] `details` 필드에 컨텍스트 정보 포함 (예: `{ tmdbId: 123 }`)
+  - [ ] 모든 예외 생성이 팩토리를 통해 이루어지는지 확인
 - [ ] **글로벌 예외 핸들러/필터 구현**
   - [ ] `BaseAppException` 우선 처리
   - [ ] 모든 예외를 `ErrorDetail` 형식으로 변환
@@ -318,20 +401,24 @@ sealed class ServiceException(...) : BaseAppException(...) {
   - [ ] 로그 레벨 자동 결정 (5xx: ERROR, 4xx: WARN)
   - [ ] 5xx 오류에 스택 트레이스 포함
 - [ ] **TraceId 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
-  - [ ] 요청 헤더 `X-Trace-Id` 확인 및 전파
+  - [ ] 요청 헤더 `X-Trace-Id` 확인 및 생성 (없으면 UUID v4 생성)
   - [ ] 모든 로그에 `traceId` 포함 (MDC/Span 활용)
-  - [ ] 서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파
-- [ ] **OpenAPI/Swagger 문서화**
-  - [ ] `ErrorDetail` 스키마가 API 문서에 포함되도록 설정
-  - [ ] 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
+  - [ ] ⚠️ **서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파는 "7. 서비스 간 통신" 섹션 참조**
 
-## 9. 보안 및 시크릿
+## 11. 보안 및 시크릿
 
 - [ ] 의존성 취약점 스캔 도구 설정 (Dependabot, Renovate 등)
-- [ ] 환경 변수 검증 스키마 정의
-- [ ] 인증/인가, CORS 등 보안 설정 검토
+- [ ] **환경 변수 검증 스키마 정의**
+  - 필수 환경 변수 누락 시 서비스 시작 실패하도록 검증
+  - 환경 변수 타입 및 범위 검증 (예: 포트 번호 범위)
+  - **Spring Boot**: `@ConfigurationProperties` + `@Valid` 사용 권장
+  - **NestJS**: `class-validator` + DTO 기반 설정 검증 권장
+- [ ] **인증/인가, CORS 등 보안 설정 검토**
+  - `/health/**` 엔드포인트는 인증 없음 (내부망 전제)
+  - API 엔드포인트 인증/인가 정책 명확화
+  - CORS 정책 환경별 차별화 (dev: localhost 허용, prod: 명시적 origin만 허용)
 
-## 10. 운영 모니터링
+## 12. 운영 모니터링
 
 - [ ] **헬스체크 및 경고 시스템 구성**
   - [ ] K8s liveness/readiness 프로브 설정 (`/health/live`, `/health/ready`)

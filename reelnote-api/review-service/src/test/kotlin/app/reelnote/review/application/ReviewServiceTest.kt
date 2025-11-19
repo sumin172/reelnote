@@ -7,6 +7,7 @@ import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.interfaces.dto.CreateReviewRequest
 import app.reelnote.review.interfaces.dto.UpdateReviewRequest
 import app.reelnote.review.shared.exception.ReviewAlreadyExistsException
+import app.reelnote.review.shared.exception.ReviewExceptionFactory
 import app.reelnote.review.shared.exception.ReviewNotFoundException
 import app.reelnote.review.shared.exception.ReviewUnauthorizedDeleteException
 import app.reelnote.review.shared.exception.ReviewUnauthorizedUpdateException
@@ -25,7 +26,23 @@ import kotlin.test.assertNotNull
 class ReviewServiceTest {
     private val reviewRepository = mockk<ReviewRepository>()
     private val messageSource = mockk<MessageSource>()
-    private val reviewService = ReviewService(reviewRepository, messageSource)
+    private val exceptionFactory = ReviewExceptionFactory(messageSource)
+    private val reviewService = ReviewService(reviewRepository, exceptionFactory)
+
+    init {
+        // MessageSource 모킹 설정
+        every { messageSource.getMessage(any(), any(), any()) } answers {
+            val key = firstArg<String>()
+            val args = secondArg<Array<Any>>()
+            when (key) {
+                "error.review.already.exists" -> "이미 해당 영화에 대한 리뷰가 존재합니다"
+                "error.review.unauthorized.update" -> "본인의 리뷰만 수정할 수 있습니다"
+                "error.review.unauthorized.delete" -> "본인의 리뷰만 삭제할 수 있습니다"
+                "error.review.not.found" -> "리뷰를 찾을 수 없습니다. ID: ${args.firstOrNull()}"
+                else -> key
+            }
+        }
+    }
 
     @Test
     fun `리뷰 생성 성공`() {

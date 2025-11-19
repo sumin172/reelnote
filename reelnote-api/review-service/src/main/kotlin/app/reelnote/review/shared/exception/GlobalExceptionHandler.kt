@@ -66,6 +66,7 @@ class GlobalExceptionHandler(
                 code = ex.errorCode,
                 message = ex.message ?: getMessage("error.unknown"),
                 details = requestMetadata(request),
+                traceId = traceId,
             )
 
         return ResponseEntity.status(ex.httpStatus).body(error)

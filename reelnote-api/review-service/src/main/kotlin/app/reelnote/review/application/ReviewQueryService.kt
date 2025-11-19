@@ -11,7 +11,7 @@ import app.reelnote.review.interfaces.dto.PageResponse
 import app.reelnote.review.interfaces.dto.ReviewResponse
 import app.reelnote.review.interfaces.dto.SortBy
 import app.reelnote.review.shared.exception.ExternalApiException
-import app.reelnote.review.shared.exception.ReviewNotFoundException
+import app.reelnote.review.shared.exception.ReviewExceptionFactory
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.PageRequest
@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional
 class ReviewQueryService(
     private val reviewRepository: ReviewRepository,
     private val catalogClient: CatalogClient,
+    private val exceptionFactory: ReviewExceptionFactory,
 ) {
     private val logger = LoggerFactory.getLogger(ReviewQueryService::class.java)
 
@@ -37,7 +38,7 @@ class ReviewQueryService(
             reviewRepository
                 .findByUserSeqAndMovieId(userSeq, movieId)
                 .orElseThrow {
-                    ReviewNotFoundException(0L, userSeq, movieId)
+                    exceptionFactory.notFound(0L, userSeq, movieId)
                 }
 
         return ReviewResponse.from(review)

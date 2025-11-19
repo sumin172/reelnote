@@ -1,6 +1,6 @@
 package app.reelnote.review.infrastructure.catalog
 
-import app.reelnote.review.shared.exception.ExternalApiException
+import app.reelnote.review.shared.exception.ReviewExceptionFactory
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import org.slf4j.LoggerFactory
 import org.springframework.core.codec.DecodingException
@@ -13,6 +13,7 @@ import org.springframework.web.reactive.function.client.awaitBody
 @Component
 class CatalogClient(
     private val catalogWebClient: WebClient,
+    private val exceptionFactory: ReviewExceptionFactory,
 ) {
     private val logger = LoggerFactory.getLogger(CatalogClient::class.java)
 
@@ -55,7 +56,7 @@ class CatalogClient(
 
             else -> logger.error("Catalog 서비스 호출 중 예외 발생", ex)
         }
-        throw ExternalApiException("Catalog", ex)
+        throw exceptionFactory.externalApiFailed("Catalog", ex)
     }
 }
 
