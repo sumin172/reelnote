@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { MoviePresenter } from "./dto/movie.presenter.js";
 import { GetMovieUseCase } from "./use-cases/get-movie.usecase.js";
@@ -14,6 +14,7 @@ import {
   ImportMoviesJobStatus,
   ImportMoviesJobSummary,
 } from "./jobs/import-movies.job-service.js";
+import { JobInProgressException } from "../../common/exception/catalog.exception.js";
 
 @Injectable()
 export class MoviesFacade {
@@ -190,9 +191,7 @@ export class MoviesFacade {
         job.status === ImportMoviesJobStatus.Pending ||
         job.status === ImportMoviesJobStatus.Running
       ) {
-        throw new BadRequestException(
-          `Import job ${resumeJobId} is still in progress. Try again later.`,
-        );
+        throw new JobInProgressException(resumeJobId);
       }
 
       for (const failure of job.failures) {

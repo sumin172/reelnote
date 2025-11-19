@@ -273,7 +273,7 @@ class ReviewControllerTest {
             .perform(
                 get("/api/v1/reviews/statistics/rating")
                     .contentType(MediaType.APPLICATION_JSON),
-            )            .andExpect(status().isOk)
+            ).andExpect(status().isOk)
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$['1']").value(2))
             .andExpect(jsonPath("$['5']").value(7))

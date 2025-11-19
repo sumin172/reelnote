@@ -43,15 +43,47 @@
 
 - [ ] 구조화된 로깅 포맷 정의
 - [ ] 메트릭/트레이싱(OpenTelemetry, Jaeger 등) 도입 여부 결정
+- [ ] `X-Trace-Id` 헤더 처리 구현
+  - 요청에 헤더가 있으면 사용, 없으면 새로 생성
+  - 서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파
+  - 모든 로그에 `traceId` 포함 (MDC/Span 등 활용)
 - [ ] 상관관계 ID 미들웨어/필터 구현
 
-## 8. 보안 및 시크릿
+## 8. API 응답 형식 표준화
+
+### 성공 응답
+- [ ] **DTO 직접 반환 원칙** (`ERROR_SPECIFICATION.md` 참조)
+  - 성공 응답(HTTP `2xx`)은 DTO를 직접 반환
+  - `ApiResponse<T>` 같은 래퍼 클래스 사용하지 않음
+  - 예: `ResponseEntity<ReviewResponse>`, `Promise<MovieResponseDto>`
+- [ ] 서비스 간 응답 형식 일관성 확인
+  - 다른 서비스들과 동일한 패턴 사용
+  - 클라이언트가 서비스별 분기 처리 불필요하도록 유지
+
+### 에러 응답
+- [ ] 공통 에러 스펙 준수 (`ERROR_SPECIFICATION.md` 참조)
+  - `ErrorDetail` 스키마 사용 (code, message, details, traceId)
+  - 표준 에러 코드 사용 (`VALIDATION_ERROR`, `NOT_FOUND`, `INTERNAL_ERROR` 등)
+  - HTTP 상태 코드 매핑 표준 준수
+- [ ] 글로벌 예외 핸들러/필터 구현
+  - 모든 예외를 `ErrorDetail` 형식으로 변환
+  - `traceId`가 모든 에러 응답에 포함되도록 보장
+  - 예외 타입별 적절한 HTTP 상태 코드 매핑
+- [ ] 비즈니스 예외 계층 구조 정의
+  - 베이스 예외 클래스 (예: `ServiceException`, `CatalogException`)
+  - 구체 예외 클래스 (예: `NotFoundException`, `ValidationException`)
+  - 예외를 HTTP 레이어에서 직접 throw하지 않고 비즈니스 예외 사용
+- [ ] OpenAPI/Swagger 문서화
+  - `ErrorDetail` 스키마가 API 문서에 포함되도록 설정
+  - 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
+
+## 9. 보안 및 시크릿
 
 - [ ] 의존성 취약점 스캔 도구 설정 (Dependabot, Renovate 등)
 - [ ] 환경 변수 검증 스키마 정의
 - [ ] 인증/인가, CORS 등 보안 설정 검토
 
-## 9. 운영 모니터링
+## 10. 운영 모니터링
 
 - [ ] 헬스체크 및 경고 시스템 구성
 - [ ] 로그 집계/관찰 도구(Loki, ELK 등) 연동 여부 검토

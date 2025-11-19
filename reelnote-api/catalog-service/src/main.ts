@@ -43,6 +43,7 @@ async function bootstrap() {
     .addTag("sync", "동기화")
     .addTag("search", "검색")
     .build();
+  // ErrorDetailDto는 @ApiProperty 데코레이터로 자동 등록됨
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, document);
 

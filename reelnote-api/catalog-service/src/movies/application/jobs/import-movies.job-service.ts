@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "crypto";
 import {
   ImportMoviesCommand,
@@ -8,6 +8,7 @@ import {
   ImportMoviesResult,
   ImportMoviesUseCase,
 } from "../use-cases/import-movies.usecase.js";
+import { JobNotFoundException } from "../../../common/exception/catalog.exception.js";
 
 export enum ImportMoviesJobStatus {
   Pending = "pending",
@@ -96,7 +97,7 @@ export class ImportMoviesJobService {
   getJob(jobId: string): ImportMoviesJobDetail {
     const job = this.jobs.get(jobId);
     if (!job) {
-      throw new NotFoundException(`Import job ${jobId} not found`);
+      throw new JobNotFoundException(jobId);
     }
 
     return this.mapToDetail(job);

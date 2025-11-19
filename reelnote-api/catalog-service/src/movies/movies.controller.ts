@@ -2,13 +2,13 @@ import {
   Body,
   Controller,
   Get,
-  HttpCode,
-  HttpException,
   HttpStatus,
   Param,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   ApiOperation,
   ApiParam,
@@ -56,7 +56,6 @@ export class MoviesController {
   }
 
   @Post("import")
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "영화 일괄 인입",
     description: "여러 영화를 TMDB에서 가져와 저장/업데이트합니다.",
@@ -73,7 +72,8 @@ export class MoviesController {
   })
   async importMovies(
     @Body() dto: ImportMoviesDto,
-  ): Promise<ImportMoviesImmediateResponseDto> {
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<ImportMoviesImmediateResponseDto | ImportMoviesJobSummaryDto> {
     const language = dto.language ?? "ko-KR";
     const result = await this.moviesFacade.importMovies({
       tmdbIds: dto.tmdbIds ?? [],
@@ -82,7 +82,10 @@ export class MoviesController {
     });
 
     if (result.kind === "queued") {
-      throw new HttpException(result.job, HttpStatus.ACCEPTED);
+      // 비동기 작업은 202 Accepted로 응답 DTO 직접 반환
+      // HttpException에 객체를 직접 넣는 패턴 대신 응답 객체를 직접 반환
+      res.status(HttpStatus.ACCEPTED);
+      return result.job;
     }
 
     return result.result;

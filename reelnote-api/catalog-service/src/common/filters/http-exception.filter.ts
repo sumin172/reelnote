@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { ErrorDetailDto, ErrorCodes } from "../dto/error.dto.js";
+import { CatalogException } from "../exception/catalog.exception.js";
 
 /**
  * 글로벌 HTTP 예외 필터
@@ -23,10 +24,14 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const traceId = this.getOrCreateTraceId(request);
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    // CatalogException 우선 처리 (비즈니스 예외)
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    if (exception instanceof CatalogException) {
+      status = exception.httpStatus;
+    } else if (exception instanceof HttpException) {
+      status = exception.getStatus();
+    }
 
     const errorDetail = this.buildErrorDetail(
       exception,
@@ -82,9 +87,41 @@ export class HttpExceptionFilter implements ExceptionFilter {
     traceId: string,
     status: number,
   ): ErrorDetailDto {
+    // CatalogException 우선 처리 (비즈니스 예외)
+    if (exception instanceof CatalogException) {
+      return {
+        code: exception.code,
+        message: exception.message,
+        details: {
+          path: request.url,
+        },
+        traceId,
+      };
+    }
+
     // HttpException인 경우
     if (exception instanceof HttpException) {
       const exceptionResponse = exception.getResponse();
+
+      // HttpException에 객체를 직접 전달한 경우 (권장하지 않지만 호환성 유지)
+      // 예: throw new HttpException(result.job, HttpStatus.ACCEPTED)
+      if (
+        typeof exceptionResponse === "object" &&
+        !("message" in exceptionResponse)
+      ) {
+        // 객체를 그대로 반환하지 않고, ErrorDetailDto로 래핑
+        // 하지만 이런 패턴은 사용하지 않는 것이 좋음
+        return {
+          code: this.getErrorCodeFromStatus(status),
+          message: "요청이 처리되었습니다.",
+          details: {
+            path: request.url,
+            data: exceptionResponse,
+          },
+          traceId,
+        };
+      }
+
       const message =
         typeof exceptionResponse === "string"
           ? exceptionResponse
@@ -179,8 +216,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       case HttpStatus.UNPROCESSABLE_ENTITY:
         return ErrorCodes.VALIDATION_ERROR;
       case HttpStatus.BAD_GATEWAY:
-      case HttpStatus.SERVICE_UNAVAILABLE:
         return ErrorCodes.EXTERNAL_API_ERROR;
+      case HttpStatus.SERVICE_UNAVAILABLE:
+        return ErrorCodes.SERVICE_UNAVAILABLE;
       default:
         return ErrorCodes.INTERNAL_ERROR;
     }
