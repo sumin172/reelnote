@@ -59,6 +59,7 @@ class PublicHealthController(
                 "status" to status,
                 "timestamp" to Instant.now().toString(),
                 "service" to appName,
+                "version" to appVersion, // 항상 포함 (없으면 "unknown")
             )
 
         // 실패 시에만 로그 및 메트릭 기록
@@ -80,20 +81,16 @@ class PublicHealthController(
         val health = healthEndpoint.healthForPath("readiness")
         val status = mapStatus(health.status)
 
+        // checks: health details를 공통 스펙 형식으로 변환
+        val checks = extractChecks((health as? Health)?.details)
+
         val response =
             buildMap<String, Any> {
                 put("status", status)
                 put("timestamp", Instant.now().toString())
                 put("service", appName)
-                if (appVersion != "unknown") {
-                    put("version", appVersion)
-                }
-
-                // checks: health details를 공통 스펙 형식으로 변환
-                val checks = extractChecks((health as? Health)?.details)
-                if (checks.isNotEmpty()) {
-                    put("checks", checks)
-                }
+                put("version", appVersion) // 항상 포함 (없으면 "unknown")
+                put("checks", checks) // 항상 포함 (최소 빈 객체)
             }
 
         // 실패 시에만 로그 및 메트릭 기록
@@ -106,15 +103,14 @@ class PublicHealthController(
             getFailureCounter("ready").increment()
 
             // 실패한 체크별로도 메트릭 기록
-            val checks = response["checks"] as? Map<*, *>
-            checks?.forEach { (checkName, checkStatus) ->
+            checks.forEach { (checkName, checkStatus) ->
                 if (checkStatus != "UP") {
                     Counter
                         .builder("health_check_failures_total")
                         .description("Total number of health check failures")
                         .tag("endpoint", "ready")
                         .tag("service", appName)
-                        .tag("check", checkName.toString())
+                        .tag("check", checkName)
                         .register(meterRegistry)
                         .increment()
                 }

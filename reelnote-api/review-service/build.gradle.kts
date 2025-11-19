@@ -7,12 +7,21 @@ plugins {
 description = "review-service"
 
 // 버전 정보를 application.yml에 주입
+// build-info.properties는 빌드 시 자동 생성됩니다 (build/resources/main/META-INF/build-info.properties)
 springBoot {
     buildInfo {
         properties {
             version.set(project.version.toString())
+            // 추가 정보도 설정 가능
+            // group.set(project.group.toString())
+            // artifact.set(project.name)
         }
     }
+}
+
+// 개발 환경에서도 build-info.properties가 생성되도록 bootRun 전에 buildInfo 생성
+tasks.named("bootRun") {
+    dependsOn("bootBuildInfo")
 }
 
 dependencyManagement {
