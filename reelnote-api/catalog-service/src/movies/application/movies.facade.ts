@@ -14,7 +14,7 @@ import {
   ImportMoviesJobStatus,
   ImportMoviesJobSummary,
 } from "./jobs/import-movies.job-service.js";
-import { JobInProgressException } from "../../common/exception/catalog.exception.js";
+import { ExceptionFactoryService } from "../../common/error/exception-factory.service.js";
 
 @Injectable()
 export class MoviesFacade {
@@ -29,6 +29,7 @@ export class MoviesFacade {
     private readonly getMovieUseCase: GetMovieUseCase,
     private readonly importMoviesUseCase: ImportMoviesUseCase,
     private readonly importMoviesJobService: ImportMoviesJobService,
+    private readonly exceptionFactory: ExceptionFactoryService,
   ) {}
 
   async getMovie(
@@ -191,7 +192,7 @@ export class MoviesFacade {
         job.status === ImportMoviesJobStatus.Pending ||
         job.status === ImportMoviesJobStatus.Running
       ) {
-        throw new JobInProgressException(resumeJobId);
+        throw this.exceptionFactory.jobInProgress(resumeJobId);
       }
 
       for (const failure of job.failures) {

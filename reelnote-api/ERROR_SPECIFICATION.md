@@ -59,8 +59,10 @@
 - `MOVIE_NOT_FOUND`
 
 **Catalog Service 예시:**
-- `MOVIE_NOT_FOUND`
-- `TMDB_API_ERROR`
+- `CATALOG_MOVIE_NOT_FOUND`
+- `CATALOG_TMDB_API_FAILED`
+- `CATALOG_JOB_NOT_FOUND`
+- `VALIDATION_SEARCH_QUERY_REQUIRED`
 
 ## 3. HTTP 상태 코드 매핑
 
@@ -123,20 +125,102 @@ fun handleReviewException(): ResponseEntity<ErrorDetail>
 
 ### Catalog Service (TypeScript/NestJS)
 
+#### 기본 구조
+
 ```typescript
-// ErrorDetailDto
+// ErrorDetailDto - 표준 에러 응답 스키마
 export class ErrorDetailDto {
   code!: string;
   message!: string;
   details?: Record<string, unknown>;
   traceId?: string;
 }
+```
 
+#### 에러 코드 관리
+
+```typescript
+// CatalogErrorCode - 에러 코드 enum 정의
+export enum CatalogErrorCode {
+  // 도메인 에러 (CATALOG_ prefix)
+  MOVIE_NOT_FOUND = "CATALOG_MOVIE_NOT_FOUND",
+  TMDB_API_FAILED = "CATALOG_TMDB_API_FAILED",
+
+  // 검증 에러 (VALIDATION_ prefix)
+  VALIDATION_SEARCH_QUERY_REQUIRED = "VALIDATION_SEARCH_QUERY_REQUIRED",
+  VALIDATION_ERROR = "VALIDATION_ERROR",
+
+  // 범용 에러
+  INTERNAL_ERROR = "INTERNAL_ERROR",
+  UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  // ... 등
+}
+```
+
+#### 메시지 리소스 관리
+
+```json
+// messages.ko.json - 에러 코드별 메시지 정의
+{
+  "CATALOG_MOVIE_NOT_FOUND": "영화 정보를 찾을 수 없습니다. TMDB ID: {tmdbId}",
+  "VALIDATION_SEARCH_QUERY_REQUIRED": "검색어(q)는 필수입니다.",
+  "INTERNAL_ERROR": "서버 내부 오류가 발생했습니다."
+}
+```
+
+```typescript
+// MessageService - 메시지 조회 서비스
+@Injectable()
+export class MessageService {
+  get(code: CatalogErrorCode | string, params?: MessageParams): string {
+    // 메시지 리소스에서 조회 및 파라미터 치환
+  }
+}
+```
+
+#### 예외 생성 패턴
+
+```typescript
+// CatalogException - 표준 예외 클래스
+export class CatalogException extends HttpException {
+  constructor(
+    public readonly code: CatalogErrorCode,
+    message: string,
+    status: HttpStatus,
+  ) {
+    super({ code, message }, status);
+  }
+}
+
+// ExceptionFactoryService - 예외 생성 팩토리
+@Injectable()
+export class ExceptionFactoryService {
+  constructor(private readonly messageService: MessageService) {}
+
+  movieNotFound(tmdbId: number): CatalogException {
+    return new CatalogException(
+      CatalogErrorCode.MOVIE_NOT_FOUND,
+      this.messageService.get(CatalogErrorCode.MOVIE_NOT_FOUND, { tmdbId }),
+      HttpStatus.NOT_FOUND,
+    );
+  }
+}
+
+// 사용 예시
+throw this.exceptionFactory.movieNotFound(tmdbId);
+```
+
+#### 글로벌 예외 필터
+
+```typescript
 // HttpExceptionFilter에서 자동 변환
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
+  constructor(private readonly messageService: MessageService) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
-    // ErrorDetailDto로 변환
+    // CatalogException은 { code, message } 자동 반환
+    // 기타 예외는 ErrorDetailDto로 변환
   }
 }
 ```
@@ -172,6 +256,10 @@ if (!response.ok) {
 ## 8. 변경 이력
 
 - `2024-12-XX`: 초안 작성 (Review Service, Catalog Service 통일)
+- `2025-01-XX`: Catalog Service 구현 가이드 업데이트
+  - 에러 코드 중심 설계 (CatalogErrorCode enum)
+  - 메시지 리소스 관리 (messages.ko.json, MessageService)
+  - 예외 생성 패턴 (CatalogException, ExceptionFactoryService)
 
 
 

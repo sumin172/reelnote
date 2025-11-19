@@ -8,7 +8,7 @@ import {
   ImportMoviesResult,
   ImportMoviesUseCase,
 } from "../use-cases/import-movies.usecase.js";
-import { JobNotFoundException } from "../../../common/exception/catalog.exception.js";
+import { ExceptionFactoryService } from "../../../common/error/exception-factory.service.js";
 
 export enum ImportMoviesJobStatus {
   Pending = "pending",
@@ -57,7 +57,10 @@ export class ImportMoviesJobService {
   private readonly logger = new Logger(ImportMoviesJobService.name);
   private readonly jobs = new Map<string, ImportMoviesJobInternal>();
 
-  constructor(private readonly importMoviesUseCase: ImportMoviesUseCase) {}
+  constructor(
+    private readonly importMoviesUseCase: ImportMoviesUseCase,
+    private readonly exceptionFactory: ExceptionFactoryService,
+  ) {}
 
   enqueue(
     command: ImportMoviesCommand,
@@ -97,7 +100,7 @@ export class ImportMoviesJobService {
   getJob(jobId: string): ImportMoviesJobDetail {
     const job = this.jobs.get(jobId);
     if (!job) {
-      throw new JobNotFoundException(jobId);
+      throw this.exceptionFactory.jobNotFound(jobId);
     }
 
     return this.mapToDetail(job);

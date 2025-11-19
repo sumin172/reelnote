@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { MovieFactory } from "../../domain/movie.factory.js";
 import {
   MovieRepositoryPort,
@@ -7,6 +7,7 @@ import {
 import { MovieExternalPort } from "../../domain/ports/movie-external.port.js";
 import { Movie, MovieSnapshot } from "../../domain/movie.js";
 import { MovieCachePort } from "../ports/movie-cache.port.js";
+import { ExceptionFactoryService } from "../../../common/error/exception-factory.service.js";
 
 export interface SyncMovieCommand {
   tmdbId: number;
@@ -48,6 +49,7 @@ export class SyncMovieUseCase {
     private readonly movieExternalPort: MovieExternalPort,
     private readonly movieRepository: MovieRepositoryPort,
     private readonly movieCache: MovieCachePort,
+    private readonly exceptionFactory: ExceptionFactoryService,
   ) {}
 
   async execute(command: SyncMovieCommand): Promise<MovieSnapshot> {
@@ -160,9 +162,7 @@ export class SyncMovieUseCase {
 
     if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
       this.logger.warn(`Invalid TMDB ID requested for sync: ${tmdbId}`);
-      throw new BadRequestException(
-        "유효하지 않은 TMDB ID 입니다. 양의 정수를 입력해주세요.",
-      );
+      throw this.exceptionFactory.validationTmdbIdInvalid();
     }
 
     const payload = await this.movieExternalPort.fetchMovieDetail(

@@ -7,8 +7,10 @@ import {
   Logger,
 } from "@nestjs/common";
 import { Request, Response } from "express";
-import { ErrorDetailDto, ErrorCodes } from "../dto/error.dto.js";
-import { CatalogException } from "../exception/catalog.exception.js";
+import { ErrorDetailDto } from "../dto/error.dto.js";
+import { CatalogException } from "../error/catalog-exception.js";
+import { CatalogErrorCode } from "../error/catalog-error-code.js";
+import { MessageService } from "../../i18n/message.service.js";
 
 /**
  * 글로벌 HTTP 예외 필터
@@ -18,6 +20,8 @@ import { CatalogException } from "../exception/catalog.exception.js";
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  constructor(private readonly messageService: MessageService) {}
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
@@ -25,10 +29,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     const traceId = this.getOrCreateTraceId(request);
 
-    // CatalogException 우선 처리 (비즈니스 예외)
+    // CatalogException (HttpException 상속) 우선 처리
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     if (exception instanceof CatalogException) {
-      status = exception.httpStatus;
+      // { code, message } 자동 반환
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse() as {
+        code: string;
+        message: string;
+      };
+      response.status(status).json({
+        ...exceptionResponse,
+        details: {
+          path: request.url,
+        },
+        traceId,
+      });
+      return;
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
     }
@@ -87,18 +104,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
     traceId: string,
     status: number,
   ): ErrorDetailDto {
-    // CatalogException 우선 처리 (비즈니스 예외)
-    if (exception instanceof CatalogException) {
-      return {
-        code: exception.code,
-        message: exception.message,
-        details: {
-          path: request.url,
-        },
-        traceId,
-      };
-    }
-
     // HttpException인 경우
     if (exception instanceof HttpException) {
       const exceptionResponse = exception.getResponse();
@@ -111,9 +116,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ) {
         // 객체를 그대로 반환하지 않고, ErrorDetailDto로 래핑
         // 하지만 이런 패턴은 사용하지 않는 것이 좋음
+        const code = this.getErrorCodeFromStatus(status);
         return {
-          code: this.getErrorCodeFromStatus(status),
-          message: "요청이 처리되었습니다.",
+          code,
+          message: this.messageService.get(code),
           details: {
             path: request.url,
             data: exceptionResponse,
@@ -127,7 +133,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? exceptionResponse
           : (exceptionResponse as { message?: string | string[] })?.message ||
             exception.message ||
-            "알 수 없는 오류가 발생했습니다.";
+            this.messageService.get(CatalogErrorCode.UNKNOWN_ERROR);
 
       // 메시지가 배열인 경우 첫 번째 메시지 사용
       const errorMessage = Array.isArray(message) ? message[0] : message;
@@ -141,7 +147,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         const validationErrors = (exceptionResponse as { message?: string[] })
           .message;
         return {
-          code: ErrorCodes.VALIDATION_ERROR,
+          code: CatalogErrorCode.VALIDATION_ERROR,
           message: errorMessage,
           details: {
             path: request.url,
@@ -163,9 +169,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // 알 수 없는 예외
+    const code = CatalogErrorCode.INTERNAL_ERROR;
     return {
-      code: ErrorCodes.INTERNAL_ERROR,
-      message: "서버 내부 오류가 발생했습니다.",
+      code,
+      message: this.messageService.get(code),
       details: {
         path: request.url,
       },
@@ -201,26 +208,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
   /**
    * HTTP 상태 코드에서 에러 코드 매핑
    */
-  private getErrorCodeFromStatus(status: number): string {
+  private getErrorCodeFromStatus(status: number): CatalogErrorCode {
     switch (status) {
       case HttpStatus.BAD_REQUEST:
-        return ErrorCodes.VALIDATION_ERROR;
+        return CatalogErrorCode.VALIDATION_ERROR;
       case HttpStatus.UNAUTHORIZED:
-        return ErrorCodes.UNAUTHORIZED;
+        return CatalogErrorCode.UNAUTHORIZED;
       case HttpStatus.FORBIDDEN:
-        return ErrorCodes.FORBIDDEN;
+        return CatalogErrorCode.FORBIDDEN;
       case HttpStatus.NOT_FOUND:
-        return ErrorCodes.NOT_FOUND;
+        return CatalogErrorCode.NOT_FOUND;
       case HttpStatus.CONFLICT:
-        return ErrorCodes.CONFLICT;
+        return CatalogErrorCode.CONFLICT;
       case HttpStatus.UNPROCESSABLE_ENTITY:
-        return ErrorCodes.VALIDATION_ERROR;
+        return CatalogErrorCode.VALIDATION_ERROR;
       case HttpStatus.BAD_GATEWAY:
-        return ErrorCodes.EXTERNAL_API_ERROR;
+        return CatalogErrorCode.EXTERNAL_API_ERROR;
       case HttpStatus.SERVICE_UNAVAILABLE:
-        return ErrorCodes.SERVICE_UNAVAILABLE;
+        return CatalogErrorCode.SERVICE_UNAVAILABLE;
       default:
-        return ErrorCodes.INTERNAL_ERROR;
+        return CatalogErrorCode.INTERNAL_ERROR;
     }
   }
 }

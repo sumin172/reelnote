@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "nx serve catalog-service",
     "start": "nx serve catalog-service",
-    "test": "jest --config jest.config.cjs --passWithNoTests",
-    "test:nx": "nx test catalog-service",
+    "test": "nx test catalog-service",
     "generate:openapi": "ts-node --transpile-only --project tsconfig.openapi.json src/scripts/generate-openapi.ts",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
@@ -17,6 +16,9 @@
     "targets": {
       "build": {
         "executor": "@nx/js:swc",
+        "dependsOn": [
+          "catalog-service:prisma:generate"
+        ],
         "outputs": [
           "{options.outputPath}"
         ],
@@ -28,7 +30,12 @@
           "generatePackageJson": true,
           "generateLockfile": true,
           "assets": [
-            "reelnote-api/catalog-service/src/assets"
+            "reelnote-api/catalog-service/src/assets",
+            {
+              "input": "reelnote-api/catalog-service/src/i18n",
+              "glob": "*.json",
+              "output": "src/i18n"
+            }
           ]
         },
         "configurations": {

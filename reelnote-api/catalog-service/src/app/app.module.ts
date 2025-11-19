@@ -7,6 +7,7 @@ import { MoviesModule } from "../movies/movies.module.js";
 import { SyncModule } from "../sync/sync.module.js";
 import { SearchModule } from "../search/search.module.js";
 import { HealthModule } from "../health/health.module.js";
+import { MessageModule } from "../i18n/message.module.js";
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { HealthModule } from "../health/health.module.js";
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
     }),
+    MessageModule,
     DatabaseModule,
     CacheModule,
     TmdbModule,

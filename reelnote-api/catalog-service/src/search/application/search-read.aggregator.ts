@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { CacheService } from "../../cache/cache.service.js";
 import { SearchLocalReadAdapter } from "../infrastructure/search-local.read.adapter.js";
 import { SearchTmdbReadAdapter } from "../infrastructure/search-tmdb.read.adapter.js";
@@ -7,6 +7,7 @@ import {
   SearchReadPort,
   SearchResult,
 } from "./search-read.port.js";
+import { ExceptionFactoryService } from "../../common/error/exception-factory.service.js";
 
 const SEARCH_CACHE_TTL_SECONDS = 60;
 
@@ -18,6 +19,7 @@ export class SearchReadAggregator extends SearchReadPort {
     private readonly localAdapter: SearchLocalReadAdapter,
     private readonly tmdbAdapter: SearchTmdbReadAdapter,
     private readonly cacheService: CacheService,
+    private readonly exceptionFactory: ExceptionFactoryService,
   ) {
     super();
   }
@@ -25,7 +27,7 @@ export class SearchReadAggregator extends SearchReadPort {
   async search(query: SearchQuery): Promise<SearchResult> {
     const normalizedQuery = query.query?.trim();
     if (!normalizedQuery) {
-      throw new BadRequestException("검색어(q)는 필수입니다.");
+      throw this.exceptionFactory.validationSearchQueryRequired();
     }
 
     const page = query.page && query.page > 0 ? query.page : 1;

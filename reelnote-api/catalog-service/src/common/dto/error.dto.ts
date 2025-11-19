@@ -35,18 +35,3 @@ export class ErrorDetailDto {
   })
   traceId?: string;
 }
-
-/**
- * 에러 코드 상수
- * ERROR_SPECIFICATION.md와 일치해야 함
- */
-export const ErrorCodes = {
-  VALIDATION_ERROR: "VALIDATION_ERROR",
-  NOT_FOUND: "NOT_FOUND",
-  INTERNAL_ERROR: "INTERNAL_ERROR",
-  EXTERNAL_API_ERROR: "EXTERNAL_API_ERROR",
-  CONFLICT: "CONFLICT",
-  UNAUTHORIZED: "UNAUTHORIZED",
-  FORBIDDEN: "FORBIDDEN",
-  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
-} as const;

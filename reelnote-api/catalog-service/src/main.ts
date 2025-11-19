@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app/app.module.js";
 import { buildCorsOptions } from "./config/cors.js";
 import { HttpExceptionFilter } from "./common/filters/http-exception.filter.js";
+import { MessageService } from "./i18n/message.service.js";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -23,7 +24,8 @@ async function bootstrap() {
   app.enableCors(buildCorsOptions());
 
   // 글로벌 예외 필터 (표준 에러 스키마 적용)
-  app.useGlobalFilters(new HttpExceptionFilter());
+  const messageService = app.get(MessageService);
+  app.useGlobalFilters(new HttpExceptionFilter(messageService));
 
   // Validation 파이프
   app.useGlobalPipes(

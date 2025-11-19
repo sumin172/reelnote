@@ -129,7 +129,11 @@ nx serve catalog-service
 ### 4. 동작 확인
 
 ```bash
-curl http://localhost:3001/api/v1/health
+# 헬스 체크 (K8s 프로브용)
+curl http://localhost:3001/health/live
+curl http://localhost:3001/health/ready
+
+# API 테스트
 curl http://localhost:3001/api/v1/movies/550
 curl -X POST http://localhost:3001/api/v1/sync/trending
 ```
@@ -154,7 +158,8 @@ nx build catalog-service
 - `POST /api/v1/sync/trending` : 트렌딩 Warm Pool 동기화
 - `POST /api/v1/sync/popular` : 인기 Warm Pool 동기화
 - `GET /api/v1/search` : 로컬 DB + TMDB 하이브리드 검색
-- `GET /api/v1/health` · `/api/v1/health/ready` · `/api/v1/health/live` : 헬스/레디니스/라이브니스 체크
+- `GET /health/live` : Liveness 체크 (K8s 프로브용)
+- `GET /health/ready` : Readiness 체크 (K8s 프로브용)
 - `GET /api/docs` : Swagger 문서
 
 ## 🗂 데이터베이스 & 스키마

@@ -20,6 +20,8 @@ import {
 } from "axios";
 import CircuitBreaker, { Options as CircuitBreakerOptions } from "opossum";
 import type { TmdbMovieListResponse } from "./tmdb.types.js";
+import { CatalogErrorCode } from "../common/error/catalog-error-code.js";
+import { MessageService } from "../i18n/message.service.js";
 
 // p-limit 7.x의 LimitFunction과 호환되는 타입
 // LimitFunction은 callable object이지만, 함수처럼 호출 가능하므로 함수 타입으로 사용
@@ -51,6 +53,7 @@ export class TmdbClient implements OnModuleDestroy {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly messageService: MessageService,
   ) {
     this.apiKey = this.configService.get<string>("TMDB_API_KEY") || "";
     const timeoutConfig = this.configService.get<string>("TMDB_API_TIMEOUT");
@@ -303,19 +306,24 @@ export class TmdbClient implements OnModuleDestroy {
 
       if (error.response) {
         return new HttpException(
-          `TMDB API 오류: ${error.response.status} ${error.response.statusText}`,
+          this.messageService.get(CatalogErrorCode.CATALOG_TMDB_API_ERROR, {
+            status: error.response.status,
+            statusText: error.response.statusText,
+          }),
           error.response.status,
         );
       }
 
       return new HttpException(
-        "TMDB API 요청 중 네트워크 오류가 발생했습니다.",
+        this.messageService.get(CatalogErrorCode.CATALOG_TMDB_NETWORK_ERROR),
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
 
     const errorMessage =
-      error instanceof Error ? error.message : "알 수 없는 오류";
+      error instanceof Error
+        ? error.message
+        : this.messageService.get(CatalogErrorCode.UNKNOWN_ERROR);
     const errorCode = (error as { code?: string }).code;
 
     if (errorCode === "EOPENBREAKER") {
@@ -323,7 +331,9 @@ export class TmdbClient implements OnModuleDestroy {
         "TMDB Circuit breaker가 OPEN 상태여서 요청이 거절되었습니다.",
       );
       return new HttpException(
-        "TMDB API 서킷브레이커가 OPEN 상태입니다. 잠시 후 다시 시도해주세요.",
+        this.messageService.get(
+          CatalogErrorCode.CATALOG_TMDB_CIRCUIT_BREAKER_OPEN,
+        ),
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
@@ -331,7 +341,7 @@ export class TmdbClient implements OnModuleDestroy {
     if (errorCode === "ETIMEDOUT") {
       this.logger.warn("TMDB Circuit breaker가 요청 시간 초과로 실패했습니다.");
       return new HttpException(
-        "TMDB API 요청이 시간 제한을 초과했습니다.",
+        this.messageService.get(CatalogErrorCode.CATALOG_TMDB_TIMEOUT),
         HttpStatus.GATEWAY_TIMEOUT,
       );
     }
@@ -341,7 +351,9 @@ export class TmdbClient implements OnModuleDestroy {
       error instanceof Error ? error.stack : undefined,
     );
     return new HttpException(
-      `TMDB API 요청 중 예상치 못한 오류가 발생했습니다: ${errorMessage}`,
+      this.messageService.get(CatalogErrorCode.CATALOG_TMDB_UNEXPECTED_ERROR, {
+        message: errorMessage,
+      }),
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
   }

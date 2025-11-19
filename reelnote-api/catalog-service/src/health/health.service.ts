@@ -1,7 +1,7 @@
-import {Injectable, Logger} from "@nestjs/common";
-import {CatalogPrismaAccessor} from "../infrastructure/db/catalog-prisma.accessor.js";
-import {VersionService} from "./version.service.js";
-import {HealthMetricsService} from "./health-metrics.service.js";
+import { Injectable, Logger } from "@nestjs/common";
+import { CatalogPrismaAccessor } from "../infrastructure/db/catalog-prisma.accessor.js";
+import { VersionService } from "./version.service.js";
+import { HealthMetricsService } from "./health-metrics.service.js";
 
 @Injectable()
 export class HealthService {
