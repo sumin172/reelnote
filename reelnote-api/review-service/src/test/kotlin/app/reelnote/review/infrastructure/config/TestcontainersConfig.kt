@@ -74,6 +74,9 @@ object TestcontainersConfig {
 
         // Flyway 비활성화 (테스트에서는 DDL 사용)
         registry.add("spring.flyway.enabled") { "false" }
+
+        // 보호 메커니즘: TestDataSourceProtection이 검증할 수 있도록 마커 설정
+        registry.add("test.containers.enabled") { "true" }
     }
 }
 
@@ -81,6 +84,9 @@ object TestcontainersConfig {
  * Testcontainers 설정을 자동으로 적용하는 베이스 클래스
  *
  * 이 클래스를 상속받으면 자동으로 Testcontainers 설정이 적용됩니다. 각 테스트 클래스마다 companion object를 만들 필요가 없습니다.
+ *
+ * ⚠️ 중요: 모든 @SpringBootTest는 반드시 이 클래스를 상속받아야 합니다. 그렇지 않으면 TestDataSourceProtection이 로컬 개발 DB 연결을
+ * 차단하여 테스트가 실패합니다.
  */
 abstract class TestcontainersBase {
     companion object {

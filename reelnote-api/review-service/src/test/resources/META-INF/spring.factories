@@ -1,0 +1,3 @@
+org.springframework.context.ApplicationContextInitializer=app.reelnote.review.infrastructure.config.TestDataSourceProtection
+
+
