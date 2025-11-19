@@ -64,7 +64,177 @@
 - **성공**: HTTP `2xx` + 정상 DTO 응답
 - **실패**: HTTP `4xx/5xx` + 위 `ErrorDetail` 형식
 
-## 2. 에러 코드 목록
+## 2. 에러 코드와 메시지 관리
+
+### 2.1 에러 코드 vs 메시지 키: 역할 분리
+
+**핵심 원칙: 에러 코드는 시스템 공통 기준, 메시지 키는 각 서비스/프레임워크에 최적화된 표현**
+
+#### 에러 코드 (Error Code)
+
+- **역할**: 머신 친화적 ID
+- **위치**: HTTP 응답의 `code` 필드에 들어감
+- **용도**: 클라이언트/로그/모니터링에서 기준이 되는 값
+- **특징**:
+  - 서비스 간 공통으로 사용 가능
+  - 대문자 스네이크 케이스 (`VALIDATION_ERROR`, `REVIEW_NOT_FOUND`)
+  - Source of Truth: `ErrorCodes.kt` (Review), `CatalogErrorCode.ts` (Catalog), `ERROR_SPECIFICATION.md`
+
+**예시:**
+- `VALIDATION_SEARCH_QUERY_REQUIRED`
+- `REVIEW_NOT_FOUND`
+- `CATALOG_MOVIE_NOT_FOUND`
+
+#### 메시지 키 / 메시지 리소스 (Message Key)
+
+- **역할**: "사람이 읽는 문장"을 관리하기 위한 레이어
+- **위치**: 프레임워크별 리소스 파일
+  - Catalog Service: `messages.ko.json` (JSON 형식)
+  - Review Service: `messages.properties` (Properties 형식)
+- **특징**:
+  - 프레임워크/언어별로 형식이 다를 수 있음
+  - 에러 코드와 1:1 매핑되거나, 여러 메시지 키가 하나의 에러 코드에 매핑될 수 있음
+  - 파라미터 치환 방식도 프레임워크별로 다름
+
+**예시:**
+- Catalog: `VALIDATION_SEARCH_QUERY_REQUIRED` (에러 코드와 동일)
+- Review: `validation.search.keyword.required` (계층적 키)
+
+### 2.2 에러 코드 ↔ 메시지 키 매핑
+
+#### 구조
+
+```
+Error Code Spec (Source of Truth)
+  ├─ Catalog Service: messages.ko.json의 key
+  └─ Review Service: messages.properties의 key
+```
+
+#### 매핑 테이블
+
+| 에러 코드 | HTTP 상태 | Catalog Service (JSON) | Review Service (Properties) |
+|-----------|-----------|------------------------|----------------------------|
+| `VALIDATION_ERROR` | `400` | `VALIDATION_ERROR` | `error.validation.failed` |
+| `VALIDATION_SEARCH_QUERY_REQUIRED` | `400` | `VALIDATION_SEARCH_QUERY_REQUIRED` | `validation.search.keyword.required` |
+| `VALIDATION_TMDB_ID_INVALID` | `400` | `VALIDATION_TMDB_ID_INVALID` | - |
+| `UNAUTHORIZED` | `401` | `UNAUTHORIZED` | - |
+| `FORBIDDEN` | `403` | `FORBIDDEN` | - |
+| `NOT_FOUND` | `404` | `NOT_FOUND` | - |
+| `REVIEW_NOT_FOUND` | `404` | - | `error.review.not.found` |
+| `CATALOG_MOVIE_NOT_FOUND` | `404` | `CATALOG_MOVIE_NOT_FOUND` | - |
+| `CONFLICT` | `409` | `CONFLICT` | - |
+| `REVIEW_ALREADY_EXISTS` | `409` | - | `error.review.already.exists` |
+| `REVIEW_UNAUTHORIZED_UPDATE` | `403` | - | `error.review.unauthorized.update` |
+| `REVIEW_UNAUTHORIZED_DELETE` | `403` | - | `error.review.unauthorized.delete` |
+| `INTERNAL_ERROR` | `500` | `INTERNAL_ERROR` | `error.internal.server` |
+| `EXTERNAL_API_ERROR` | `502` | `EXTERNAL_API_ERROR` | `error.external.api.failed` |
+| `CATALOG_TMDB_API_FAILED` | `502` | `CATALOG_TMDB_API_FAILED` | - |
+| `SERVICE_UNAVAILABLE` | `503` | `CATALOG_SERVICE_UNAVAILABLE` | - |
+
+**참고:**
+- `-` 표시는 해당 서비스에서 사용하지 않는 에러 코드를 의미합니다.
+- Review Service는 Spring Bean Validation 메시지도 별도로 관리합니다 (`validation.*` 키).
+
+### 2.3 드리프트 방지: 매핑 검증 테스트
+
+**문제점:**
+- 에러 코드 추가했는데 메시지 리소스에 안 넣음
+- 한 서비스에서만 문구 바꾸고 다른 서비스는 오래된 문구 유지
+- 오타나 키 이름 변경 후 매핑 문서 미갱신
+
+**해결책: 자동화된 테스트로 검증**
+
+#### Catalog Service 검증
+
+```typescript
+// 모든 CatalogErrorCode enum 값이 messages.ko.json에 존재하는지 검증
+describe('Message Resource Validation', () => {
+  it('should have messages for all error codes', () => {
+    const errorCodes = Object.values(CatalogErrorCode);
+    const messages = loadMessages();
+
+    errorCodes.forEach(code => {
+      expect(messages).toHaveProperty(code);
+    });
+  });
+});
+```
+
+#### Review Service 검증
+
+```kotlin
+// 모든 ErrorCodes 값에 대응하는 메시지 키가 존재하는지 검증
+@Test
+fun `모든 에러 코드에 대응하는 메시지가 존재해야 함`() {
+    val errorCodeToMessageKey = mapOf(
+        ErrorCodes.VALIDATION_ERROR to "error.validation.failed",
+        ErrorCodes.REVIEW_NOT_FOUND to "error.review.not.found",
+        // ...
+    )
+
+    errorCodeToMessageKey.forEach { (code, key) ->
+        assertDoesNotThrow {
+            messageSource.getMessage(key, null, Locale.getDefault())
+        }
+    }
+}
+```
+
+### 2.4 메시지 문구 통일 가이드
+
+**기준: 사용자 화면에 노출될 메시지를 기준으로 통일**
+
+- 에러 코드: 개발자/시스템 기준 (머신 친화적)
+- 메시지 문구: 사용자 화면 기준 (사람 친화적)
+
+**통일 규칙:**
+1. 동일한 의미의 메시지는 동일한 문구 사용
+2. 사용자 입장에서 더 자연스러운 문구를 기준으로 선택
+3. 한 서비스에서 문구 변경 시, 다른 서비스도 동일하게 반영
+
+**예시:**
+- ❌ "검색어는 필수입니다" vs "검색어(q)는 필수입니다"
+- ✅ "검색어는 필수입니다" (사용자 기준으로 통일)
+
+**현재 통일 완료 메시지:**
+- `VALIDATION_ERROR`: "입력 데이터 검증에 실패했습니다" (양쪽 동일 ✅)
+- `VALIDATION_SEARCH_QUERY_REQUIRED`: "검색어는 필수입니다" (양쪽 동일 ✅)
+
+### 2.5 파라미터 스타일 가이드
+
+**원칙: 서비스 내부 일관성이 더 중요, Cross-service 통일은 "문제 없으면 그대로 둔다"**
+
+#### Catalog Service (명명된 파라미터)
+
+```json
+{
+  "CATALOG_MOVIE_NOT_FOUND": "영화 정보를 찾을 수 없습니다. TMDB ID: {tmdbId}",
+  "CATALOG_TMDB_API_FAILED": "TMDB API 호출에 실패했습니다: {message}"
+}
+```
+
+**사용:**
+```typescript
+messageService.get(CatalogErrorCode.MOVIE_NOT_FOUND, { tmdbId: 123 });
+```
+
+#### Review Service (위치 기반 파라미터)
+
+```properties
+error.review.not.found=리뷰를 찾을 수 없습니다. ID: {0}
+error.movie.not.found=영화 정보를 찾을 수 없습니다. ID: {0}
+```
+
+**사용:**
+```kotlin
+messageSource.getMessage("error.review.not.found", arrayOf(reviewId), Locale.getDefault())
+```
+
+**문서화:**
+- 각 서비스의 파라미터 스타일을 명확히 문서화
+- 필요시 "메시지 작성 가이드" 섹션으로 분리 가능
+
+## 3. 에러 코드 목록
 
 ### 공통 에러 코드
 

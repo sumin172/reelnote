@@ -162,10 +162,16 @@ sealed class ServiceException(
 
 **1. 에러 코드 정의 및 메시지 분리**
 
+**핵심 원칙: 에러 코드는 시스템 공통 기준, 메시지 키는 각 서비스/프레임워크에 최적화된 표현**
+
+- **에러 코드**: 머신 친화적 ID, HTTP 응답의 `code` 필드, 클라이언트/로그/모니터링 기준값
+- **메시지 키**: 사람이 읽는 문장 관리 레이어, 프레임워크별 형식 (JSON/Properties)
+
 먼저 에러 코드 enum을 정의하고, 메시지는 별도 리소스 파일로 관리합니다:
 
 ```typescript
 // 에러 코드 enum (예: ServiceErrorCode, CatalogErrorCode)
+// Source of Truth: 이 enum이 기준이 됨
 export enum CatalogErrorCode {
   // 도메인별 에러 (SERVICE_* prefix 권장)
   MOVIE_NOT_FOUND = "CATALOG_MOVIE_NOT_FOUND",
@@ -178,10 +184,26 @@ export enum CatalogErrorCode {
 }
 
 // 메시지 리소스 파일 (예: messages.ko.json)
+// Catalog Service: 에러 코드와 동일한 키 사용
 {
   "CATALOG_MOVIE_NOT_FOUND": "영화 정보를 찾을 수 없습니다. TMDB ID: {tmdbId}",
-  "VALIDATION_SEARCH_QUERY_REQUIRED": "검색어(q)는 필수입니다."
+  "VALIDATION_SEARCH_QUERY_REQUIRED": "검색어는 필수입니다."
 }
+```
+
+**Spring Boot (Kotlin) 예시:**
+```kotlin
+// 에러 코드 object (Source of Truth)
+object ErrorCodes {
+    const val REVIEW_NOT_FOUND = "REVIEW_NOT_FOUND"
+    const val VALIDATION_ERROR = "VALIDATION_ERROR"
+}
+
+// 메시지 리소스 파일 (messages.properties)
+// Review Service: 계층적 키 사용 (프레임워크 최적화)
+error.review.not.found=리뷰를 찾을 수 없습니다. ID: {0}
+error.validation.failed=입력 데이터 검증에 실패했습니다
+validation.search.keyword.required=검색어는 필수입니다
 ```
 
 **2. 메시지 조회 서비스**
@@ -194,8 +216,16 @@ export enum CatalogErrorCode {
 export class MessageService {
   get(code: CatalogErrorCode | string, params?: MessageParams): string {
     // 메시지 리소스에서 조회 및 파라미터 치환
+    // Catalog: 명명된 파라미터 {tmdbId}
   }
 }
+```
+
+**Spring Boot (Kotlin) 예시:**
+```kotlin
+// MessageSource 사용 (Spring 기본 제공)
+// Review: 위치 기반 파라미터 {0}, {1}
+messageSource.getMessage("error.review.not.found", arrayOf(reviewId), Locale.getDefault())
 ```
 
 **3. BaseAppException 기반 예외 클래스**
@@ -255,6 +285,7 @@ sealed class ServiceException(...) : BaseAppException(...) {
 - 일관성 보장: 모든 예외가 동일한 구조로 생성됨
 - 확장성: 다국어 지원, 로깅/메트릭 추가 시 팩토리만 수정
 - 테스트 용이: 에러 코드로 예외 타입 식별 가능
+- 드리프트 방지: 매핑 검증 테스트로 에러 코드-메시지 동기화 보장
 
 **체크리스트:**
 - [ ] **BaseAppException 구현**
@@ -268,9 +299,14 @@ sealed class ServiceException(...) : BaseAppException(...) {
     - 공통: `VALIDATION_ERROR`, `NOT_FOUND` 등 (prefix 없음)
     - 도메인: `{SERVICE}_{ENTITY}_{ACTION}_{RESULT}` (예: `CATALOG_MOVIE_NOT_FOUND`)
     - 검증: `VALIDATION_{FIELD}_{RULE}` (예: `VALIDATION_SEARCH_QUERY_REQUIRED`)
-- [ ] **메시지 관리**
+- [ ] **메시지 관리** (`ERROR_SPECIFICATION.md` 섹션 2 참조)
   - [ ] 메시지 리소스 파일 생성 (`messages.ko.json`, `messages.properties` 등)
   - [ ] MessageService 구현 (에러 코드 → 메시지 변환, 파라미터 치환)
+  - [ ] **에러 코드 ↔ 메시지 키 매핑 검증 테스트 작성** (드리프트 방지)
+    - 모든 에러 코드가 메시지 리소스에 존재하는지 검증
+    - 예: `message.service.spec.ts`, `MessageResourceValidationTest.kt`
+  - [ ] **메시지 문구 통일**: 동일한 의미의 메시지는 사용자 기준으로 통일
+  - [ ] **파라미터 스타일**: 서비스 내부 일관성 유지 (Catalog: `{fieldName}`, Review: `{0}`)
 - [ ] **예외 생성 패턴**
   - [ ] ExceptionFactoryService 구현 (NestJS) 또는 Companion object 팩토리 메서드 (Spring Boot)
   - [ ] 각 예외 타입별 팩토리 메서드 제공
