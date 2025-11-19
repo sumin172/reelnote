@@ -40,6 +40,11 @@
 }
 ```
 
+**JSON 직렬화 규칙:**
+- 선택적 필드(`details`, `traceId`)는 `null`/`undefined`인 경우 JSON에서 **필드를 생략**해야 합니다.
+- **Kotlin/Spring Boot**: `@JsonInclude(JsonInclude.Include.NON_NULL)` 사용
+- **TypeScript/NestJS**: `undefined` 필드는 자동으로 제외됨 (기본 동작)
+
 자세한 스펙은 [ERROR_SPECIFICATION.md](./ERROR_SPECIFICATION.md)를 참고하세요.
 
 ---
@@ -113,6 +118,91 @@ VALIDATION_RATING_RANGE           # 평점 범위 오류
 | 공통 | 없음 | `NOT_FOUND`, `VALIDATION_ERROR` | 모든 서비스 공통 |
 | 도메인 | `{SERVICE}_` | `CATALOG_MOVIE_NOT_FOUND` | 특정 서비스 전용 |
 | 검증 | `VALIDATION_` | `VALIDATION_SEARCH_QUERY_REQUIRED` | 입력 검증 실패 |
+
+### 범용 코드 vs 도메인 코드 사용 기준
+
+#### 범용 코드를 사용하는 경우
+
+**기준:** 도메인 구분이 의미 없는 단순 리소스 없음 또는 클라이언트가 도메인을 신경 쓰지 않아도 되는 경우
+
+**예시:**
+- 헬스 체크용 리소스
+- 내부 관리용 리소스
+- 클라이언트가 도메인을 구분할 필요가 없는 일반적인 404/500 에러
+- 프레임워크 레벨에서 발생하는 검증 에러 (`VALIDATION_ERROR`)
+
+**사용 예:**
+```kotlin
+// 헬스 체크 엔드포인트에서 리소스 없음
+ErrorCodes.NOT_FOUND
+
+// 프레임워크 레벨 검증 실패
+ErrorCodes.VALIDATION_ERROR
+```
+
+#### 도메인 코드를 사용하는 경우
+
+**기준:** 이 에러가 어떤 도메인에서 발생했는지가 중요한 경우. 사용자/클라이언트/운영자가 도메인 정보를 보고 싶어하는 경우
+
+**예시:**
+- 리뷰, 영화, 사용자 계정, 결제 등 비즈니스 도메인에서 발생하는 에러
+- 로그/모니터링에서 도메인을 구분해야 하는 경우
+- 클라이언트가 도메인별로 다른 UX를 제공해야 하는 경우
+
+**사용 예:**
+```kotlin
+// 리뷰 엔티티를 찾을 수 없음 → REVIEW_NOT_FOUND
+ErrorCodes.REVIEW_NOT_FOUND
+
+// 영화 정보를 찾을 수 없음 → CATALOG_MOVIE_NOT_FOUND
+CatalogErrorCode.MOVIE_NOT_FOUND
+```
+
+**간단한 판단 기준:**
+> "사용자/클라이언트/운영자가 이 에러를 보고 무슨 도메인에서 터졌는지 알고 싶으면 도메인 코드, 아니면 범용 코드"
+
+### 서비스별 Prefix 패턴
+
+**규칙:**
+- 각 서비스는 고유한 prefix를 사용: `CATALOG_*`, `REVIEW_*`
+- 한 서비스 내에서는 일관성 유지: 도메인 에러는 반드시 서비스 prefix 사용
+- 예: 리뷰 엔티티 관련 에러는 모두 `REVIEW_*`로 통일
+
+**패턴:**
+```
+{SERVICE}_{ENTITY}_{ACTION}_{RESULT}
+
+예시:
+- REVIEW_NOT_FOUND
+- REVIEW_ALREADY_EXISTS
+- REVIEW_UNAUTHORIZED_UPDATE
+- CATALOG_MOVIE_NOT_FOUND
+- CATALOG_TMDB_API_FAILED
+```
+
+**중요:** 한 서비스 내에서 `REVIEW_NOT_FOUND`와 `NOT_FOUND`를 섞어 쓰지 말고, 룰을 명확히 정하자:
+- **리뷰 엔티티 못 찾으면 → 무조건 `REVIEW_NOT_FOUND`**
+- **그 외의 404는 → `NOT_FOUND`**
+
+### 검증 에러 코드 (VALIDATION_*)
+
+**현재 정책:**
+- `VALIDATION_*`는 서비스 공통 범용 코드로 사용
+- 서비스 prefix 없이 사용 (예: `VALIDATION_SEARCH_QUERY_REQUIRED`)
+- 메시지나 필드 정보(`details.field`)로 어느 서비스에서 사용했는지 구분 가능
+
+**예시:**
+```typescript
+// Catalog Service
+VALIDATION_SEARCH_QUERY_REQUIRED
+
+// Review Service (향후 추가 가능)
+VALIDATION_RATING_OUT_OF_RANGE
+```
+
+**향후 고려사항:**
+- 필요시 서비스 prefix 추가 버전도 가능: `REVIEW_VALIDATION_RATING_OUT_OF_RANGE`
+- 하지만 현재는 "굳이 복잡하게 안 간다"는 원칙 유지
 
 ### 에러 코드 등록 체크리스트
 

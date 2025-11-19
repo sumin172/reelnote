@@ -65,13 +65,7 @@ class GlobalExceptionHandler(
             ErrorDetail(
                 code = ex.errorCode,
                 message = ex.message ?: getMessage("error.unknown"),
-                details =
-                    requestMetadata(
-                        request,
-                        ex.details?.mapValues { (_, value) -> value as Any? }
-                            ?: emptyMap(),
-                    ),
-                traceId = traceId,
+                details = requestMetadata(request),
             )
 
         return ResponseEntity.status(ex.httpStatus).body(error)
@@ -95,7 +89,11 @@ class GlobalExceptionHandler(
             ErrorDetail(
                 code = ErrorCodes.VALIDATION_ERROR,
                 message = getMessage("error.validation.failed"),
-                details = requestMetadata(request, mapOf("fieldErrors" to fieldErrors)),
+                details =
+                    requestMetadata(
+                        request,
+                        mapOf("fieldErrors" to fieldErrors),
+                    ),
                 traceId = traceId,
             )
 
@@ -120,7 +118,8 @@ class GlobalExceptionHandler(
             ErrorDetail(
                 code = ErrorCodes.VALIDATION_ERROR,
                 message = getMessage("error.parameter.validation.failed"),
-                details = requestMetadata(request, mapOf("violations" to violations)),
+                details =
+                    requestMetadata(request, mapOf("violations" to violations)),
                 traceId = traceId,
             )
 

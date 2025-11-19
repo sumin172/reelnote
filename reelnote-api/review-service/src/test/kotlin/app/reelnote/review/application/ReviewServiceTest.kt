@@ -6,7 +6,10 @@ import app.reelnote.review.domain.ReviewContent
 import app.reelnote.review.domain.ReviewRepository
 import app.reelnote.review.interfaces.dto.CreateReviewRequest
 import app.reelnote.review.interfaces.dto.UpdateReviewRequest
+import app.reelnote.review.shared.exception.ReviewAlreadyExistsException
 import app.reelnote.review.shared.exception.ReviewNotFoundException
+import app.reelnote.review.shared.exception.ReviewUnauthorizedDeleteException
+import app.reelnote.review.shared.exception.ReviewUnauthorizedUpdateException
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -96,12 +99,9 @@ class ReviewServiceTest {
             )
 
         every { reviewRepository.findByUserSeqAndMovieId(userSeq, 12345L) } returns Optional.of(existingReview)
-        every {
-            messageSource.getMessage("error.review.already.exists", any(), any())
-        } returns "이미 해당 영화에 대한 리뷰가 존재합니다."
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        assertThrows<ReviewAlreadyExistsException> {
             reviewService.createReview(request, userSeq)
         }
 
@@ -177,7 +177,7 @@ class ReviewServiceTest {
         every { reviewRepository.findById(reviewId) } returns Optional.of(existingReview)
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        assertThrows<ReviewUnauthorizedUpdateException> {
             reviewService.updateReview(reviewId, updateRequest, userSeq)
         }
 
@@ -231,7 +231,7 @@ class ReviewServiceTest {
         every { reviewRepository.findById(reviewId) } returns Optional.of(existingReview)
 
         // When & Then
-        assertThrows<IllegalArgumentException> {
+        assertThrows<ReviewUnauthorizedDeleteException> {
             reviewService.deleteReview(reviewId, userSeq)
         }
 

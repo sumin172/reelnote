@@ -29,6 +29,36 @@
 | `details` | `object`       | ❌   | 추가 컨텍스트 (path, fieldErrors 등)      |
 | `traceId` | `string`       | ❌   | 분산 추적 ID (X-Trace-Id 헤더에서 전파)  |
 
+### JSON 직렬화 규칙
+
+**선택적 필드 (`details`, `traceId`) 처리:**
+- 값이 `null`이거나 `undefined`인 경우, JSON 응답에서 **필드를 생략**해야 합니다.
+- 클라이언트는 필드가 없거나 `null`인 경우를 동일하게 처리해야 합니다.
+
+**프레임워크별 구현:**
+- **Kotlin/Spring Boot**: `@JsonInclude(JsonInclude.Include.NON_NULL)` 사용 (기본값 또는 클래스 레벨)
+- **TypeScript/NestJS**: `undefined` 필드는 자동으로 제외됨 (기본 동작)
+
+**예시:**
+```json
+// details와 traceId가 없는 경우
+{
+  "code": "VALIDATION_ERROR",
+  "message": "입력 데이터 검증에 실패했습니다"
+}
+
+// details만 있는 경우
+{
+  "code": "VALIDATION_ERROR",
+  "message": "입력 데이터 검증에 실패했습니다",
+  "details": {
+    "fieldErrors": {
+      "rating": "평점은 1-5 사이여야 합니다."
+    }
+  }
+}
+```
+
 ### 성공/실패 구분
 
 - **성공**: HTTP `2xx` + 정상 DTO 응답
@@ -50,19 +80,43 @@
 | `EXTERNAL_API_ERROR`    | `502`     | 외부 API 호출 실패             |
 | `SERVICE_UNAVAILABLE`   | `503`     | 서비스 일시적 불가 (Circuit Breaker 등) |
 
-### 도메인별 에러 코드 (예시)
+### 도메인별 에러 코드
 
 서비스별로 추가 도메인 에러 코드를 정의할 수 있으나, 가능한 한 위 공통 코드를 우선 사용합니다.
 
-**Review Service 예시:**
-- `REVIEW_NOT_FOUND`
-- `MOVIE_NOT_FOUND`
+#### Review Service 도메인 에러 코드
 
-**Catalog Service 예시:**
-- `CATALOG_MOVIE_NOT_FOUND`
-- `CATALOG_TMDB_API_FAILED`
-- `CATALOG_JOB_NOT_FOUND`
-- `VALIDATION_SEARCH_QUERY_REQUIRED`
+| 코드                          | HTTP 상태 | 설명                                    |
+| ----------------------------- | --------- | --------------------------------------- |
+| `REVIEW_NOT_FOUND`            | `404`     | 리뷰를 찾을 수 없음                     |
+| `REVIEW_ALREADY_EXISTS`       | `409`     | 리뷰가 이미 존재함 (중복 생성 시도)     |
+| `REVIEW_UNAUTHORIZED_UPDATE` | `403`     | 리뷰 수정 권한 없음 (본인의 리뷰만 가능) |
+| `REVIEW_UNAUTHORIZED_DELETE` | `403`     | 리뷰 삭제 권한 없음 (본인의 리뷰만 가능) |
+
+**사용 예시:**
+```kotlin
+// 리뷰를 찾을 수 없을 때
+throw ReviewException.notFound(reviewId = 123L)
+
+// 중복 리뷰 생성 시도
+throw ReviewException.alreadyExists(userSeq = 456L, movieId = 789L)
+
+// 권한 없는 수정/삭제 시도
+throw ReviewException.unauthorizedUpdate(reviewId = 123L, userSeq = 999L)
+```
+
+#### Catalog Service 도메인 에러 코드
+
+| 코드                          | HTTP 상태 | 설명                        |
+| ----------------------------- | --------- | --------------------------- |
+| `CATALOG_MOVIE_NOT_FOUND`     | `404`     | 영화를 찾을 수 없음         |
+| `CATALOG_TMDB_API_FAILED`    | `502`     | TMDB API 호출 실패          |
+| `CATALOG_JOB_NOT_FOUND`       | `404`     | 작업(Job)을 찾을 수 없음    |
+| `CATALOG_JOB_IN_PROGRESS`     | `409`     | 작업이 이미 진행 중         |
+
+**검증 에러 코드 (서비스 공통):**
+- `VALIDATION_SEARCH_QUERY_REQUIRED` - 검색어 필수
+- `VALIDATION_TMDB_ID_INVALID` - TMDB ID 유효하지 않음
 
 ## 3. HTTP 상태 코드 매핑
 
