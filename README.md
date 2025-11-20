@@ -99,6 +99,7 @@
   - [에러 처리 스펙](docs/specs/error-handling.md) – 에러 응답 형식 및 예외 처리 가이드
   - [헬스 체크 스펙](docs/specs/health-check.md) – Health Check 응답 형식 및 엔드포인트
 - **가이드**: `docs/guides/` 폴더 참조
+  - [개발 표준 가이드](docs/guides/development-standards.md) ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
   - [신규 서비스 체크리스트](docs/guides/new-service.md) – 새 서비스 추가 시 체크리스트
 - 서비스별 상세 가이드는 각 디렉터리의 `README.md`를 참조하세요.
 - CI 파이프라인:

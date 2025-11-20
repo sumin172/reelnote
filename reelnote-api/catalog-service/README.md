@@ -160,7 +160,8 @@ nx build catalog-service
 - `GET /api/v1/search` : 로컬 DB + TMDB 하이브리드 검색
 - `GET /health/live` : Liveness 체크 (K8s 프로브용)
 - `GET /health/ready` : Readiness 체크 (K8s 프로브용)
-- `GET /api/docs` : Swagger 문서
+- `GET /api/docs` : Swagger UI 문서
+- `GET /api/docs-json` : OpenAPI JSON 스펙
 
 ## 🗂 데이터베이스 & 스키마
 

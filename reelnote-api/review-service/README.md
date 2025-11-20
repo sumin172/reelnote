@@ -192,8 +192,8 @@ abstract class BaseEntity {
 
 ### 2. API 문서 확인
 
-- **Swagger UI**: http://localhost:8080/swagger-ui.html
-- **OpenAPI JSON**: http://localhost:8080/api-docs
+- **Swagger UI**: http://localhost:8080/api/docs
+- **OpenAPI JSON**: http://localhost:8080/api/docs-json
 
 ### 3. 데이터베이스 연결 (개발 환경)
 

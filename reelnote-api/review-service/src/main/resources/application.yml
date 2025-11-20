@@ -83,9 +83,9 @@ management:
 # OpenAPI 설정
 springdoc:
   api-docs:
-    path: /api-docs
+    path: /api/docs-json
   swagger-ui:
-    path: /swagger-ui.html
+    path: /api/docs
     operationsSorter: method
 
 # App custom settings

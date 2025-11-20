@@ -174,9 +174,9 @@
 
 - [ ] **OpenAPI/Swagger 설정**
   - OpenAPI 3.0 스펙 준수
-  - **경로 통일**: 모든 서비스에서 동일한 경로 사용
-    - Swagger UI: `/api/docs` (권장) 또는 `/swagger-ui.html`
-    - OpenAPI JSON: `/api-docs` (권장) 또는 `/api/docs-json`
+  - **경로 통일**: 모든 신규 서비스는 다음 표준 경로를 사용해야 합니다
+    - Swagger UI: `/api/docs` (필수)
+    - OpenAPI JSON: `/api/docs-json` (필수)
   - 운영 환경에서는 문서 노출 비활성화 (`application-prod.yml` 등)
   - DTO 및 에러 응답 스키마 문서화
   - 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
