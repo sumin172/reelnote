@@ -1,5 +1,6 @@
 package app.reelnote.review.infrastructure.catalog
 
+import app.reelnote.review.infrastructure.config.WebClientTraceIdFilter
 import io.netty.channel.ChannelOption
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -36,6 +37,7 @@ class CatalogClientConfig {
 
         return builder
             .baseUrl(properties.baseUrl)
+            .filter(WebClientTraceIdFilter.create()) // TraceId 자동 전파 필터 추가
             .clientConnector(
                 org.springframework.http.client.reactive
                     .ReactorClientHttpConnector(httpClient),

@@ -77,10 +77,39 @@
   - 모든 서비스 간 HTTP 호출에 `X-Trace-Id` 헤더 포함
   - 현재 요청의 TraceId를 다음 호출로 자동 전파
   - 클라이언트 필터/인터셉터에서 자동 처리 (수동 설정 불필요)
-  - **구현 예시:**
-    - **NestJS (Axios)**: Interceptor에서 `X-Trace-Id` 헤더 자동 추가
-    - **Spring Boot (WebClient)**: Filter에서 `X-Trace-Id` 헤더 자동 추가
-    - **Kotlin Coroutines**: CoroutineContext에서 TraceId 전파
+  - **⚠️ 수동 헤더 추가 금지**: WebClient/HttpService 요청에 수동으로 `X-Trace-Id` 헤더 추가하지 않음
+
+- [ ] **Spring Boot (Kotlin) 구현**
+  - [ ] `TraceIdFilter` 구현 (요청 시작 시 traceId 생성/설정)
+    - `@Component` + `@Order(1)`로 가장 먼저 실행
+    - 요청 헤더 `X-Trace-Id` 확인, 없으면 UUID v4 생성
+    - MDC에 traceId 설정 (모든 로그에 자동 포함)
+    - 참고: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/TraceIdFilter.kt`
+  - [ ] `WebClientTraceIdFilter` 구현 (서비스 간 호출 시 자동 전파)
+    - MDC에서 traceId를 읽어 `X-Trace-Id` 헤더로 자동 추가
+    - 참고: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/WebClientTraceIdFilter.kt`
+  - [ ] WebClient 설정에 필터 적용
+    ```kotlin
+    @Bean
+    fun webClient(builder: WebClient.Builder): WebClient {
+        return builder
+            .filter(WebClientTraceIdFilter.create())  // ← 필수!
+            .build()
+    }
+    ```
+  - [ ] **체크리스트:**
+    - [ ] 모든 WebClient Bean에 `WebClientTraceIdFilter` 적용됨
+    - [ ] 수동으로 `X-Trace-Id` 헤더 추가하는 코드 없음
+    - [ ] 테스트에서 TraceId 전파 확인됨
+
+- [ ] **NestJS (TypeScript) 구현**
+  - [ ] HttpService Interceptor에서 `X-Trace-Id` 헤더 자동 추가
+    - 요청 컨텍스트에서 traceId를 읽어 헤더로 추가
+    - 참고: Catalog Service는 현재 다른 서비스를 호출하지 않아 미구현
+    - 다른 서비스를 호출할 경우 Interceptor 추가 필요
+  - [ ] **체크리스트:**
+    - [ ] HttpService Interceptor에 TraceId 전파 로직 포함
+    - [ ] 수동으로 `X-Trace-Id` 헤더 추가하는 코드 없음
 
 ### 7.2 Resilience 패턴 (권장)
 
