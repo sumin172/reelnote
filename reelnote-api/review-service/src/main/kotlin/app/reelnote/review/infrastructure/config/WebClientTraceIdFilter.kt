@@ -18,12 +18,13 @@ object WebClientTraceIdFilter {
      * ExchangeFilterFunction 생성
      * WebClient 요청 시 MDC의 traceId를 X-Trace-Id 헤더로 추가합니다.
      */
-    fun create(): ExchangeFilterFunction {
-        return ExchangeFilterFunction.ofRequestProcessor { request ->
+    fun create(): ExchangeFilterFunction =
+        ExchangeFilterFunction.ofRequestProcessor { request ->
             val traceId = MDC.get(MDC_TRACE_ID_KEY)
             if (!traceId.isNullOrBlank()) {
                 val modifiedRequest =
-                    ClientRequest.from(request)
+                    ClientRequest
+                        .from(request)
                         .header(TRACE_ID_HEADER, traceId)
                         .build()
                 Mono.just(modifiedRequest)
@@ -31,7 +32,4 @@ object WebClientTraceIdFilter {
                 Mono.just(request)
             }
         }
-    }
 }
-
-

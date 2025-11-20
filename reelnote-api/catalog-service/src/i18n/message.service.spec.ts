@@ -37,7 +37,7 @@ describe("MessageService", () => {
      *
      * 이 테스트는 에러 코드와 메시지 리소스 간의 드리프트를 방지합니다.
      *
-     * @see ERROR_SPECIFICATION.md 섹션 2.3
+     * @see docs/specs/error-handling.md 섹션 2.4
      */
     it("should have messages for all error codes", () => {
       const errorCodes = Object.values(CatalogErrorCode) as string[];

@@ -7,10 +7,10 @@ import { HttpStatus } from "@nestjs/common";
  * HttpException을 상속하지 않아 프레임워크 독립성을 유지하며,
  * HttpExceptionFilter에서 HTTP 응답으로 변환됩니다.
  *
- * @see ERROR_HANDLING_GUIDE.md
+ * @see docs/specs/error-handling.md
  */
 export abstract class BaseAppException extends Error {
-  constructor(
+  protected constructor(
     public readonly errorCode: string,
     message: string,
     public readonly httpStatus: HttpStatus,

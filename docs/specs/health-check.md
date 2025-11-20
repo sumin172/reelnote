@@ -8,7 +8,7 @@
 2. [엔드포인트 설계 원칙](#2-엔드포인트-설계-원칙)
 3. [서비스별 구현](#3-서비스별-구현)
 4. [원칙 및 가이드라인](#4-원칙-및-가이드라인)
-5. [구현 우선순위](#5-구현-우선순위)
+5. [구현 현황](#5-구현-현황)
 
 ---
 
@@ -198,9 +198,9 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
 
 ---
 
-## 5. 구현 우선순위
+## 5. 구현 현황
 
-### Phase 1: 즉시 (서비스 확장 전) ✅ **완료**
+### ✅ Phase 1: 즉시 (서비스 확장 전) - 완료
 - [x] Review Service: `PublicHealthController` 추가
 - [x] Review Service: `/health/live`, `/health/ready` 엔드포인트 제공
 - [x] Review Service: `ServiceMetaHealthIndicator` 추가
@@ -208,78 +208,14 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
 - [x] Review Service: 버전 읽기 방식 구현 (`build-info.properties`)
 - [x] Review Service: 로깅 및 메트릭 추가 (Micrometer Counter)
 
-### Phase 2: 단기 (1-2주 내) ✅ **완료**
+### ✅ Phase 2: 단기 (1-2주 내) - 완료
 - [x] Catalog Service: `/health/live`, `/health/ready` 추가
 - [x] Catalog Service: `status` 값 `UP`/`DOWN`으로 변경
 - [x] Catalog Service: 버전 읽기 및 캐싱 구현 (`VersionService`)
 - [x] Catalog Service: 로깅 및 메트릭 추가 (`HealthMetricsService`)
 - [x] Catalog Service: `/api/v1/health` 제거 완료
 
-### Phase 3: 중기 (1개월 내) 🔄 **진행 예정**
-- [ ] checks 구조 확장 (필요한 경우)
-  - 현재: `database` 체크만 구현됨
-  - 향후: `cache`, `external-api` 등 추가 검토 필요
-- [ ] 모니터링 도구 연동
-  - Review Service: Micrometer Counter 구현 완료 (Prometheus 연동 대기)
-  - Catalog Service: `HealthMetricsService` 구현 완료 (Prometheus 연동 대기)
-- [ ] 게이트웨이 연동 (게이트웨이 도입 시)
-  - 게이트웨이 도입 시 각 서비스 `/health/**` 집계 엔드포인트 제공
+### 📝 향후 개선 사항
 
----
-
-## 📝 참고사항
-
-- 이 스펙은 **서비스 확장 계획의 일부**로 점진적으로 적용
-- 지금 당장 밤새서 할 일은 아니지만, 서비스 늘리기 전에 정리해두면 미래의 유지보수 비용 절감
-- 각 Phase 완료 후 문서 업데이트 및 팀 공유
-
----
-
-## 6. 구현 현황 요약
-
-### ✅ 완료된 작업 (Phase 1, 2)
-
-#### Review Service
-- ✅ `PublicHealthController`: `/health/live`, `/health/ready` 엔드포인트 제공
-- ✅ `ServiceMetaHealthIndicator`: Actuator health에 메타 정보 추가
-- ✅ `SecurityConfig`: `/health/**`는 `permitAll`, `/actuator/**`는 `ADMIN` 역할 필요
-- ✅ 버전 읽기: `build-info.properties` 생성 및 `app.version`으로 읽기
-- ✅ 로깅: 실패 시에만 `warn` 로그 기록
-- ✅ 메트릭: Micrometer `Counter`로 `health_check_failures_total` 구현
-
-#### Catalog Service
-- ✅ `/health/live`, `/health/ready` 엔드포인트 추가 (루트 레벨)
-- ✅ `status` 값: `UP`/`DOWN`으로 변경 (Actuator 표준)
-- ✅ `VersionService`: `package.json`에서 버전 읽어서 메모리 캐싱
-- ✅ 로깅: 실패 시에만 `warn` 로그 기록
-- ✅ 메트릭: `HealthMetricsService`로 실패 카운터 관리
-- ✅ `/api/v1/health`: 제거 완료
-
-### 🔄 남은 작업 (Phase 3)
-
-1. **checks 구조 확장**
-   - 현재는 `database` 체크만 구현
-   - 필요 시 `cache` (Redis), `external-api` (TMDB) 등 추가 검토
-
-2. **모니터링 도구 연동**
-   - Review Service: Micrometer Counter → Prometheus 연동
-   - Catalog Service: `HealthMetricsService` → Prometheus 연동
-   - Grafana 대시보드 구성
-
-3. **게이트웨이 연동**
-   - 게이트웨이 도입 시 각 서비스 `/health/**` 집계 엔드포인트 제공
-   - 외부 노출용 통합 health 엔드포인트 구성
-
-### 📌 다음 단계 권장사항
-
-1. **즉시 테스트**: 구현된 엔드포인트 동작 확인
-   - `GET /health/live` - 두 서비스 모두
-   - `GET /health/ready` - 두 서비스 모두
-   - 응답 형식이 공통 스펙과 일치하는지 확인
-
-2. **단기 (1-2주)**: 모니터링 연동
-   - Prometheus 설정 및 메트릭 수집 확인
-   - 기본 알람 규칙 설정 (헬스 체크 실패 시)
-
-3. **중기 (1개월)**: 게이트웨이 도입 시 연동
+추가 개선 사항(checks 구조 확장, 모니터링 연동, 게이트웨이 연동)은 [docs/improvements.md](../improvements.md)의 "중간 우선순위" 섹션을 참고하세요.
 

@@ -15,7 +15,7 @@ import java.util.Locale
  *
  * 에러 코드와 메시지 리소스 간의 드리프트를 방지하기 위한 테스트입니다.
  *
- * @see ERROR_SPECIFICATION.md 섹션 2.3
+ * @see docs/specs/error-handling.md 섹션 2.4
  *
  * ⚠️ 중요: Testcontainers를 사용하여 격리된 테스트 데이터베이스를 사용합니다. 로컬 개발 데이터베이스에 영향을 주지 않도록 합니다.
  */
@@ -27,7 +27,7 @@ class MessageResourceValidationTest(
     /**
      * ErrorCodes에 정의된 에러 코드에 대응하는 메시지 키 매핑
      *
-     * 이 매핑은 ERROR_SPECIFICATION.md의 매핑 테이블과 일치해야 합니다.
+     * 이 매핑은 docs/specs/error-handling.md의 매핑 테이블과 일치해야 합니다.
      */
     private val errorCodeToMessageKey: Map<String, String> =
         mapOf(

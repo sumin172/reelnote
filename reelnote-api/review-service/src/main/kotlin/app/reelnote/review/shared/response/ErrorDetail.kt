@@ -3,7 +3,9 @@ package app.reelnote.review.shared.response
 import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
 
-/** 표준 에러 응답 스키마 HTTP status code와 함께 사용되며, 성공 응답에는 사용되지 않습니다. ERROR_SPECIFICATION.md와 일치해야 함 */
+/**
+ * 표준 에러 응답 스키마 HTTP status code와 함께 사용되며, 성공 응답에는 사용되지 않습니다. docs/specs/error-handling.md와 일치해야 함
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(
     name = "ErrorDetail",
@@ -38,7 +40,7 @@ data class ErrorDetail(
 )
 
 /**
- * 에러 코드 상수 ERROR_SPECIFICATION.md와 일치해야 함
+ * 에러 코드 상수 docs/specs/error-handling.md와 일치해야 함
  *
  * 에러 코드 분류:
  * - 범용 에러: 서비스 간 공통으로 사용되는 에러 코드 (prefix 없음)

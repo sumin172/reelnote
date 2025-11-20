@@ -22,7 +22,7 @@ import { MessageService } from "../../i18n/message.service.js";
  * 2. HttpException (NestJS 프레임워크 예외)
  * 3. 기타 예외
  *
- * @see ERROR_HANDLING_GUIDE.md
+ * @see docs/specs/error-handling.md
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

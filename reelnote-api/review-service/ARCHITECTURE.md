@@ -10,12 +10,12 @@
 
 ## 2. 레이어 & 포트/어댑터
 
-| 계층             | 폴더                                    | 책임                           | 예시 포트/어댑터                                    |
-| ---------------- | --------------------------------------- | ------------------------------ | --------------------------------------------------- |
-| Domain           | `domain/`                                | 엔티티, 값 객체, 도메인 서비스 | `Review`, `Rating`, `ReviewRepository`              |
-| Application      | `application/`                           | UseCase, Port 정의             | `ReviewService`, `ReviewQueryService`               |
-| Inbound Adapter  | `interfaces/rest/`                       | HTTP 진입점                    | `ReviewController`                                  |
-| Outbound Adapter | `infrastructure/catalog/`, `infrastructure/config/` | 외부 시스템 연결               | `CatalogClient`, `CatalogClientConfig`              |
+| 계층               | 폴더                                                  | 책임                 | 예시 포트/어댑터                              |
+|------------------|-----------------------------------------------------|--------------------|----------------------------------------|
+| Domain           | `domain/`                                           | 엔티티, 값 객체, 도메인 서비스 | `Review`, `Rating`, `ReviewRepository` |
+| Application      | `application/`                                      | UseCase, Port 정의   | `ReviewService`, `ReviewQueryService`  |
+| Inbound Adapter  | `interfaces/rest/`                                  | HTTP 진입점           | `ReviewController`                     |
+| Outbound Adapter | `infrastructure/catalog/`, `infrastructure/config/` | 외부 시스템 연결          | `CatalogClient`, `CatalogClientConfig` |
 
 - **Port 계약**은 애플리케이션 계층에 위치하고, Adapter는 해당 계약을 구현합니다.
 - Catalog Service의 `domain/application/infrastructure/interfaces` 구조와 1:1로 매칭됩니다.
@@ -152,13 +152,13 @@ review_tags (app.review_tags)
 
 ### 9.3 예외 매핑
 
-| 예외 타입                    | HTTP 상태 코드 | Error Code        |
-| ---------------------------- | -------------- | ----------------- |
-| ReviewNotFoundException      | 404            | NOT_FOUND         |
-| MethodArgumentNotValidException | 400         | VALIDATION_ERROR  |
-| IllegalArgumentException      | 422            | VALIDATION_ERROR  |
-| ExternalApiException         | 502            | EXTERNAL_API_ERROR|
-| Exception (기타)             | 500            | INTERNAL_ERROR    |
+| 예외 타입                           | HTTP 상태 코드 | Error Code         |
+|---------------------------------|------------|--------------------|
+| ReviewNotFoundException         | 404        | NOT_FOUND          |
+| MethodArgumentNotValidException | 400        | VALIDATION_ERROR   |
+| IllegalArgumentException        | 422        | VALIDATION_ERROR   |
+| ExternalApiException            | 502        | EXTERNAL_API_ERROR |
+| Exception (기타)                  | 500        | INTERNAL_ERROR     |
 
 ## 10. 확장 로드맵
 
@@ -179,14 +179,14 @@ review_tags (app.review_tags)
 
 ## 12. 공용 용어 (Review ↔ Catalog)
 
-| 용어                 | 정의                                                       | 비고                                                   |
-| -------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
-| **Port**             | 애플리케이션 계층에서 정의한 외부 의존성 계약              | 인터페이스, 추상클래스 포함                            |
-| **Adapter**          | Port를 구현해 실제 시스템과 연결하는 계층                  | CatalogClient, JPA Repository 등                       |
-| **Resilience Layer** | Retry, Circuit Breaker, Rate Limiter 등 보호 메커니즘 묶음 | Review Service는 향후 Catalog Service 참고하여 구현 예정 |
-| **CQRS**             | 명령과 조회를 분리하는 패턴                                | ReviewService(명령) vs ReviewQueryService(조회)        |
-| **소프트 삭제**      | 실제 삭제 대신 플래그로 삭제 상태를 관리하는 전략          | `@SQLDelete` + `@SQLRestriction` 활용                  |
-| **Optimistic Locking** | 버전 필드로 동시성 제어하는 전략                        | `@Version` 어노테이션 활용                             |
+| 용어                     | 정의                                                | 비고                                            |
+|------------------------|---------------------------------------------------|-----------------------------------------------|
+| **Port**               | 애플리케이션 계층에서 정의한 외부 의존성 계약                         | 인터페이스, 추상클래스 포함                               |
+| **Adapter**            | Port를 구현해 실제 시스템과 연결하는 계층                         | CatalogClient, JPA Repository 등               |
+| **Resilience Layer**   | Retry, Circuit Breaker, Rate Limiter 등 보호 메커니즘 묶음 | Review Service는 향후 Catalog Service 참고하여 구현 예정 |
+| **CQRS**               | 명령과 조회를 분리하는 패턴                                   | ReviewService(명령) vs ReviewQueryService(조회)   |
+| **소프트 삭제**             | 실제 삭제 대신 플래그로 삭제 상태를 관리하는 전략                      | `@SQLDelete` + `@SQLRestriction` 활용           |
+| **Optimistic Locking** | 버전 필드로 동시성 제어하는 전략                                | `@Version` 어노테이션 활용                           |
 
 이 가이드는 Catalog Service와 동일한 문체로 작성되어 있으므로, 두 문서를 교차 검토하며 헥사고날 아키텍처와 Resilience 패턴을 학습할 수 있습니다.
 

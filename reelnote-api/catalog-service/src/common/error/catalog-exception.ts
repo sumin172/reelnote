@@ -8,7 +8,7 @@ import { BaseAppException } from "./base-app-exception.js";
  * BaseAppException을 상속하여 프레임워크 독립성을 유지합니다.
  * HttpExceptionFilter에서 자동으로 HTTP 응답으로 변환됩니다.
  *
- * @see ERROR_HANDLING_GUIDE.md
+ * @see docs/specs/error-handling.md
  */
 export class CatalogException extends BaseAppException {
   constructor(

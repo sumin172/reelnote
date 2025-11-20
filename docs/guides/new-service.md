@@ -56,7 +56,7 @@
 
 - [ ] 멀티스테이지 `Dockerfile`과 `.dockerignore` 작성
 - [ ] 로컬 개발용 `docker-compose` 서비스 추가 (필요 시)
-- [ ] **Health Check 엔드포인트 구현** (`health-check-spec.md` 참조)
+- [ ] **Health Check 엔드포인트 구현** ([docs/specs/health-check.md](../specs/health-check.md) 참조)
   - [ ] K8s 프로브용 엔드포인트: `/health/live` (Liveness), `/health/ready` (Readiness)
   - [ ] 공통 스펙 준수: `status`, `timestamp` (UTC), `service`, `checks` (선택), `version` (선택)
   - [ ] `status` 값: Actuator 표준 사용 (`UP`, `DOWN`, `OUT_OF_SERVICE`, `UNKNOWN`)
@@ -73,7 +73,7 @@
 
 ### 7.1 TraceId 전파 (필수)
 
-- [ ] **`X-Trace-Id` 헤더 자동 전파** (`ERROR_HANDLING_GUIDE.md` 참조)
+- [ ] **`X-Trace-Id` 헤더 자동 전파** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - 모든 서비스 간 HTTP 호출에 `X-Trace-Id` 헤더 포함
   - 현재 요청의 TraceId를 다음 호출로 자동 전파
   - 클라이언트 필터/인터셉터에서 자동 처리 (수동 설정 불필요)
@@ -158,12 +158,12 @@
   - 인메모리 메트릭은 운영 환경에서 제한적 (서버 재시작 시 초기화)
   - Prometheus/Grafana 연동 준비
 - [ ] 메트릭/트레이싱(OpenTelemetry, Jaeger 등) 도입 여부 결정
-- [ ] **`X-Trace-Id` 헤더 처리 구현** (`ERROR_HANDLING_GUIDE.md` 참조)
+- [ ] **`X-Trace-Id` 헤더 처리 구현** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - 요청 헤더 `X-Trace-Id` 확인 (있으면 사용, 없으면 UUID v4 생성)
   - 모든 로그에 `traceId` 포함 (MDC/Span 등 활용)
   - 에러 응답에 `traceId` 필드 포함
   - ⚠️ **서비스 간 호출 시 전파는 "7. 서비스 간 통신" 섹션 참조**
-- [ ] **로깅 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+- [ ] **로깅 정책 준수** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - 로그 레벨 가이드라인: 4xx → WARN, 5xx → ERROR
   - 5xx 오류에 스택 트레이스 포함
   - 민감 정보(비밀번호, 토큰, 개인정보) 로그에 포함 금지
@@ -186,7 +186,7 @@
 ## 10. API 응답 형식 표준화
 
 ### 성공 응답
-- [ ] **DTO 직접 반환 원칙** (`ERROR_SPECIFICATION.md` 참조)
+- [ ] **DTO 직접 반환 원칙** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - 성공 응답(HTTP `2xx`)은 DTO를 직접 반환
   - `ApiResponse<T>` 같은 래퍼 클래스 사용하지 않음
   - 예: `ResponseEntity<ReviewResponse>`, `Promise<MovieResponseDto>`
@@ -195,15 +195,15 @@
   - 클라이언트가 서비스별 분기 처리 불필요하도록 유지
 
 ### 에러 응답
-- [ ] 공통 에러 스펙 준수 (`ERROR_SPECIFICATION.md` 참조)
+- [ ] 공통 에러 스펙 준수 ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - `ErrorDetail` 스키마 사용 (code, message, details, traceId)
   - 표준 에러 코드 사용 (`VALIDATION_ERROR`, `NOT_FOUND`, `INTERNAL_ERROR` 등)
   - HTTP 상태 코드 매핑 표준 준수
-  - **JSON 직렬화 규칙 준수** (`ERROR_SPECIFICATION.md` 참조)
+  - **JSON 직렬화 규칙 준수** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
     - 선택적 필드(`details`, `traceId`)는 `null`/`undefined`인 경우 JSON에서 제외
     - Kotlin: `@JsonInclude(JsonInclude.Include.NON_NULL)` 사용
     - TypeScript: `undefined` 필드는 자동 제외 (기본 동작)
-- [ ] **예외 처리 가이드 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+- [ ] **예외 처리 가이드 준수** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - 에러 코드 네이밍 규칙 준수 (공통/도메인/검증 에러 코드 분류)
   - TraceId 정책 준수 (요청 헤더 확인, 전파, 로그 포함)
   - 로깅 정책 준수 (4xx: WARN, 5xx: ERROR, 스택 트레이스 포함 여부)
@@ -221,12 +221,12 @@ ReelNote MSA의 모든 서비스는 **프레임워크 독립적인 베이스 예
 
 **공통 속성 (모든 서비스에서 동일):**
 
-| 속성 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| `errorCode` | `string` | ✅ | 에러 코드 (예: `REVIEW_NOT_FOUND`) |
-| `httpStatus` | `HttpStatus` | ✅ | HTTP 상태 코드 |
-| `message` | `string` | ✅ | 사용자 친화적 메시지 |
-| `details` | `object` | ❌ | 추가 컨텍스트 정보 |
+| 속성           | 타입           | 필수 | 설명                            |
+|--------------|--------------|----|-------------------------------|
+| `errorCode`  | `string`     | ✅  | 에러 코드 (예: `REVIEW_NOT_FOUND`) |
+| `httpStatus` | `HttpStatus` | ✅  | HTTP 상태 코드                    |
+| `message`    | `string`     | ✅  | 사용자 친화적 메시지                   |
+| `details`    | `object`     | ❌  | 추가 컨텍스트 정보                    |
 
 **구현 요구사항:**
 
@@ -404,11 +404,11 @@ export class ExceptionFactoryService {
   - [ ] 선택 필드: `details` (추가 컨텍스트 정보)
 - [ ] **에러 코드 정의**
   - [ ] 에러 코드 enum/object 정의 (도메인별, 검증별, 범용 분류)
-  - [ ] 네이밍 규칙 준수 (`ERROR_HANDLING_GUIDE.md` 참조)
+  - [ ] 네이밍 규칙 준수 ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
     - 공통: `VALIDATION_ERROR`, `NOT_FOUND` 등 (prefix 없음)
     - 도메인: `{SERVICE}_{ENTITY}_{ACTION}_{RESULT}` (예: `CATALOG_MOVIE_NOT_FOUND`)
     - 검증: `VALIDATION_{FIELD}_{RULE}` (예: `VALIDATION_SEARCH_QUERY_REQUIRED`)
-- [ ] **메시지 관리** (`ERROR_SPECIFICATION.md` 섹션 2 참조)
+- [ ] **메시지 관리** ([docs/specs/error-handling.md](../specs/error-handling.md) 섹션 2 참조)
   - [ ] 메시지 리소스 파일 생성 (`messages.ko.json`, `messages.properties` 등)
   - [ ] 메시지 조회 서비스 구현 (Spring Boot: `MessageSource`, NestJS: `MessageService`)
   - [ ] **에러 코드 ↔ 메시지 키 매핑 검증 테스트 작성** (드리프트 방지)
@@ -429,7 +429,7 @@ export class ExceptionFactoryService {
   - [ ] `traceId`가 모든 에러 응답에 포함되도록 보장
   - [ ] 로그 레벨 자동 결정 (5xx: ERROR, 4xx: WARN)
   - [ ] 5xx 오류에 스택 트레이스 포함
-- [ ] **TraceId 정책 준수** (`ERROR_HANDLING_GUIDE.md` 참조)
+- [ ] **TraceId 정책 준수** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - [ ] 요청 헤더 `X-Trace-Id` 확인 및 생성 (없으면 UUID v4 생성)
   - [ ] 모든 로그에 `traceId` 포함 (MDC/Span 활용)
   - [ ] ⚠️ **서비스 간 호출 시 `X-Trace-Id` 헤더 자동 전파는 "7. 서비스 간 통신" 섹션 참조**
