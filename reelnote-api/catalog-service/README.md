@@ -169,6 +169,34 @@ nx build catalog-service
 - `movie_feature`, `user_profile` 등 Feature Store 테이블은 추천/분석 서비스용
 - Prisma 구조 및 마이그레이션 관리는 `prisma/` 디렉터리에 위치
 
+## 🧪 테스트
+
+### 테스트 실행
+
+```bash
+# 전체 테스트 실행
+nx test catalog-service
+# 또는
+pnpm test
+```
+
+### 테스트 커버리지
+
+Jest를 사용하여 테스트 커버리지를 측정합니다. 테스트 실행 시 자동으로 커버리지 리포트가 생성됩니다.
+
+```bash
+# 테스트 실행 및 커버리지 리포트 생성
+nx test catalog-service
+```
+
+**커버리지 리포트 위치:**
+
+- HTML 리포트: `test-output/jest/coverage/index.html`
+- LCOV 리포트: `test-output/jest/coverage/lcov.info`
+- JSON 리포트: `test-output/jest/coverage/coverage-final.json`
+
+브라우저에서 HTML 리포트를 열어 커버리지 상세 정보를 확인할 수 있습니다.
+
 ## 🎯 성능 & 운영 목표
 
 - 응답 시간: 캐시 히트 시 p95 ≤ 120ms

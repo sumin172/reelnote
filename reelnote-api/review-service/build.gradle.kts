@@ -2,6 +2,7 @@ plugins {
     id("reelnote.kotlin.spring-service")
     id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
     id("org.springframework.boot") version "3.5.7"
+    id("jacoco")
 }
 
 description = "review-service"
@@ -79,4 +80,36 @@ openApi {
     apiDocsUrl.set("http://localhost:8080/api/docs-json")
     outputDir.set(file("/openapi"))
     outputFileName.set("review-service-openapi.json")
+}
+
+// JaCoCo 설정
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(file("test-output/jacoco/coverage/jacocoTestReport.xml"))
+        html.required.set(true)
+        html.outputLocation.set(file("test-output/jacoco/coverage/html"))
+    }
+    finalizedBy(tasks.jacocoTestCoverageVerification)
+}
+
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.0".toBigDecimal()
+            }
+        }
+    }
+}
+
+// test 태스크 실행 후 자동으로 커버리지 리포트 생성
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
 }

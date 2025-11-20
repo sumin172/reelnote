@@ -317,6 +317,24 @@ class SoftDeleteIntegrationTest {
 ./gradlew test --tests "SoftDeleteIntegrationTest"
 ```
 
+### 테스트 커버리지
+
+JaCoCo를 사용하여 테스트 커버리지를 측정합니다. 테스트 실행 후 자동으로 커버리지 리포트가 생성됩니다.
+
+```bash
+# 테스트 실행 및 커버리지 리포트 생성
+./gradlew test
+
+# 커버리지 리포트만 생성 (테스트가 이미 실행된 경우)
+./gradlew jacocoTestReport
+```
+
+**커버리지 리포트 위치:**
+- HTML 리포트: `test-output/jacoco/coverage/html/index.html`
+- XML 리포트: `test-output/jacoco/coverage/jacocoTestReport.xml`
+
+브라우저에서 HTML 리포트를 열어 커버리지 상세 정보를 확인할 수 있습니다.
+
 
 ## 🔧 설정
 
