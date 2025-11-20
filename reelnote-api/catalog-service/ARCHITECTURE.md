@@ -124,9 +124,47 @@ user_profile (user_id PK)
 - **카탈로그 지표**: 캐시 히트율, 동기화 지연, 응답 시간(p50/p95/p99)
 - **Resilience 지표**: 재시도 횟수, 서킷브레이커 상태 이벤트, 레이트리밋 대기 시간
 - **헬스체크**: `/health/live` (Liveness), `/health/ready` (Readiness) - K8s 프로브용
-- **메트릭**: 헬스 체크 실패 카운터 (`health_check_failures_total`)
+- **메트릭**: Prometheus 메트릭 엔드포인트 `/metrics` 제공, 헬스 체크 실패 카운터 (`health_check_failures_total`)
 - **배포 고려사항**: Prisma Migrate, Redis 고가용성, PostgreSQL 리드 리플리카
 - **CORS 정책**: `NODE_ENV=development`에서는 localhost 허용, 운영/테스트는 `CORS_ORIGINS`로 명시적 제어
+
+### 8.1 메트릭 컨벤션
+
+**기본 원칙**: 공통 개념은 메트릭 이름 공유 + 라벨(태그)로 구분
+
+#### 메트릭 이름 컨벤션
+
+- 공통 개념은 하나의 메트릭 이름 사용
+- 예: `health_check_failures_total` (모든 서비스 공통)
+- 서비스 구분은 라벨(`service`)로 처리
+- 네임스페이스가 필요하면 Prometheus Recording Rule로 `reelnote_health_check_failures_total` 생성 가능
+
+#### 공통 라벨 (태그)
+
+**필수 라벨:**
+
+- `service`: 서비스 식별자 (`catalog-service`, `review-service`)
+- `endpoint`: 엔드포인트 (`live`, `ready`)
+
+**선택 라벨:**
+
+- `check`: 체크 대상 (`database`, `tmdb`, `redis` 등, 필요할 때만 사용)
+
+#### 메트릭 타입
+
+- **타입**: Counter (`health_check_failures_total`은 실패 횟수를 누적하는 카운터 메트릭)
+
+#### 예시
+
+```promql
+# 특정 체크 대상이 있는 경우
+health_check_failures_total{service="catalog-service", endpoint="ready", check="database"}
+
+# 단순 health 실패 (세분화 안함)
+health_check_failures_total{service="review-service", endpoint="live"}
+```
+
+이 컨벤션은 Review Service와 동일하게 적용되어, PromQL에서 서비스 간 메트릭을 일관되게 쿼리할 수 있습니다.
 
 ## 9. 공용 용어 (Review ↔ Catalog)
 

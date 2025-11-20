@@ -1,11 +1,16 @@
-import { Controller, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Get, HttpCode, HttpStatus, Res } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import type { Response } from "express";
 import { HealthService } from "./health.service.js";
+import { HealthMetricsService } from "./health-metrics.service.js";
 
 @ApiTags("health")
 @Controller()
 export class HealthController {
-  constructor(private readonly healthService: HealthService) {}
+  constructor(
+    private readonly healthService: HealthService,
+    private readonly healthMetrics: HealthMetricsService,
+  ) {}
 
   /**
    * K8s Liveness Probe용 엔드포인트
@@ -40,5 +45,22 @@ export class HealthController {
       return { ...result, statusCode: HttpStatus.SERVICE_UNAVAILABLE };
     }
     return result;
+  }
+
+  /**
+   * Prometheus 메트릭 엔드포인트
+   */
+  @Get("metrics")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: "Prometheus 메트릭",
+    description: "Prometheus 스크래핑용 메트릭 엔드포인트",
+  })
+  @ApiResponse({ status: 200, description: "메트릭 데이터 (text/plain)" })
+  async metrics(@Res() res: Response) {
+    const registry = this.healthMetrics.getRegistry();
+    res.set("Content-Type", registry.contentType);
+    const metrics = await registry.metrics();
+    res.send(metrics);
   }
 }

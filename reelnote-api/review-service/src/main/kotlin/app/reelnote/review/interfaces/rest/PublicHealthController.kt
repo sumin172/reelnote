@@ -35,13 +35,29 @@ class PublicHealthController(
 ) {
     private val logger = LoggerFactory.getLogger(PublicHealthController::class.java)
 
-    private fun getFailureCounter(endpoint: String): Counter =
-        Counter
-            .builder("health_check_failures_total")
-            .description("Total number of health check failures")
-            .tag("endpoint", endpoint)
-            .tag("service", appName)
-            .register(meterRegistry)
+    /**
+     * 헬스 체크 실패 카운터 반환
+     * @param endpoint 엔드포인트 (예: "live", "ready")
+     * @param check 체크 대상 (예: "database", "tmdb", "redis") - 선택적
+     */
+    private fun getFailureCounter(
+        endpoint: String,
+        check: String? = null,
+    ): Counter {
+        val builder =
+            Counter
+                .builder("health_check_failures_total")
+                .description("Total number of health check failures")
+                .tag("endpoint", endpoint)
+                .tag("service", appName)
+
+        // check가 제공된 경우에만 라벨 추가
+        if (check != null) {
+            builder.tag("check", check)
+        }
+
+        return builder.register(meterRegistry)
+    }
 
     /** Liveness 체크 서비스가 살아있는지 확인 (프로세스/스레드 상태) */
     @GetMapping("/live")
@@ -105,14 +121,7 @@ class PublicHealthController(
             // 실패한 체크별로도 메트릭 기록
             checks.forEach { (checkName, checkStatus) ->
                 if (checkStatus != "UP") {
-                    Counter
-                        .builder("health_check_failures_total")
-                        .description("Total number of health check failures")
-                        .tag("endpoint", "ready")
-                        .tag("service", appName)
-                        .tag("check", checkName)
-                        .register(meterRegistry)
-                        .increment()
+                    getFailureCounter("ready", checkName).increment()
                 }
             }
         }
