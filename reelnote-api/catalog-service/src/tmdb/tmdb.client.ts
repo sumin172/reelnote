@@ -1,5 +1,4 @@
 import { HttpService } from "@nestjs/axios";
-import { ConfigService } from "@nestjs/config";
 import {
   HttpException,
   HttpStatus,
@@ -22,6 +21,7 @@ import CircuitBreaker, { Options as CircuitBreakerOptions } from "opossum";
 import type { TmdbMovieListResponse } from "./tmdb.types.js";
 import { CatalogErrorCode } from "../common/error/catalog-error-code.js";
 import { MessageService } from "../i18n/message.service.js";
+import { TmdbConfig } from "../config/tmdb.config.js";
 
 // p-limit 7.x의 LimitFunction과 호환되는 타입
 // LimitFunction은 callable object이지만, 함수처럼 호출 가능하므로 함수 타입으로 사용
@@ -52,42 +52,21 @@ export class TmdbClient implements OnModuleDestroy {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: ConfigService,
+    private readonly tmdbConfig: TmdbConfig,
     private readonly messageService: MessageService,
   ) {
-    this.apiKey = this.configService.get<string>("TMDB_API_KEY") || "";
-    const timeoutConfig = this.configService.get<string>("TMDB_API_TIMEOUT");
-    this.timeout = Number(timeoutConfig ?? 10000);
-
-    if (Number.isNaN(this.timeout) || this.timeout <= 0) {
-      this.logger.warn(
-        `TMDB_API_TIMEOUT 설정이 유효하지 않아 기본값 10000ms를 사용합니다. (입력값: ${timeoutConfig})`,
-      );
-      this.timeout = 10000;
-    }
+    this.apiKey = this.tmdbConfig.apiKey;
+    this.timeout = this.tmdbConfig.timeout;
 
     if (!this.apiKey) {
       this.logger.warn("TMDB_API_KEY가 설정되지 않았습니다.");
     }
 
-    const maxConcurrencyConfig = this.configService.get<string>(
-      "TMDB_API_MAX_CONCURRENCY",
-    );
-    const parsedConcurrency = Number(maxConcurrencyConfig);
-    const resolvedConcurrency =
-      Number.isFinite(parsedConcurrency) && parsedConcurrency > 0
-        ? Math.floor(parsedConcurrency)
-        : 10;
+    const resolvedConcurrency = this.tmdbConfig.maxConcurrency;
     this.requestLimiter = this.loadLimiter(resolvedConcurrency);
 
     this.axios = this.httpService.axiosRef;
-    const parsedRetries = Number(
-      this.configService.get<string>("TMDB_API_MAX_RETRY"),
-    );
-    const resolvedRetries =
-      Number.isFinite(parsedRetries) && parsedRetries >= 0
-        ? Math.floor(parsedRetries)
-        : 3;
+    const resolvedRetries = this.tmdbConfig.maxRetry;
     const retryDelayWithJitter = (retryCount: number) => {
       const baseDelay = exponentialDelay(retryCount);
       const jitter = Math.floor(Math.random() * 300);
@@ -114,20 +93,10 @@ export class TmdbClient implements OnModuleDestroy {
     });
 
     const circuitBreakerOptions: CircuitBreakerOptions = {
-      timeout:
-        Number(this.configService.get<string>("TMDB_BREAKER_TIMEOUT")) ||
-        this.timeout + 1000,
-      resetTimeout:
-        Number(this.configService.get<string>("TMDB_BREAKER_RESET_TIMEOUT")) ||
-        60000,
-      errorThresholdPercentage:
-        Number(
-          this.configService.get<string>("TMDB_BREAKER_ERROR_PERCENTAGE"),
-        ) || 50,
-      volumeThreshold:
-        Number(
-          this.configService.get<string>("TMDB_BREAKER_VOLUME_THRESHOLD"),
-        ) || 10,
+      timeout: this.tmdbConfig.breakerTimeout,
+      resetTimeout: this.tmdbConfig.breakerResetTimeout,
+      errorThresholdPercentage: this.tmdbConfig.breakerErrorPercentage,
+      volumeThreshold: this.tmdbConfig.breakerVolumeThreshold,
     };
 
     this.circuitBreaker = new CircuitBreaker<AxiosResponse>(

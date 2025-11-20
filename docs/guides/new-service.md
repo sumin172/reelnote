@@ -438,10 +438,25 @@ export class ExceptionFactoryService {
 
 - [ ] 의존성 취약점 스캔 도구 설정 (Dependabot, Renovate 등)
 - [ ] **환경 변수 검증 스키마 정의**
-  - 필수 환경 변수 누락 시 서비스 시작 실패하도록 검증
-  - 환경 변수 타입 및 범위 검증 (예: 포트 번호 범위)
-  - **Spring Boot**: `@ConfigurationProperties` + `@Valid` 사용 권장
-  - **NestJS**: `class-validator` + DTO 기반 설정 검증 권장
+  - [ ] **시작 시점 검증 구현** (조기 실패 원칙)
+    - 필수 환경 변수 누락 시 서비스 시작 실패하도록 검증
+    - 환경 변수 타입 및 범위 검증 (예: 포트 번호 범위)
+  - [ ] **프레임워크별 검증 패턴 적용**
+    - **Spring Boot**: `@ConfigurationProperties` + `@ConfigurationPropertiesScan` 사용
+    - **NestJS**: `class-validator` + DTO 기반 설정 검증 + Config Provider 패턴
+  - [ ] **Config Provider 패턴 구현** (NestJS의 경우)
+    - 환경 변수 검증 DTO 정의 (`env.validation.ts`)
+    - Config Provider 클래스 생성 (`@Injectable()`)
+    - 모듈에 Provider 등록
+    - 서비스에서 Config Provider 주입 사용
+  - [ ] **타입 안전한 설정 접근**
+    - `ConfigService.get()` 직접 호출 금지 (Config Provider 사용)
+    - `process.env` 직접 접근 금지 (검증 우회 방지)
+  - [ ] **베스트 프랙티스 준수**
+    - 필수 설정은 명시적 검증 규칙 적용
+    - 숫자 범위는 `@Min()`, `@Max()` 데코레이터로 제한
+    - 선택적 설정은 `@IsOptional()` 데코레이터 사용
+    - URL 형식은 커스텀 검증 로직으로 처리 (postgresql, redis 프로토콜 지원)
 - [ ] **인증/인가, CORS 등 보안 설정 검토**
   - `/health/**` 엔드포인트는 인증 없음 (내부망 전제)
   - API 엔드포인트 인증/인가 정책 명확화

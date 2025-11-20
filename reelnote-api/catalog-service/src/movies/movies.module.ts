@@ -14,11 +14,13 @@ import { PrismaMovieRepository } from "./infrastructure/persistence/prisma-movie
 import { MovieCacheAdapter } from "./infrastructure/cache/movie-cache.adapter.js";
 import { TmdbMovieGateway } from "./infrastructure/external/tmdb-movie.gateway.js";
 import { ImportMoviesJobService } from "./application/jobs/import-movies.job-service.js";
+import { MovieConfig } from "../config/movie.config.js";
 
 @Module({
   imports: [CatalogPrismaModule, TmdbModule, CacheModule],
   controllers: [MoviesController],
   providers: [
+    MovieConfig,
     MoviesFacade,
     GetMovieUseCase,
     SyncMovieUseCase,

@@ -1,8 +1,8 @@
-import { ConfigService } from "@nestjs/config";
 import { Injectable, Logger } from "@nestjs/common";
 import { MoviesFacade } from "../movies/application/movies.facade.js";
 import { TmdbService } from "../tmdb/tmdb.service.js";
 import type { TmdbMovieListResponse } from "../tmdb/tmdb.types.js";
+import { SyncConfig } from "../config/sync.config.js";
 
 /**
  * 동기화 서비스
@@ -11,14 +11,15 @@ import type { TmdbMovieListResponse } from "../tmdb/tmdb.types.js";
 @Injectable()
 export class SyncService {
   private readonly logger = new Logger(SyncService.name);
-  private readonly warmPoolSize: number;
 
   constructor(
     private readonly moviesFacade: MoviesFacade,
     private readonly tmdbService: TmdbService,
-    private readonly configService: ConfigService,
-  ) {
-    this.warmPoolSize = this.configService.get<number>("WARM_POOL_SIZE", 100);
+    private readonly syncConfig: SyncConfig,
+  ) {}
+
+  private get warmPoolSize(): number {
+    return this.syncConfig.warmPoolSize;
   }
 
   /**

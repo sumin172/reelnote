@@ -8,12 +8,15 @@ import { SyncModule } from "../sync/sync.module.js";
 import { SearchModule } from "../search/search.module.js";
 import { HealthModule } from "../health/health.module.js";
 import { MessageModule } from "../i18n/message.module.js";
+import { validate } from "../config/env.validation.js";
+import { ApplicationConfig } from "../config/application.config.js";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
+      validate, // 환경 변수 검증 활성화
     }),
     MessageModule,
     DatabaseModule,
@@ -25,6 +28,6 @@ import { MessageModule } from "../i18n/message.module.js";
     HealthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [ApplicationConfig],
 })
 export class AppModule {}

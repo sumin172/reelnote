@@ -169,9 +169,206 @@ checks:
 
 ---
 
+### 3. 테스트 커버리지 개선 (단계적)
+
+**현재 상태:**
+- **Catalog Service**: 테스트 커버리지 약 5-10% (2개 파일만 커버)
+  - 테스트 파일: `message.service.spec.ts` 1개만 존재
+  - 커버리지 포함 파일: `catalog-error-code.ts`, `message.service.ts`만 포함
+  - 주요 클래스 19개 중 대부분 테스트 없음
+- **Review Service**: 테스트 커버리지 약 60-70%
+  - 테스트 파일: 4개 (`ReviewServiceTest`, `ReviewControllerTest`, `SoftDeleteIntegrationTest`, `MessageResourceValidationTest`)
+  - 핵심 서비스는 테스트됨, `ReviewQueryService` 누락
+
+**영향:**
+- 핵심 비즈니스 로직의 테스트 부재로 리팩토링 시 안전성 저하
+- 버그 조기 발견 어려움
+- 코드 변경 시 회귀 테스트 부족
+
+**권장 방향:**
+
+#### 3-1. Catalog Service 테스트 추가
+
+**우선순위 높음:**
+- `MoviesFacade` 테스트 (`movies.facade.spec.ts`)
+  - 핵심 진입점이므로 모든 UseCase 호출 시나리오 검증
+- `GetMovieUseCase` 테스트 (`get-movie.usecase.spec.ts`)
+  - Lazy Hydration 로직 검증 (캐시 → DB → TMDB 순서)
+  - 에러 처리 시나리오 검증
+- `MoviesController` 테스트 (`movies.controller.spec.ts`)
+  - API 엔드포인트 검증
+  - 요청/응답 DTO 변환 검증
+
+**우선순위 중간:**
+- `ImportMoviesUseCase` 테스트
+  - 동기/비동기 전환 로직 검증
+  - 큐 임계치 처리 검증
+- `SyncMovieUseCase` 테스트
+  - Warm Pool 동기화 로직 검증
+- `SearchController`, `SyncController` 테스트
+  - API 엔드포인트 검증
+- `TmdbService` 테스트
+  - 외부 API 호출 모킹
+  - Resilience 패턴 검증 (Retry, Circuit Breaker)
+- `CacheService` 테스트
+  - Redis/인메모리 폴백 로직 검증
+  - 캐시 TTL 검증
+
+**구현 예시:**
+```typescript
+// movies.facade.spec.ts 예시
+describe('MoviesFacade', () => {
+  it('should get movie with lazy hydration', async () => {
+    // 캐시 → DB → TMDB 순서 검증
+  });
+
+  it('should handle import movies with queue threshold', async () => {
+    // 큐 임계치 초과 시 Job 전환 검증
+  });
+});
+```
+
+#### 3-2. Review Service 테스트 추가
+
+**우선순위 높음:**
+- `ReviewQueryService` 테스트 (`ReviewQueryServiceTest.kt`)
+  - 페이지네이션 로직 검증
+  - 필터링 로직 검증 (userSeq, movieId, tag)
+  - 정렬 로직 검증 (sortBy, sortDirection)
+
+**우선순위 중간:**
+- `CatalogClient` 테스트
+  - 외부 API 호출 모킹
+  - 에러 처리 검증
+  - 타임아웃 처리 검증
+- `GlobalExceptionHandler` 테스트 보완
+  - 다양한 예외 시나리오 테스트
+  - 예외 메시지 포맷 검증
+  - HTTP 상태 코드 매핑 검증
+
+**구현 예시:**
+```kotlin
+// ReviewQueryServiceTest.kt 예시
+class ReviewQueryServiceTest {
+  @Test
+  fun `페이지네이션 검증`() {
+    // page, size 파라미터 검증
+  }
+
+  @Test
+  fun `필터링 검증`() {
+    // userSeq, movieId, tag 필터 검증
+  }
+}
+```
+
+**기대 효과:**
+- 핵심 비즈니스 로직의 테스트 커버리지 향상 (목표: 70-80%)
+- 리팩토링 시 안전성 확보
+- 버그 조기 발견 및 회귀 테스트 강화
+- 코드 변경 시 자동 검증으로 품질 유지
+
+**참고:**
+- 현재 커버리지 리포트 위치:
+  - Catalog Service: `reelnote-api/catalog-service/test-output/jest/coverage/`
+  - Review Service: `reelnote-api/review-service/test-output/jacoco/coverage/`
+- 커버리지 확인 방법:
+  - Catalog Service: `nx test catalog-service` 실행 후 HTML 리포트 확인
+  - Review Service: `./gradlew test` 실행 후 HTML 리포트 확인
+
+---
+
 ## 🟢 낮은 우선순위
 
-### (향후 추가 예정)
+### 3. 테스트 커버리지 개선 (장기)
+
+**현재 상태:**
+- 단위 테스트는 일부 구현됨
+- 통합 테스트는 Review Service에 `SoftDeleteIntegrationTest`만 존재
+- E2E 테스트는 프로젝트에 존재하나 커버리지 측정 미적용
+- 성능 테스트 부재
+
+**영향:**
+- 서비스 간 통합 동작 검증 부족
+- 실제 운영 환경과 유사한 시나리오 테스트 부족
+- 성능 회귀 감지 어려움
+
+**권장 방향:**
+
+#### 3-1. 통합 테스트 추가
+
+**구현 내용:**
+- **Catalog Service 통합 테스트**
+  - Prisma + PostgreSQL 통합 테스트
+  - Redis 캐시 통합 테스트
+  - TMDB API 모킹 통합 테스트
+- **Review Service 통합 테스트 확장**
+  - Catalog Service 연동 통합 테스트
+  - 데이터베이스 트랜잭션 통합 테스트
+- **서비스 간 통합 테스트**
+  - Review Service ↔ Catalog Service 연동 검증
+  - 실제 네트워크 호출 시나리오 검증
+
+**구현 예시:**
+```typescript
+// catalog-service 통합 테스트 예시
+describe('Movies Integration', () => {
+  it('should hydrate movie from TMDB and cache', async () => {
+    // 실제 DB와 캐시를 사용한 통합 테스트
+  });
+});
+```
+
+#### 3-2. E2E 테스트 보완
+
+**구현 내용:**
+- E2E 테스트 커버리지 측정 도입
+- 주요 사용자 시나리오 E2E 테스트 추가
+  - 영화 조회 → 리뷰 작성 → 리뷰 조회 플로우
+  - 검색 → 상세 조회 플로우
+- E2E 테스트 자동화 및 CI/CD 통합
+
+**기대 효과:**
+- 실제 사용자 시나리오 검증
+- 서비스 간 통합 동작 보장
+- 배포 전 자동 검증
+
+#### 3-3. 성능 테스트 추가
+
+**구현 내용:**
+- **부하 테스트**
+  - 주요 API 엔드포인트 부하 테스트
+  - 동시성 처리 검증
+  - 응답 시간 목표 검증 (p95 ≤ 120ms)
+- **스트레스 테스트**
+  - 최대 처리량 측정
+  - 리소스 한계점 파악
+- **성능 회귀 테스트**
+  - CI/CD 파이프라인에 성능 테스트 통합
+  - 성능 저하 시 빌드 실패
+
+**구현 예시:**
+```typescript
+// 성능 테스트 예시
+describe('Movies API Performance', () => {
+  it('should handle 100 concurrent requests', async () => {
+    // 동시 요청 처리 검증
+  });
+
+  it('should respond within 120ms (p95)', async () => {
+    // 응답 시간 목표 검증
+  });
+});
+```
+
+**기대 효과:**
+- 성능 회귀 조기 감지
+- 운영 환경 성능 예측 가능
+- 확장성 검증
+
+**참고:**
+- E2E 테스트 위치: `tests/e2e-*` 디렉토리
+- 성능 테스트 도구: k6, Artillery, 또는 Jest 기반 성능 테스트
 
 ---
 

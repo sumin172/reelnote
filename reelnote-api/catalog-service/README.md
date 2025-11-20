@@ -65,14 +65,17 @@ src/
 3. **Resilience 강화**: `p-limit` 동적 로딩 + `axios-retry` 지터 + `opossum` 회로차단기로 TMDB 호출 보호
 4. **비동기 임포트 큐**: 소량은 즉시 처리, 대량은 `ImportMoviesJobService`가 인메모리 큐로 비동기 전환
 5. **검색 Aggregator**: 로컬 DB + TMDB 결과를 병합하고 60초 TTL 캐시에 저장하여 빠른 검색 제공
+6. **타입 안전한 설정 관리**: Config Provider 패턴으로 환경 변수를 타입 안전하게 접근하며, 시작 시점 검증으로 조기 실패 보장 (Review Service와 일관성 유지)
 
 ## 🔐 환경 변수
 
 `.env` 파일을 `reelnote-api/catalog-service` 루트에 생성하고 아래 값을 채웁니다.
 
+> **⚠️ 중요**: Catalog Service는 **시작 시점 환경 변수 검증**을 수행합니다. 잘못된 설정이 있으면 애플리케이션이 시작되지 않으며, 명확한 에러 메시지를 제공합니다. 이는 Review Service의 `@ConfigurationProperties` 패턴과 동일한 철학을 따릅니다. 자세한 내용은 `ARCHITECTURE.md` 섹션 5를 참고하세요.
+
 ### 필수
 
-- `CATALOG_DB_URL`: PostgreSQL 연결 문자열
+- `CATALOG_DB_URL`: PostgreSQL 연결 문자열 (형식: `postgresql://user:password@host:port/database?schema=public`)
 - `TMDB_API_KEY`: TMDB API Key
 
 ### 선택 (주요 항목)

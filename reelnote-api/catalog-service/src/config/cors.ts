@@ -1,3 +1,5 @@
+import type { ApplicationConfig } from "./application.config.js";
+
 /**
  * CORS 설정 빌더
  *
@@ -6,14 +8,8 @@
  * - e2e: 환경 변수에서 지정한 origin만 허용 (엄격)
  * - production: 환경 변수에서 지정한 origin만 허용 (보안)
  */
-export function buildCorsOptions() {
-  const nodeEnv = process.env.NODE_ENV;
-  const allowedOriginsEnv = process.env.CORS_ORIGINS ?? "";
-
-  const allowedOrigins = allowedOriginsEnv
-    .split(",")
-    .map((o) => o.trim())
-    .filter((o) => o.length > 0);
+export function buildCorsOptions(appConfig: ApplicationConfig) {
+  const allowedOrigins = appConfig.corsOrigins;
 
   return {
     origin: (
@@ -21,7 +17,7 @@ export function buildCorsOptions() {
       callback: (err: Error | null, allow?: boolean) => void,
     ) => {
       // development: localhost 전체 허용
-      if (nodeEnv === "development") {
+      if (appConfig.isDevelopment) {
         if (
           !origin ||
           origin.startsWith("http://localhost:") ||

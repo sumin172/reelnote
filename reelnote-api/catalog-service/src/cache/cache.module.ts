@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { CacheModule as NestCacheModule } from "@nestjs/cache-manager";
 import { CacheService } from "./cache.service.js";
 import { IoredisStore } from "./ioredis-store.js";
+import { CacheConfig } from "../config/cache.config.js";
 
 @Global()
 @Module({
@@ -13,21 +14,25 @@ import { IoredisStore } from "./ioredis-store.js";
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => {
         const logger = new Logger("CacheModule");
-        const redisUrl = configService.get<string>("REDIS_URL");
+
+        // ConfigService에서 직접 읽기 (CacheConfig는 나중에 사용)
+        const redisUrlEnv = configService.get<string>("REDIS_URL", {
+          infer: true,
+        });
+        const redisUrl =
+          redisUrlEnv && redisUrlEnv.trim() !== "" ? redisUrlEnv : undefined;
 
         // Redis가 설정되어 있으면 사용 시도, 아니면 인메모리 캐시
-        const ttlSeconds = Number(
-          configService.get<string>("CACHE_TTL_SECONDS") ?? "3600",
-        );
-        const ttl =
-          Number.isFinite(ttlSeconds) && ttlSeconds > 0
-            ? Math.floor(ttlSeconds) * 1000
-            : undefined;
+        const ttlSeconds =
+          configService.get<number>("CACHE_TTL_SECONDS", { infer: true }) ??
+          3600;
+        const ttl = ttlSeconds > 0 ? ttlSeconds * 1000 : undefined;
 
         if (redisUrl) {
           try {
             const namespace =
-              configService.get("CACHE_NAMESPACE") || "catalog-cache";
+              configService.get<string>("CACHE_NAMESPACE", { infer: true }) ??
+              "catalog-cache";
             const store = new IoredisStore(redisUrl, namespace);
 
             // Redis 연결 확인 (ioredis는 생성 시 자동 연결, ping으로 확인)
@@ -57,7 +62,7 @@ import { IoredisStore } from "./ioredis-store.js";
       },
     }),
   ],
-  providers: [CacheService],
+  providers: [CacheConfig, CacheService],
   exports: [CacheService, NestCacheModule],
 })
 export class CacheModule {}

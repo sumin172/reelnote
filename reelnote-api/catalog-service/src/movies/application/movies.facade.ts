@@ -1,5 +1,4 @@
 import { Injectable } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
 import { MoviePresenter } from "./dto/movie.presenter.js";
 import { GetMovieUseCase } from "./use-cases/get-movie.usecase.js";
 import {
@@ -15,17 +14,12 @@ import {
   ImportMoviesJobSummary,
 } from "./jobs/import-movies.job-service.js";
 import { ExceptionFactoryService } from "../../common/error/exception-factory.service.js";
+import { MovieConfig } from "../../config/movie.config.js";
 
 @Injectable()
 export class MoviesFacade {
-  private readonly defaultStaleThresholdDays = 7;
-  private readonly defaultCacheTtlSeconds = 3600;
-  private readonly defaultImportConcurrency = 5;
-  private readonly defaultImportQueueThreshold = 50;
-  private readonly defaultImportChunkSize = 100;
-
   constructor(
-    private readonly configService: ConfigService,
+    private readonly movieConfig: MovieConfig,
     private readonly getMovieUseCase: GetMovieUseCase,
     private readonly importMoviesUseCase: ImportMoviesUseCase,
     private readonly importMoviesJobService: ImportMoviesJobService,
@@ -36,13 +30,11 @@ export class MoviesFacade {
     tmdbId: number,
     language = "ko-KR",
   ): Promise<MovieResponseDto> {
-    const { staleThresholdDays, cacheTtlSeconds } = this.resolveConfig();
-
     const snapshot = await this.getMovieUseCase.execute({
       tmdbId,
       language,
-      staleThresholdDays,
-      cacheTtlSeconds,
+      staleThresholdDays: this.movieConfig.staleThresholdDays,
+      cacheTtlSeconds: this.movieConfig.cacheTtlSeconds,
     });
 
     return MoviePresenter.toResponse(snapshot);
@@ -60,9 +52,10 @@ export class MoviesFacade {
     | { kind: "queued"; job: ImportMoviesJobSummary }
   > {
     const { tmdbIds, language, resumeJobId } = params;
-    const { cacheTtlSeconds } = this.resolveConfig();
-    const { concurrencyLimit, queueThreshold, chunkSize } =
-      this.resolveImportConfig();
+    const cacheTtlSeconds = this.movieConfig.cacheTtlSeconds;
+    const concurrencyLimit = this.movieConfig.importConcurrency;
+    const queueThreshold = this.movieConfig.importQueueThreshold;
+    const chunkSize = this.movieConfig.importChunkSize;
 
     const effectiveIds = this.resolveTmdbIds(tmdbIds, resumeJobId);
     if (effectiveIds.length === 0) {
@@ -123,63 +116,6 @@ export class MoviesFacade {
       detail,
       movies: mapped?.movies,
       failures: mapped?.failures ?? detail.failures,
-    };
-  }
-
-  private resolveConfig(): {
-    staleThresholdDays: number;
-    cacheTtlSeconds: number;
-  } {
-    const staleThresholdDays = this.configService.get<number>(
-      "MOVIE_STALE_THRESHOLD_DAYS",
-      this.defaultStaleThresholdDays,
-    );
-    const cacheTtlSeconds = this.configService.get<number>(
-      "MOVIE_CACHE_TTL_SECONDS",
-      this.defaultCacheTtlSeconds,
-    );
-
-    return {
-      staleThresholdDays,
-      cacheTtlSeconds,
-    };
-  }
-
-  private resolveImportConfig(): {
-    concurrencyLimit: number;
-    queueThreshold: number;
-    chunkSize: number;
-  } {
-    const concurrency = Number(
-      this.configService.get<string>("MOVIE_IMPORT_CONCURRENCY") ??
-        this.defaultImportConcurrency,
-    );
-    const threshold = Number(
-      this.configService.get<string>("MOVIE_IMPORT_QUEUE_THRESHOLD") ??
-        this.defaultImportQueueThreshold,
-    );
-    const chunk = Number(
-      this.configService.get<string>("MOVIE_IMPORT_CHUNK_SIZE") ??
-        this.defaultImportChunkSize,
-    );
-
-    const concurrencyLimit =
-      Number.isFinite(concurrency) && concurrency > 0
-        ? Math.floor(concurrency)
-        : this.defaultImportConcurrency;
-    const queueThreshold =
-      Number.isFinite(threshold) && threshold > 0
-        ? Math.floor(threshold)
-        : this.defaultImportQueueThreshold;
-    const chunkSize =
-      Number.isFinite(chunk) && chunk > 0
-        ? Math.floor(chunk)
-        : this.defaultImportChunkSize;
-
-    return {
-      concurrencyLimit,
-      queueThreshold,
-      chunkSize,
     };
   }
 
