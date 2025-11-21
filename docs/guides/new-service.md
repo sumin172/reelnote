@@ -248,7 +248,18 @@ CACHE_NAMESPACE=catalog-cache
 
 ## 8. 관측성
 
-- [ ] 구조화된 로깅 포맷 정의
+- [ ] **구조화 로깅 설정** ([docs/guides/logging.md](logging.md) 참조)
+  - [ ] JSON 로깅 포맷 설정
+    - **Spring Boot**: `logback-spring.xml` + `logstash-logback-encoder` 설정
+    - **NestJS**: 기본 Logger 사용 (JSON.stringify로 구조화 로그 출력) 또는 Pino 설정
+  - [ ] 공통 필드 정의: `@timestamp`, `level`, `service`, `message`, `traceId`
+  - [ ] 로그 레벨 매핑 준수 (NestJS ↔ Spring Boot)
+    - `verbose` ↔ `TRACE`, `debug` ↔ `DEBUG`, `log` ↔ `INFO`, `warn` ↔ `WARN`, `error` ↔ `ERROR`
+- [ ] **에러 로깅 구조화** ([docs/guides/logging.md](logging.md) 참조)
+  - [ ] 에러 로그에 `errorCode`, `errorType` (BUSINESS/SYSTEM), `metadata` 포함
+  - [ ] `errorType` 자동 판단: 5xx → `SYSTEM`, 4xx → `BUSINESS`
+  - [ ] PII(개인정보) 로그에 포함하지 않음
+  - [ ] SYSTEM 에러 시 스택 트레이스 포함
 - [ ] **메트릭 수집 방식 결정** (표준 라이브러리 권장)
   - **Spring Boot**: Micrometer 사용 (Actuator 기본 제공)
   - **NestJS**: `@prometheus/client` 또는 `prom-client` 사용
@@ -526,6 +537,9 @@ export class ExceptionFactoryService {
   - [ ] `traceId`가 모든 에러 응답에 포함되도록 보장
   - [ ] 로그 레벨 자동 결정 (5xx: ERROR, 4xx: WARN)
   - [ ] 5xx 오류에 스택 트레이스 포함
+  - [ ] **에러 로깅 구조화** ([docs/guides/logging.md](logging.md) 참조)
+    - [ ] 구조화된 에러 로그 출력 (`errorCode`, `errorType`, `metadata` 포함)
+    - [ ] `errorType` 자동 판단: 5xx → `SYSTEM`, 4xx → `BUSINESS`
 - [ ] **TraceId 정책 준수** ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
   - [ ] 요청 헤더 `X-Trace-Id` 확인 및 생성 (없으면 UUID v4 생성)
   - [ ] 모든 로그에 `traceId` 포함 (MDC/Span 활용)

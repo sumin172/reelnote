@@ -280,7 +280,176 @@ class ReviewQueryServiceTest {
 
 ## 🟢 낮은 우선순위
 
-### 3. 테스트 커버리지 개선 (장기)
+### 3. 로깅 집계 및 모니터링 개선 (장기)
+
+**현재 상태:**
+- 로깅 가이드 및 구조화 로깅 표준 정의 완료 (`docs/guides/logging.md`)
+- 로그 레벨 매핑 (NestJS ↔ Spring) 문서화 완료
+- TraceId 전파 및 구조화된 에러 로깅 구현 완료
+  - Review Service: TraceIdFilter (요청 시작 시 traceId 설정) + WebClientTraceIdFilter (서비스 간 호출 시 전파) 완료
+  - Catalog Service: HttpExceptionFilter에서 에러 발생 시 traceId 생성/조회 완료
+  - Catalog Service: 요청 시작 시 traceId를 설정하는 Interceptor 미구현 (일반 로그에 traceId 포함 불가)
+- 중앙 집계 스택 미구현 (각 서비스에서 로컬 출력만)
+
+**영향:**
+- 서비스 간 로그를 통합적으로 검색/분석 어려움
+- 분산 추적 시각화 부재
+- 에러 패턴 분석 및 알람 설정 어려움
+- 로그 기반 모니터링 및 대시보드 부재
+
+**권장 방향:**
+
+#### 3-1. 중앙 집계 스택 도입
+
+**구현 내용:**
+- **옵션 1: ELK Stack (Elasticsearch, Logstash, Kibana)**
+  - 각 서비스에서 JSON 로그를 Logstash로 전송
+  - Elasticsearch에 인덱싱
+  - Kibana에서 검색/시각화
+- **옵션 2: Loki + Promtail + Grafana**
+  - Promtail이 각 서비스 로그를 수집하여 Loki로 전송
+  - Grafana에서 Loki 데이터 조회 및 시각화
+  - Prometheus 메트릭과 함께 통합 대시보드 구성
+
+**필수 공통 필드 (이미 정의됨):**
+- `@timestamp`: ISO 8601 형식 타임스탬프
+- `service`: 서비스 이름 (`catalog-service`, `review-service`)
+- `level`: 로그 레벨 (ERROR, WARN, INFO, DEBUG, TRACE)
+- `message`: 로그 메시지
+- `traceId`: 분산 추적 ID
+
+**선택 필드:**
+- `spanId`: 스팬 ID (분산 추적 시)
+- `userId` / `actor`: 사용자 식별자
+- `env` / `profile`: 환경 정보
+
+**구현 예시:**
+
+**Loki + Promtail 설정 (각 서비스)**
+```yaml
+# promtail-config.yml
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: catalog-service
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: catalog-service
+          service: catalog-service
+          env: ${ENV:dev}
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            message: message
+            traceId: traceId
+            service: service
+      - labels:
+          level:
+          service:
+          traceId:
+```
+
+**Grafana 대시보드 예시:**
+- 에러 로그 추이 (errorType별)
+- 서비스별 로그 레벨 분포
+- TraceId 기반 요청 추적
+- 에러 코드별 발생 빈도
+
+#### 3-2. 분산 추적 도구 연동
+
+**구현 내용:**
+- **옵션 1: Jaeger**
+  - OpenTracing/OpenTelemetry 표준 사용
+  - TraceId 기반 분산 추적 시각화
+  - 서비스 간 호출 체인 시각화
+- **옵션 2: Zipkin**
+  - Spring Cloud Sleuth와 통합 용이
+  - 간단한 분산 추적 구현
+
+**기대 효과:**
+- Gateway → Catalog Service → Review Service 전체 요청 흐름 추적
+- 병목 구간 및 지연 시간 분석
+- 에러 발생 지점 정확한 파악
+
+#### 3-3. 로그 기반 알람 설정
+
+**구현 내용:**
+- 에러 로그 (ERROR 레벨) 실시간 알람
+- 에러 코드별 알람 규칙 설정
+  - `SYSTEM` 에러 타입 → 즉시 알람 (Slack, PagerDuty 등)
+  - `BUSINESS` 에러 타입 → 주기적 리뷰
+- 에러 발생 빈도 임계값 기반 알람
+  - 특정 에러 코드가 시간당 N회 이상 발생 시 알람
+  - 에러율 증가 추세 감지
+
+**기대 효과:**
+- 장애 조기 감지
+- 에러 패턴 분석 및 예방
+- 운영 효율성 향상
+
+#### 3-4. 로그 보관 정책
+
+**구현 내용:**
+- **Hot Storage**: 최근 N일간의 로그 (자주 조회)
+  - Elasticsearch/Loki에 저장
+  - 빠른 검색/분석 가능
+- **Cold Storage**: 오래된 로그 (아카이브)
+  - S3, Glacier 등 객체 스토리지로 이동
+  - 필요 시 복원 가능
+- **보관 기간**: 법적/컴플라이언스 요구사항에 따라 결정
+
+**기대 효과:**
+- 장기 로그 보관 비용 절감
+- 필요 시 과거 로그 조회 가능
+- 규정 준수 (GDPR, 데이터 보관 정책 등)
+
+**참고:**
+- 로깅 가이드: [docs/guides/logging.md](guides/logging.md)
+- 현재 로그 포맷은 이미 중앙 집계를 전제로 설계됨 (JSON 기반 공통 필드)
+
+#### 3-5. Catalog Service TraceId Interceptor 추가 (선택)
+
+**현재 상태:**
+- Catalog Service의 `HttpExceptionFilter`에서 에러 발생 시에만 traceId 생성/조회
+- 일반 로그(INFO/DEBUG)에 traceId가 포함되지 않음
+- 현재 Catalog Service가 다른 서비스를 호출하지 않아 우선순위 낮음
+
+**영향:**
+- 에러 로그만 traceId 포함 가능
+- 일반 로그에서 요청 추적 어려움
+- 분산 추적 시나리오 제한적
+
+**권장 방향:**
+- 요청 시작 시 traceId를 설정하는 Interceptor 구현 (Review Service의 TraceIdFilter와 유사)
+- 모든 로그에 traceId가 자동으로 포함되도록 개선
+- **우선순위**: 다른 서비스 호출이 추가되거나 일반 로그 추적이 필요한 경우 구현
+
+**참고:**
+- Review Service 구현: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/TraceIdFilter.kt`
+- 가이드 예시: [docs/guides/logging.md](guides/logging.md) 섹션 5-3
+
+**기대 효과:**
+- 서비스 간 로그 통합 검색/분석 가능
+- 분산 추적 시각화로 요청 흐름 파악 용이
+- 에러 패턴 분석 및 조기 감지
+- 로그 기반 모니터링 및 대시보드 구성
+- 운영 효율성 및 장애 대응 시간 단축
+
+---
+
+### 4. 테스트 커버리지 개선 (장기)
 
 **현재 상태:**
 - 단위 테스트는 일부 구현됨

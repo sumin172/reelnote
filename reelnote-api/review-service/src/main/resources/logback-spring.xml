@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- 프로파일별 설정 -->
+    <springProfile name="!prod">
+        <!-- 개발 환경: JSON 포맷 + 콘솔 출력 -->
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <version/>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <includeMdcKeyName>traceId</includeMdcKeyName>
+                    </mdc>
+                    <loggerName>
+                        <fieldName>logger</fieldName>
+                    </loggerName>
+                    <stackTrace>
+                        <fieldName>stack</fieldName>
+                    </stackTrace>
+                </providers>
+                <customFields>{"service":"review-service"}</customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <!-- 프로덕션 환경: JSON 포맷 + 콘솔 출력 -->
+        <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                <providers>
+                    <timestamp>
+                        <timeZone>UTC</timeZone>
+                        <fieldName>@timestamp</fieldName>
+                    </timestamp>
+                    <version/>
+                    <logLevel>
+                        <fieldName>level</fieldName>
+                    </logLevel>
+                    <message>
+                        <fieldName>message</fieldName>
+                    </message>
+                    <mdc>
+                        <includeMdcKeyName>traceId</includeMdcKeyName>
+                    </mdc>
+                    <loggerName>
+                        <fieldName>logger</fieldName>
+                    </loggerName>
+                    <stackTrace>
+                        <fieldName>stack</fieldName>
+                    </stackTrace>
+                </providers>
+                <customFields>{"service":"review-service"}</customFields>
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
+</configuration>

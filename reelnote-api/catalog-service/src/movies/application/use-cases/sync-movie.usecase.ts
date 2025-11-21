@@ -162,7 +162,9 @@ export class SyncMovieUseCase {
 
     if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
       this.logger.warn(`Invalid TMDB ID requested for sync: ${tmdbId}`);
-      throw this.exceptionFactory.validationTmdbIdInvalid();
+      throw this.exceptionFactory.validationError(
+        "유효하지 않은 TMDB ID 입니다. 양의 정수를 입력해주세요.",
+      );
     }
 
     const payload = await this.movieExternalPort.fetchMovieDetail(

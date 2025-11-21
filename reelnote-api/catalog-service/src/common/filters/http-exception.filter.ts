@@ -49,16 +49,26 @@ export class HttpExceptionFilter implements ExceptionFilter {
         traceId,
       };
 
-      // 로그 기록
+      // 구조화된 에러 로깅
+      const errorType = exception.httpStatus >= 500 ? "SYSTEM" : "BUSINESS";
+      const logContext = {
+        errorCode: exception.errorCode,
+        errorType,
+        message: exception.message,
+        traceId,
+        metadata: {
+          path: request.url,
+          ...exception.details,
+        },
+        ...(exception.httpStatus >= 500 && exception.stack
+          ? { stack: exception.stack }
+          : {}),
+      };
+
       if (exception.httpStatus >= 500) {
-        this.logger.error(
-          `예상치 못한 예외 발생: ${errorDetail.message}, traceId=${traceId}`,
-          exception.stack,
-        );
+        this.logger.error(JSON.stringify(logContext, null, 0), exception.stack);
       } else {
-        this.logger.warn(
-          `예외 발생: ${errorDetail.message}, traceId=${traceId}`,
-        );
+        this.logger.warn(JSON.stringify(logContext, null, 0));
       }
 
       response.status(exception.httpStatus).json(errorDetail);
@@ -78,14 +88,29 @@ export class HttpExceptionFilter implements ExceptionFilter {
       status,
     );
 
-    // 로그 기록
+    // 구조화된 에러 로깅
+    const errorType = status >= 500 ? "SYSTEM" : "BUSINESS";
+    const logContext = {
+      errorCode: errorDetail.code,
+      errorType,
+      message: errorDetail.message,
+      traceId,
+      metadata: {
+        path: request.url,
+        ...(errorDetail.details || {}),
+      },
+      ...(status >= 500 && exception instanceof Error && exception.stack
+        ? { stack: exception.stack }
+        : {}),
+    };
+
     if (status >= 500) {
       this.logger.error(
-        `예상치 못한 예외 발생: ${errorDetail.message}, traceId=${traceId}`,
+        JSON.stringify(logContext, null, 0),
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else {
-      this.logger.warn(`예외 발생: ${errorDetail.message}, traceId=${traceId}`);
+      this.logger.warn(JSON.stringify(logContext, null, 0));
     }
 
     response.status(status).json(errorDetail);

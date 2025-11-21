@@ -53,6 +53,9 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
+    // JSON 로깅 (logstash-logback-encoder)
+    implementation("net.logstash.logback:logstash-logback-encoder:7.4")
+
     // OpenAPI Documentation
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.7")
 

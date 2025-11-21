@@ -16,6 +16,7 @@
 개발 시 참고할 가이드 문서입니다.
 
 - **[개발 표준 가이드](guides/development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
+- **[로깅 가이드](guides/logging.md)** – 로그 레벨 매핑, 구조화 로깅, TraceId 전파 등 로깅 표준
 - **[신규 서비스 체크리스트](guides/new-service.md)** – 새 마이크로서비스 추가 시 전체 체크리스트
 
 ### 기타 문서
@@ -34,6 +35,7 @@ docs/
 │   └── health-check.md          # 헬스 체크 스펙
 ├── guides/                      # 가이드 문서
 │   ├── development-standards.md # 개발 표준 가이드 (실시간 참조) ⭐
+│   ├── logging.md               # 로깅 가이드 (로그 레벨, 구조화 로깅, TraceId 전파)
 │   └── new-service.md           # 신규 서비스 체크리스트
 └── improvements.md              # 기술 개선 사항 모음
 ```
