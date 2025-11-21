@@ -101,4 +101,7 @@ async function main() {
   }
 }
 
-main();
+main().catch((error) => {
+  console.error("예상치 못한 오류 발생:", error);
+  process.exit(1);
+});

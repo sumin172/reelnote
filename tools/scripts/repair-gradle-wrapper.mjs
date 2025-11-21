@@ -50,20 +50,25 @@ async function currentWrapperHash(filePath) {
 }
 
 async function parseGradleVersion() {
+  let contents;
   try {
-    const contents = await fs.readFile(wrapperPropertiesPath, "utf8");
-    const match = contents.match(
-      /distributionUrl=.*gradle-([\d.]+(?:-rc-\d+)?)-bin\.zip/i,
-    );
-    if (!match) {
-      throw new Error("Unable to determine Gradle version from distributionUrl");
-    }
-    return match[1];
+    contents = await fs.readFile(wrapperPropertiesPath, "utf8");
   } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
     throw new Error(
-      `Failed to read gradle-wrapper.properties: ${(error && error.message) || error}`,
+      `Failed to read gradle-wrapper.properties: ${errorMessage}`,
+      { cause: error instanceof Error ? error : undefined },
     );
   }
+
+  const match = contents.match(
+    /distributionUrl=.*gradle-([\d.]+(?:-rc-\d+)?)-bin\.zip/i,
+  );
+  if (!match) {
+    throw new Error("Unable to determine Gradle version from distributionUrl");
+  }
+  return match[1];
 }
 
 async function downloadGradleDistribution(url, destination) {
