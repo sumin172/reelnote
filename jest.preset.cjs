@@ -15,8 +15,12 @@ const nxPreset = require('@nx/jest/preset').default;
 // nxPreset을 안전하게 확장
 let preset;
 try {
-  if (typeof nxPreset === 'function') {
-    preset = nxPreset();
+  // 타입 가드를 명시적으로 처리하여 경고 방지
+  const isFunction = typeof nxPreset === 'function';
+  if (isFunction) {
+    // typeof 체크 후 별도 변수에 할당하여 타입을 좁힘
+    const presetFn = /** @type {() => any} */ (nxPreset);
+    preset = presetFn();
   } else {
     preset = nxPreset || {};
   }

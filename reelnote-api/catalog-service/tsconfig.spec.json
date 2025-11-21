@@ -1,5 +1,5 @@
 {
-  "extends": "../../tools/ts/tsconfig.base.json",
+  "extends": "../../tsconfig.node.json",
   "compilerOptions": {
     "outDir": "./out-tsc/jest",
     "types": ["jest", "node"],

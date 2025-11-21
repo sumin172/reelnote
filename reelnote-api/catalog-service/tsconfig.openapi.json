@@ -1,11 +1,9 @@
 {
-  "extends": "../../tools/ts/tsconfig.base.json",
+  "extends": "../../tsconfig.node.json",
   "compilerOptions": {
-    "module": "nodenext",
     "rootDir": ".",
     "outDir": "dist/openapi",
     "target": "es2021",
-    "types": ["node"],
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
