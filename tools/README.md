@@ -7,7 +7,8 @@
 ```
 tools/
 ├── nestjs/          # NestJS 프레임워크 전용 설정
-│   └── jest.preset.cjs
+│   ├── jest.preset.cjs
+│   └── .spec.swcrc              # NestJS 공통 SWC 설정
 └── kotlin/          # Kotlin 공통 설정
     ├── build.gradle.kts.base    # 공통 Gradle 설정 (플러그인, toolchain, lint 등)
     └── detekt.yml               # 공통 detekt 코드 품질 규칙
@@ -129,7 +130,13 @@ export default [
 3. **tools/nestjs/jest.preset.cjs**: NestJS 전용 preset
    - 루트 preset 확장
    - SWC transform, decorator 지원
+   - `tools/nestjs/.spec.swcrc` 공통 SWC 설정 로드
    - NestJS 프로젝트 공통 설정
+
+4. **tools/nestjs/.spec.swcrc**: NestJS 공통 SWC 설정
+   - TypeScript decorator, metadata 변환 설정
+   - 모든 NestJS 프로젝트에서 공유
+   - `jest.preset.cjs`에서 자동 로드
 
 ### 사용법
 
@@ -149,12 +156,12 @@ module.exports = {
   },
 };
 
-// 범용 Node.js 테스트 (e2e-catalog 등)
+// NestJS 기반 E2E 테스트 (e2e-catalog 등)
 // e2e-catalog/jest.config.ts
-const rootPreset = require("../../jest.preset.cjs");
+const nestPreset = require("../../tools/nestjs/jest.preset.cjs");
 
 export default {
-  ...rootPreset,
+  ...nestPreset,
   displayName: "e2e-catalog",
   // e2e 테스트 전용 설정
 };
