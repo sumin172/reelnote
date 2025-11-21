@@ -20,12 +20,48 @@
   "settings": {
     "nx.enableTelemetry": false,
     "nx.defaultProject": "reelnote",
-    "terminal.integrated.defaultProfile.windows": "Command Prompt",
+    "terminal.integrated.defaultProfile.windows": "PowerShell 7",
     "terminal.integrated.profiles.windows": {
+      "PowerShell 7": {
+        "path": "pwsh.exe",
+        "icon": "terminal-powershell"
+      },
       "Command Prompt": {
-        "path": "C:\\WINDOWS\\system32\\cmd.EXE",
-        "args": ["/k", "cd /d ${workspaceFolder}"]
+        "path": [
+          "${env:windir}\\Sysnative\\cmd.exe",
+          "${env:windir}\\System32\\cmd.exe"
+        ]
       }
+    },
+    "[kotlin]": {
+      "editor.formatOnSave": true,
+      "editor.defaultFormatter": "fwcd.kotlin"
+    },
+    "java.import.gradle.enabled": false,
+    "java.configuration.updateBuildConfiguration": "disabled",
+    "files.exclude": {
+      "**/dist": true,
+      "**/build": true,
+      "**/out-tsc": true,
+      "**/.next": true,
+      "**/bin": true,
+      "**/*.tsbuildinfo": true,
+      "**/.gradle": true,
+      "**/node_modules": true,
+      "**/.nx": true,
+      "**/coverage": true,
+      "**/test-results": true,
+      "**/playwright-report": true,
+      "**/blob-report": true,
+      "**/tmp": true,
+      "**/data": true,
+      "**/.idea": true,
+      "**/.vscode": true,
+      "**/.cursor": true,
+      "**/*.log": true,
+      "**/dependency-graph.html": true,
+      "**/static": true,
+      "**/generated": true
     }
   },
   "extensions": {
@@ -33,7 +69,8 @@
       "nrwl.angular-console",
       "ms-vscode.vscode-typescript-next",
       "bradlc.vscode-tailwindcss",
-      "esbenp.prettier-vscode"
+      "esbenp.prettier-vscode",
+      "fwcd.kotlin"
     ]
   }
 }

@@ -1,16 +1,22 @@
 {
-  "extends": "./tools/ts/tsconfig.base.json",
+  "extends": "./tsconfig.node.json",
   "compileOnSave": false,
   "files": [],
   "references": [
-    {
-      "path": "./reelnote-api/catalog-service-e2e"
-    },
     {
       "path": "./reelnote-api/catalog-service"
     },
     {
       "path": "./reelnote-frontend"
+    },
+    {
+      "path": "./packages/api-schema"
+    },
+    {
+      "path": "./tests/e2e-catalog"
+    },
+    {
+      "path": "./tests/e2e-frontend"
     }
   ]
 }

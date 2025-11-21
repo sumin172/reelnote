@@ -1,6 +1,7 @@
 packages:
   - reelnote-api/*
   - reelnote-frontend
+  - packages/*
 
 ignoredBuiltDependencies:
   - '@nestjs/core'
@@ -9,6 +10,5 @@ ignoredBuiltDependencies:
   - '@scarf/scarf'
   - '@swc/core'
   - msw
-  - nx
   - prisma
   - sharp

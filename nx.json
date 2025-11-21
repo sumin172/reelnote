@@ -1,28 +1,19 @@
 {
   "installation": {
-    "version": "21.5.3"
+    "version": "22.0.3"
   },
   "projects": {
     "review-service": "reelnote-api/review-service",
     "catalog-service": "reelnote-api/catalog-service",
-    "catalog-service-e2e": "reelnote-api/catalog-service-e2e",
-    "frontend": "reelnote-frontend"
+    "frontend": "reelnote-frontend",
+    "e2e-frontend": "tests/e2e-frontend",
+    "e2e-catalog": "tests/e2e-catalog",
+    "e2e-review": "tests/e2e-review",
+    "e2e-cross": "tests/e2e-cross",
+    "api-schema": "packages/api-schema",
+    "contract-frontend-catalog": "tests/contract-frontend-catalog"
   },
   "plugins": [
-    {
-      "plugin": "@nx/js/typescript",
-      "options": {
-        "typecheck": {
-          "targetName": "typecheck"
-        },
-        "build": {
-          "targetName": "build",
-          "configName": "tsconfig.lib.json",
-          "buildDepsName": "build-deps",
-          "watchDepsName": "watch-deps"
-        }
-      }
-    },
     {
       "plugin": "@nx/webpack/plugin",
       "options": {
@@ -43,10 +34,11 @@
     {
       "plugin": "@nx/jest/plugin",
       "options": {
-        "targetName": "test"
+        "targetName": "test",
+        "disableJestRuntime": true
       },
       "exclude": [
-        "reelnote-api/catalog-service-e2e/**/*"
+        "tests/e2e-catalog/**/*"
       ]
     }
   ],

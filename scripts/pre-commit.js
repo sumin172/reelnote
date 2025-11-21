@@ -6,7 +6,6 @@ const fs = require('fs');
 const ANSI_RESET = '\x1b[0m';
 const ANSI_GREEN = '\x1b[32m';
 const ANSI_RED = '\x1b[31m';
-const ANSI_YELLOW = '\x1b[33m';
 const ANSI_BLUE = '\x1b[34m';
 
 function log(message, color = ANSI_RESET) {
@@ -126,8 +125,8 @@ function detectPrivateKey(files) {
     /-----BEGIN\s+EC\s+PRIVATE\s+KEY-----/i,
     /-----BEGIN\s+DSA\s+PRIVATE\s+KEY-----/i,
     /-----BEGIN\s+OPENSSH\s+PRIVATE\s+KEY-----/i,
-    /["\']?[Aa][Ww][Ss].*[Aa][Cc][Cc][Ee][Ss][Ss].[Kk][Ee][Yy][Ii][Dd]["\']?\s*[:=]\s*["\']?[A-Za-z0-9\/+=]{20,}["\']?/,
-    /["\']?[Aa][Pp][Ii][_\-]?[Kk][Ee][Yy["\']?\s*[:=]\s*["\']?[A-Za-z0-9\/+=]{20,}["\']?/,
+    /["']?[Aa][Ww][Ss].*[Aa][Cc][Cc][Ee][Ss][Ss].[Kk][Ee][Yy][Ii][Dd]["']?\s*[:=]\s*["']?[A-Za-z0-9\/+=]{20,}["']?/,
+    /["']?[Aa][Pp][Ii][_\-]?[Kk][Ee][Yy["']?\s*[:=]\s*["']?[A-Za-z0-9\/+=]{20,}["']?/,
   ];
 
   for (const file of files) {
