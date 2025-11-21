@@ -1,12 +1,15 @@
 import { Redis } from "ioredis";
+import { Injectable, OnModuleDestroy, Logger } from "@nestjs/common";
 
 /**
  * cache-manager용 ioredis store 구현
  * cache-manager v7에서는 Store 타입이 제거되었으므로 직접 인터페이스를 구현합니다.
  */
-export class IoredisStore {
+@Injectable()
+export class IoredisStore implements OnModuleDestroy {
   private readonly client: Redis;
   private readonly keyPrefix: string;
+  private readonly logger = new Logger(IoredisStore.name);
 
   constructor(redisUrl: string, keyPrefix = "") {
     this.client = new Redis(redisUrl, {
@@ -75,12 +78,6 @@ export class IoredisStore {
     return this.client.keys(searchPattern);
   }
 
-  async ttl(key: string): Promise<number> {
-    const ttlSeconds = await this.client.ttl(this.getKey(key));
-    // cache-manager는 밀리초 단위를 기대하므로 변환
-    return ttlSeconds > 0 ? ttlSeconds * 1000 : ttlSeconds;
-  }
-
   /**
    * Redis 연결 확인 (ping)
    */
@@ -93,5 +90,18 @@ export class IoredisStore {
    */
   async disconnect(): Promise<void> {
     await this.client.quit();
+  }
+
+  /**
+   * NestJS 모듈 종료 시 Redis 연결 정리
+   * PrismaService와 동일한 패턴으로 구현
+   */
+  async onModuleDestroy(): Promise<void> {
+    try {
+      await this.disconnect();
+      this.logger.log("Redis 연결이 정상적으로 종료되었습니다");
+    } catch (error) {
+      this.logger.warn("Redis 연결 종료 중 오류 발생", error);
+    }
   }
 }
