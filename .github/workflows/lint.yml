@@ -52,5 +52,8 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       - name: Run detekt + ktlint check (review-service)
         run: pnpm lint:kotlin
