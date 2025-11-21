@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Node.js projects (NestJS, libraries, tests) use "nodenext"
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    // Default Node.js types - projects can extend with additional types (e.g., ["jest", "node"])
+    "types": ["node"],
+    // Custom conditions for package.json exports resolution
+    "customConditions": ["reelnote", "node", "require", "default"]
+  }
+}
+

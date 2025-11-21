@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Bundler-based projects (Next.js, Vite) use "bundler"
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    // Custom conditions for package.json exports resolution
+    // Note: jsx is not set here - Next.js projects should override with "preserve"
+    "customConditions": ["reelnote", "browser", "import", "default"]
+  }
+}
+
