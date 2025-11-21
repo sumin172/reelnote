@@ -35,6 +35,7 @@ class MessageResourceValidationTest(
             ErrorCodes.VALIDATION_ERROR to "error.validation.failed",
             ErrorCodes.NOT_FOUND to "error.unknown", // 범용 NOT_FOUND는 특정 메시지 키 없음
             ErrorCodes.INTERNAL_ERROR to "error.internal.server",
+            ErrorCodes.UNKNOWN_ERROR to "error.unknown.error",
             ErrorCodes.EXTERNAL_API_ERROR to "error.external.api.failed",
             ErrorCodes.CONFLICT to "error.unknown", // 범용 CONFLICT는 특정 메시지 키 없음
             ErrorCodes.UNAUTHORIZED to "error.unknown", // 범용 UNAUTHORIZED는 특정 메시지 키 없음

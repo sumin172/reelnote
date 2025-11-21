@@ -20,7 +20,9 @@ export class TmdbService {
   async getMovieDetail(tmdbId: number, language = "ko-KR") {
     if (!Number.isInteger(tmdbId) || tmdbId <= 0) {
       this.logger.warn(`유효하지 않은 TMDB ID 요청: tmdbId=${tmdbId}`);
-      throw this.exceptionFactory.validationTmdbIdInvalid();
+      throw this.exceptionFactory.validationError(
+        "유효하지 않은 TMDB ID 입니다. 양의 정수를 입력해주세요.",
+      );
     }
     this.logger.log(`영화 상세 조회: tmdbId=${tmdbId}`);
     return this.tmdbClient.getMovieDetail(tmdbId, language);

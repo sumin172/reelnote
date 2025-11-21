@@ -14,9 +14,6 @@ export enum CatalogErrorCode {
   /** TMDB API 호출 실패 */
   TMDB_API_FAILED = "CATALOG_TMDB_API_FAILED",
 
-  /** 서비스 사용 불가 (Circuit Breaker 등) */
-  SERVICE_UNAVAILABLE = "CATALOG_SERVICE_UNAVAILABLE",
-
   /** 작업(Job)을 찾을 수 없음 */
   JOB_NOT_FOUND = "CATALOG_JOB_NOT_FOUND",
 
@@ -26,12 +23,6 @@ export enum CatalogErrorCode {
   // ============================================
   // 검증 에러 (VALIDATION_ prefix, 서비스 공통 가능)
   // ============================================
-  /** 검색어 필수 */
-  VALIDATION_SEARCH_QUERY_REQUIRED = "VALIDATION_SEARCH_QUERY_REQUIRED",
-
-  /** TMDB ID 유효하지 않음 */
-  VALIDATION_TMDB_ID_INVALID = "VALIDATION_TMDB_ID_INVALID",
-
   /** 검증 에러 (범용, ValidationPipe 등에서 사용) */
   VALIDATION_ERROR = "VALIDATION_ERROR",
 
@@ -61,6 +52,9 @@ export enum CatalogErrorCode {
 
   /** 외부 API 오류 (범용) */
   EXTERNAL_API_ERROR = "EXTERNAL_API_ERROR",
+
+  /** 서비스 사용 불가 (Circuit Breaker 등, 범용) */
+  SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE",
 
   // ============================================
   // TMDB API 관련 에러 코드

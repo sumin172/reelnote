@@ -14,41 +14,6 @@ export class ExceptionFactoryService {
   constructor(private readonly messageService: MessageService) {}
 
   /**
-   * 영화를 찾을 수 없음
-   */
-  movieNotFound(tmdbId: number): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.MOVIE_NOT_FOUND,
-      this.messageService.get(CatalogErrorCode.MOVIE_NOT_FOUND, { tmdbId }),
-      HttpStatus.NOT_FOUND,
-    );
-  }
-
-  /**
-   * TMDB API 호출 실패
-   */
-  tmdbApiFailed(message: string): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.TMDB_API_FAILED,
-      this.messageService.get(CatalogErrorCode.TMDB_API_FAILED, { message }),
-      HttpStatus.BAD_GATEWAY,
-    );
-  }
-
-  /**
-   * 서비스 사용 불가 (Circuit Breaker 등)
-   */
-  serviceUnavailable(serviceName: string): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.SERVICE_UNAVAILABLE,
-      this.messageService.get(CatalogErrorCode.SERVICE_UNAVAILABLE, {
-        serviceName,
-      }),
-      HttpStatus.SERVICE_UNAVAILABLE,
-    );
-  }
-
-  /**
    * 작업(Job)을 찾을 수 없음
    */
   jobNotFound(jobId: string): CatalogException {
@@ -71,59 +36,13 @@ export class ExceptionFactoryService {
   }
 
   /**
-   * 검색어 필수
+   * 검증 에러 (범용)
    */
-  validationSearchQueryRequired(): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.VALIDATION_SEARCH_QUERY_REQUIRED,
-      this.messageService.get(
-        CatalogErrorCode.VALIDATION_SEARCH_QUERY_REQUIRED,
-      ),
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  /**
-   * TMDB ID 유효하지 않음
-   */
-  validationTmdbIdInvalid(): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.VALIDATION_TMDB_ID_INVALID,
-      this.messageService.get(CatalogErrorCode.VALIDATION_TMDB_ID_INVALID),
-      HttpStatus.BAD_REQUEST,
-    );
-  }
-
-  /**
-   * 도메인 규칙 위반 (범용)
-   */
-  domainViolation(message: string): CatalogException {
+  validationError(message?: string): CatalogException {
     return new CatalogException(
       CatalogErrorCode.VALIDATION_ERROR,
-      message,
-      HttpStatus.UNPROCESSABLE_ENTITY,
-    );
-  }
-
-  /**
-   * 내부 서버 오류
-   */
-  internalError(): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.INTERNAL_ERROR,
-      this.messageService.get(CatalogErrorCode.INTERNAL_ERROR),
-      HttpStatus.INTERNAL_SERVER_ERROR,
-    );
-  }
-
-  /**
-   * 알 수 없는 오류
-   */
-  unknownError(): CatalogException {
-    return new CatalogException(
-      CatalogErrorCode.UNKNOWN_ERROR,
-      this.messageService.get(CatalogErrorCode.UNKNOWN_ERROR),
-      HttpStatus.INTERNAL_SERVER_ERROR,
+      message ?? this.messageService.get(CatalogErrorCode.VALIDATION_ERROR),
+      HttpStatus.BAD_REQUEST,
     );
   }
 }

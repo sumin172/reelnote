@@ -27,7 +27,7 @@ export class SearchReadAggregator extends SearchReadPort {
   async search(query: SearchQuery): Promise<SearchResult> {
     const normalizedQuery = query.query?.trim();
     if (!normalizedQuery) {
-      throw this.exceptionFactory.validationSearchQueryRequired();
+      throw this.exceptionFactory.validationError("검색어는 필수입니다.");
     }
 
     const page = query.page && query.page > 0 ? query.page : 1;

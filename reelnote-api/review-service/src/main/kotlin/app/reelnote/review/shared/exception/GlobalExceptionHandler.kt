@@ -177,19 +177,22 @@ class GlobalExceptionHandler(
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
     }
 
-    /** 일반적인 예외 처리 */
+    /** 일반적인 예외 처리 (예측하지 못한 예외 - 마지막 방패) */
     @ExceptionHandler(Exception::class)
     fun handleGenericException(
         ex: Exception,
         request: WebRequest,
     ): ResponseEntity<ErrorDetail> {
         val traceId = getOrCreateTraceId(request)
-        logger.error("예상치 못한 예외 발생: ${ex.message ?: "알 수 없는 오류"}, traceId=$traceId", ex)
+        logger.error(
+            "예상치 못한 예외 발생 (UNKNOWN_ERROR): ${ex.message ?: "알 수 없는 오류"}, traceId=$traceId",
+            ex,
+        )
 
         val error =
             ErrorDetail(
-                code = ErrorCodes.INTERNAL_ERROR,
-                message = getMessage("error.internal.server"),
+                code = ErrorCodes.UNKNOWN_ERROR,
+                message = getMessage("error.unknown.error"),
                 details = requestMetadata(request),
                 traceId = traceId,
             )

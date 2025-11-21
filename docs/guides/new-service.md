@@ -20,6 +20,7 @@
 - [ ] `.env.example` 작성 및 필수 환경 변수 문서화
 - [ ] `.gitignore` 업데이트
 - [ ] 서비스 README에 기술 스택, 구조, 실행 방법, API 문서 링크 정리
+- [ ] **환경 변수 네이밍 규칙 준수** (아래 가이드 참조)
 - [ ] **데이터베이스 마이그레이션 관리**
   - 마이그레이션 파일을 버전 관리에 포함
   - **Prisma**:
@@ -33,6 +34,97 @@
     - Prisma: `{timestamp}_{description}` (자동 생성, `--name` 옵션으로 의미있는 이름 지정 권장)
   - 개발/운영 계열 DB에는 `prisma db push` 사용 금지
   - 롤백 전략 문서화 (필요 시)
+
+### 환경 변수 네이밍 규칙
+
+ReelNote MSA의 모든 서비스는 일관된 환경 변수 네이밍 규칙을 따라야 합니다. 이를 통해 환경 변수의 목적을 명확히 하고, 유지보수성을 향상시킵니다.
+
+#### 규칙 요약
+
+| 카테고리             | 패턴                                                              | 예시                                                                                    |
+|------------------|-----------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| **서비스별 데이터베이스**  | `{SERVICE}_DB_URL`<br>`{SERVICE}_DB_*`                          | `CATALOG_DB_URL`<br>`REVIEW_DB_URL`<br>`REVIEW_DB_USERNAME`<br>`REVIEW_DB_POOL_SIZE`  |
+| **외부 API 클라이언트** | `{EXTERNAL_SERVICE}_API_BASE_URL`<br>`{EXTERNAL_SERVICE}_API_*` | `CATALOG_API_BASE_URL`<br>`TMDB_API_BASE_URL`<br>`TMDB_API_KEY`<br>`TMDB_API_TIMEOUT` |
+| **공통 인프라**       | `{INFRA}_URL`<br>`CACHE_*`                                      | `REDIS_URL`<br>`CACHE_TTL_SECONDS`<br>`CACHE_NAMESPACE`                               |
+
+#### 상세 규칙
+
+**1. 서비스별 데이터베이스**
+
+서비스 전용 데이터베이스 연결 정보는 `{SERVICE}_DB_*` 패턴을 사용합니다.
+
+- **필수**: `{SERVICE}_DB_URL` - 데이터베이스 연결 문자열
+  - 예: `CATALOG_DB_URL`, `REVIEW_DB_URL`
+- **선택적**: 추가 설정은 `{SERVICE}_DB_*` 접두사 사용
+  - 예: `REVIEW_DB_USERNAME`, `REVIEW_DB_PASSWORD`, `REVIEW_DB_POOL_SIZE`, `REVIEW_DB_SCHEMA`
+
+**예시:**
+```env
+# Catalog Service
+CATALOG_DB_URL=postgresql://user:password@localhost:5432/catalog_db?schema=public
+
+# Review Service
+REVIEW_DB_URL=jdbc:postgresql://localhost:5433/review_db
+REVIEW_DB_USERNAME=review_app
+REVIEW_DB_PASSWORD=review_1106
+REVIEW_DB_POOL_SIZE=10
+REVIEW_DB_SCHEMA=app
+```
+
+**2. 외부 API 클라이언트**
+
+다른 서비스나 외부 API를 호출하는 클라이언트 설정은 `{EXTERNAL_SERVICE}_API_*` 패턴을 사용합니다.
+
+- **필수**: `{EXTERNAL_SERVICE}_API_BASE_URL` - API 기본 URL
+  - 예: `CATALOG_API_BASE_URL`, `TMDB_API_BASE_URL`
+- **선택적**: 추가 설정은 `{EXTERNAL_SERVICE}_API_*` 접두사 사용
+  - 예: `TMDB_API_KEY`, `TMDB_API_TIMEOUT`, `TMDB_API_MAX_CONCURRENCY`, `TMDB_API_MAX_RETRY`
+
+**예시:**
+```env
+# 다른 마이크로서비스 호출
+CATALOG_API_BASE_URL=http://localhost:3001/api
+
+# 외부 API 호출
+TMDB_API_BASE_URL=https://api.themoviedb.org/3
+TMDB_API_KEY=your_tmdb_api_key_here
+TMDB_API_TIMEOUT=10000
+TMDB_API_MAX_CONCURRENCY=10
+TMDB_API_MAX_RETRY=3
+```
+
+**3. 공통 인프라**
+
+여러 서비스에서 공유하는 인프라 설정은 서비스명 없이 인프라 이름만 사용합니다.
+
+- **캐시/Redis**: `REDIS_URL`, `CACHE_*` 패턴
+  - 예: `REDIS_URL`, `CACHE_TTL_SECONDS`, `CACHE_NAMESPACE`
+- **기타 공통 인프라**: `{INFRA}_URL` 패턴
+  - 예: `REDIS_URL` (Redis), 향후 `KAFKA_URL`, `ELASTICSEARCH_URL` 등
+
+**예시:**
+```env
+# Redis 캐시
+REDIS_URL=redis://localhost:6379
+CACHE_TTL_SECONDS=3600
+CACHE_NAMESPACE=catalog-cache
+```
+
+#### 네이밍 원칙
+
+1. **대문자 사용**: 모든 환경 변수는 대문자로 작성
+2. **언더스코어 구분**: 단어는 언더스코어(`_`)로 구분
+3. **명확한 접두사**: 서비스명 또는 외부 서비스명을 접두사로 사용하여 소유권 명확화
+4. **일관성 유지**: 동일한 목적의 환경 변수는 동일한 패턴 사용
+5. **계층 구조**: 관련 설정은 공통 접두사로 그룹화
+
+#### 체크리스트
+
+- [ ] 서비스별 DB 환경 변수는 `{SERVICE}_DB_*` 패턴 사용
+- [ ] 외부 API 클라이언트 환경 변수는 `{EXTERNAL_SERVICE}_API_*` 패턴 사용
+- [ ] 공통 인프라 환경 변수는 서비스명 없이 `{INFRA}_URL` 또는 `CACHE_*` 패턴 사용
+- [ ] `.env.example` 파일에 모든 환경 변수와 설명 포함
+- [ ] 서비스 README에 환경 변수 목록과 설명 문서화
 
 ## 4. 테스트 설정
 
