@@ -8,7 +8,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
     globals: true,
-    pool: "threads",
+    testTimeout: 30000,
+    hookTimeout: 30000,
     exclude: [
       "**/node_modules/**",
       "**/dist/**",

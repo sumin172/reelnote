@@ -30,11 +30,13 @@ export function AppProviders({ children }: AppProvidersProps) {
       return;
     }
 
-    import("@/lib/msw")
+    import("@/lib/msw/index")
       .then(({ initializeMSW, createHandlers }) =>
         initializeMSW(createHandlers()),
       )
-      .catch((error) => console.warn("MSW 초기화 실패:", error));
+      .catch(() => {
+        // MSW 초기화 실패는 조용히 처리
+      });
   }, []);
 
   return (

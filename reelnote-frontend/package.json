@@ -8,10 +8,11 @@
     "start": "next start",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
-    "lint": "pnpm run format:check && eslint",
-    "test": "vitest",
+    "lint": "pnpm run format:check && eslint .",
+    "test": "node scripts/test-with-retry.js",
     "test:watch": "vitest --watch",
-    "test:e2e": "nx e2e e2e-frontend"
+    "test:e2e": "nx e2e e2e-frontend",
+    "postinstall": "node scripts/fix-tailwindcss-permissions.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

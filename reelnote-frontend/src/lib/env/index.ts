@@ -20,24 +20,11 @@ function reportMissingEnvVars() {
   if (!isServer) {
     return;
   }
-
-  const missingEntries = Object.entries(fallbackEnvVars)
-    .filter(([key]) => !process.env[key])
-    .map(([key, fallback]) => `${key} → 기본값(${fallback})`);
-
-  if (missingEntries.length > 0 && isDevelopment) {
-    console.warn(
-      [
-        "⚠️ 일부 NEXT_PUBLIC 환경 변수가 설정되지 않아 기본값을 사용합니다.",
-        ...missingEntries,
-      ].join("\n"),
-    );
-  }
 }
 
 reportMissingEnvVars();
 
-// 환경 변수에 대한 안전한 접근자 함수들
+// 환경 변수에 대한 안전한 접근자 함수
 function getEnvVar<Key extends keyof typeof fallbackEnvVars>(key: Key): string {
   const value = process.env[key];
   if (!value) {
@@ -46,30 +33,14 @@ function getEnvVar<Key extends keyof typeof fallbackEnvVars>(key: Key): string {
   return value;
 }
 
-function getReviewApiBaseUrl(): string {
-  return getEnvVar("NEXT_PUBLIC_REVIEW_API_BASE_URL");
-}
-
-function getCatalogApiBaseUrl(): string {
-  return getEnvVar("NEXT_PUBLIC_CATALOG_API_BASE_URL");
-}
-
-function getAppName(): string {
-  return getEnvVar("NEXT_PUBLIC_APP_NAME");
-}
-
-function getAppVersion(): string {
-  return getEnvVar("NEXT_PUBLIC_APP_VERSION");
-}
-
 export const config = {
-  // API 설정 (안전한 접근자 사용)
+  // API 설정
   get reviewApiBaseUrl() {
-    return getReviewApiBaseUrl();
+    return getEnvVar("NEXT_PUBLIC_REVIEW_API_BASE_URL");
   },
 
   get catalogApiBaseUrl() {
-    return getCatalogApiBaseUrl();
+    return getEnvVar("NEXT_PUBLIC_CATALOG_API_BASE_URL");
   },
 
   // MSW 설정 (환경 변수 우선, 기본은 비-프로덕션에서 활성화)
@@ -87,12 +58,12 @@ export const config = {
     return value ? parseInt(value, 10) : null;
   },
 
-  // 앱 설정 (안전한 접근자 사용)
+  // 앱 설정
   get appName() {
-    return getAppName();
+    return getEnvVar("NEXT_PUBLIC_APP_NAME");
   },
   get appVersion() {
-    return getAppVersion();
+    return getEnvVar("NEXT_PUBLIC_APP_VERSION");
   },
 
   // 환경 설정
