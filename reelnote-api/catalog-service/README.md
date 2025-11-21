@@ -116,12 +116,37 @@ pnpm install
 # 서비스 디렉터리에서
 cd reelnote-api/catalog-service
 pnpm exec prisma generate
-pnpm exec prisma migrate dev --name init
 
 # 또는 Nx 타깃 사용
 nx run catalog-service:prisma:generate
-nx run catalog-service:prisma:migrate -- --name init
 ```
+
+### 2-1. 데이터베이스 마이그레이션 적용
+
+```bash
+# Local 개발: 마이그레이션 생성 및 적용
+nx run catalog-service:prisma:migrate -- --name migration_name
+
+# Dev/Stage/Prod: 마이그레이션만 적용 (기존 히스토리 재생)
+nx run catalog-service:prisma:migrate:deploy
+```
+
+> **⚠️ 중요 규칙**
+>
+> - 운영 계열 DB에는 `prisma db push` 사용 금지
+> - 모든 DB 변경은 마이그레이션 파일을 통해서만 수행
+
+### 2-2. Seeding (선택)
+
+```bash
+# Local/Dev 환경: 레퍼런스 데이터 삽입
+nx run catalog-service:prisma:seed
+```
+
+> **⚠️ Seeding 정책**
+>
+> - **Local/Dev 환경**: Seeding 허용 (기본 장르 데이터 등)
+> - **Stage/Prod 환경**: Seeding 금지 (운영 데이터는 애플리케이션 로직으로만 생성)
 
 ### 3. 서비스 실행
 
@@ -171,6 +196,11 @@ nx build catalog-service
 - `movie` 및 관계 테이블로 TMDB 원본 데이터 보관
 - `movie_feature`, `user_profile` 등 Feature Store 테이블은 추천/분석 서비스용
 - Prisma 구조 및 마이그레이션 관리는 `prisma/` 디렉터리에 위치
+- 모든 스키마 변경은 버전 관리된 마이그레이션 파일을 통해서만 수행 (`prisma/migrations/`)
+
+**마이그레이션 관리:**
+
+- 환경별 명령어 및 정책: 위의 "데이터베이스 마이그레이션 적용" 섹션 참고
 
 ## 🧪 테스트
 

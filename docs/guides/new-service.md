@@ -22,11 +22,16 @@
 - [ ] 서비스 README에 기술 스택, 구조, 실행 방법, API 문서 링크 정리
 - [ ] **데이터베이스 마이그레이션 관리**
   - 마이그레이션 파일을 버전 관리에 포함
-  - **Prisma**: `prisma/migrations` 디렉터리를 저장소에 포함 (초기 마이그레이션 포함)
-  - **Flyway**: `db/migration` 디렉터리의 모든 `V*.sql` 파일 포함
+  - **Prisma**:
+    - `prisma/migrations` 디렉터리를 저장소에 포함 (초기 마이그레이션 포함)
+    - 프로덕션 마이그레이션 타겟: `prisma:migrate:deploy` Nx 타겟 추가
+    - Seeding 전략 수립 (Local/Dev만 허용, Stage/Prod 금지)
+  - **Flyway**:
+    - `db/migration` 디렉터리의 모든 `V*.sql` 파일 포함
   - 마이그레이션 파일 네이밍 규칙 준수
     - Flyway: `V{version}__{description}.sql` (예: `V1__Create_reviews_table.sql`)
-    - Prisma: `{timestamp}_{description}` (자동 생성)
+    - Prisma: `{timestamp}_{description}` (자동 생성, `--name` 옵션으로 의미있는 이름 지정 권장)
+  - 개발/운영 계열 DB에는 `prisma db push` 사용 금지
   - 롤백 전략 문서화 (필요 시)
 
 ## 4. 테스트 설정

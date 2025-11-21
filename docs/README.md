@@ -45,11 +45,10 @@ docs/
 ### 신규 개발자라면
 
 1. **프로젝트 개요**: 루트 `README.md`를 먼저 읽어보세요.
-2. **개발 환경 설정**: [CONTRIBUTING.md](../CONTRIBUTING.md)에서 로컬 개발 환경 설정 방법을 확인하세요.
-3. **공통 스펙 이해**:
+2. **공통 스펙 이해**:
    - [에러 처리 스펙](specs/error-handling.md) - 에러 응답 형식, TraceId 정책 등
    - [헬스 체크 스펙](specs/health-check.md) - Health Check 엔드포인트 구현
-4. **서비스별 문서**: 각 서비스의 `README.md`와 `ARCHITECTURE.md`를 참고하세요.
+3**서비스별 문서**: 각 서비스의 `README.md`와 `ARCHITECTURE.md`를 참고하세요.
    - `reelnote-api/review-service/README.md`
    - `reelnote-api/catalog-service/README.md`
    - `reelnote-frontend/README.md`
@@ -88,13 +87,21 @@ docs/
 ### 프로젝트 루트
 
 - [README.md](../README.md) – 프로젝트 개요 및 시작 가이드
-- [CONTRIBUTING.md](../CONTRIBUTING.md) – 기여 가이드
 
 ### 서비스별 문서
 
-- [Review Service](../reelnote-api/review-service/README.md) – Spring Boot 기반 리뷰 서비스
-- [Catalog Service](../reelnote-api/catalog-service/README.md) – NestJS 기반 카탈로그 서비스
-- [Frontend](../reelnote-frontend/README.md) – Next.js 기반 프론트엔드
+각 서비스의 상세 문서:
+
+- **Review Service** (Spring Boot)
+  - [README](../reelnote-api/review-service/README.md) – 서비스 개요
+  - [ARCHITECTURE.md](../reelnote-api/review-service/ARCHITECTURE.md) – 아키텍처 상세
+
+- **Catalog Service** (NestJS)
+  - [README](../reelnote-api/catalog-service/README.md) – 서비스 개요
+  - [ARCHITECTURE.md](../reelnote-api/catalog-service/ARCHITECTURE.md) – 아키텍처 상세
+
+- **Frontend** (Next.js)
+  - [README](../reelnote-frontend/README.md) – 프론트엔드 개요
 
 ---
 

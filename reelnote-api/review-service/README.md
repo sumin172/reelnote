@@ -204,6 +204,40 @@ abstract class BaseEntity {
 
 > **참고**: 개발 환경에서는 Docker Compose로 PostgreSQL을 실행합니다.
 
+### 3-1. 데이터베이스 마이그레이션
+
+Review Service는 **Flyway**를 사용하여 데이터베이스 마이그레이션을 관리합니다.
+
+**특징:**
+- 애플리케이션 시작 시 자동으로 마이그레이션 실행
+- 마이그레이션 파일: `src/main/resources/db/migration/V*.sql`
+- 모든 스키마 변경은 버전 관리된 마이그레이션 파일을 통해서만 수행
+
+**마이그레이션 파일 구조:**
+```
+src/main/resources/db/migration/
+└── V1__Create_reviews_table.sql  # 버전_설명.sql 형식
+```
+
+**새 마이그레이션 추가:**
+```bash
+# 마이그레이션 파일 직접 생성
+# src/main/resources/db/migration/V2__Add_index_to_reviews.sql
+```
+
+> **⚠️ 중요 규칙**
+>
+> - JPA `ddl-auto`는 `none`으로 설정 (자동 DDL 생성 금지)
+> - 모든 스키마 변경은 Flyway 마이그레이션 파일로 관리
+> - 마이그레이션 파일은 버전 관리에 포함되어야 함
+
+**환경별 동작:**
+- **모든 환경**: 애플리케이션 시작 시 Flyway가 자동으로 마이그레이션 실행
+- **마이그레이션 실패 시**: 애플리케이션 시작 실패 (Fail Fast)
+
+**자세한 내용:**
+- 공통 가이드: [docs/guides/new-service.md](../../docs/guides/new-service.md)
+
 ### 4. 참고사항
 
 - **Catalog 연동**: 영화 메타데이터는 `catalog-service`에서 조회합니다.
@@ -340,9 +374,26 @@ JaCoCo를 사용하여 테스트 커버리지를 측정합니다. 테스트 실�
 
 ### 환경별 프로파일
 
-- **dev**: 개발 환경 (디버그 로깅, PostgreSQL 연결)
-- **test**: 테스트 환경 (Testcontainers PostgreSQL, ddl-auto: create-drop)
-- **prod**: 프로덕션 환경 (최적화된 로깅, 보안 강화, Flyway 마이그레이션)
+- **dev**: 개발 환경 (디버그 로깅, PostgreSQL 연결, Flyway 자동 마이그레이션)
+- **test**: 테스트 환경 (Testcontainers PostgreSQL, Flyway 비활성화, ddl-auto: create-drop)
+- **prod**: 프로덕션 환경 (최적화된 로깅, 보안 강화, Flyway 자동 마이그레이션)
+
+### Flyway 설정
+
+**기본 설정** (`application.yml`):
+```yaml
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    default-schema: app
+```
+
+**중요 설정:**
+- **JPA `ddl-auto: none`**: JPA 자동 DDL 생성 비활성화 (마이그레이션으로만 관리)
+- **Flyway 자동 실행**: 애플리케이션 시작 시 자동으로 마이그레이션 실행
+- **마이그레이션 실패 시**: 애플리케이션 시작 실패 (Fail Fast)
 
 ### 주요 설정값
 

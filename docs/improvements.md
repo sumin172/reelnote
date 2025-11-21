@@ -372,6 +372,48 @@ describe('Movies API Performance', () => {
 
 ---
 
+### 4. Catalog Service 마이그레이션 자동화 (CI/CD)
+
+**현재 상태:**
+- 로컬 개발 환경에서만 마이그레이션 관리
+- 운영 배포 시 수동으로 `prisma migrate deploy` 실행 필요
+- CI/CD 파이프라인에 마이그레이션 자동 실행 미구현
+- `prisma:migrate:deploy` Nx 타겟은 이미 구현됨 (배포 파이프라인 통합 대기 중)
+
+**영향:**
+- 배포 시 마이그레이션 누락 가능성
+- 배포 프로세스 일관성 부족
+- 새 환경 구성 시 수동 작업 필요
+
+**권장 방향:**
+- 배포 워크플로우에 `prisma migrate deploy` 단계 추가
+- 마이그레이션 실패 시 배포 중단
+- **운영 환경 전용** 워크플로우 구성 (개발 DB는 로컬에서만 사용)
+
+**구현 예시:**
+```yaml
+# .github/workflows/deploy-catalog.yml
+jobs:
+  deploy:
+    steps:
+      - name: Run migrations
+        run: nx run catalog-service:prisma:migrate:deploy
+        env:
+          CATALOG_DB_URL: ${{ secrets.CATALOG_DB_URL }}
+
+      - name: Build application
+        run: nx build catalog-service
+
+      - name: Deploy
+        # ... 배포 단계 ...
+```
+
+**참고:**
+- 마이그레이션 타겟: `nx run catalog-service:prisma:migrate:deploy`
+- 개발 DB는 로컬에서만 사용하므로 CI에서는 운영 환경만 고려
+
+---
+
 ## 📝 참고 사항
 
 - 각 개선 사항은 구현 전에 별도의 이슈/태스크로 분리하여 작업 계획을 수립하는 것을 권장합니다

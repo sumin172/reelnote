@@ -125,6 +125,20 @@
           "cwd": "reelnote-api/catalog-service"
         }
       },
+      "prisma:migrate:deploy": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "prisma migrate deploy",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
+      "prisma:seed": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "prisma db seed",
+          "cwd": "reelnote-api/catalog-service"
+        }
+      },
       "prisma:studio": {
         "executor": "nx:run-commands",
         "options": {
@@ -155,5 +169,14 @@
       }
     }
   },
-  "dependencies": {}
+  "dependencies": {
+    "prom-client": "^15.1.3"
+  },
+  "prisma": {
+    "seed": "ts-node --transpile-only prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.6",
+    "pg": "^8.16.3"
+  }
 }

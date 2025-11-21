@@ -1,147 +1,124 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("CATALOG_DB_URL")
+  provider          = "postgresql"
+  url               = env("CATALOG_DB_URL")
+  shadowDatabaseUrl = env("PRISMA_SHADOW_DATABASE_URL")
 }
 
-// 영화 메인 테이블 (TMDB 원본 데이터)
 model Movie {
-  tmdbId       Int       @id @map("tmdb_id")
-  title        String
-  originalTitle String   @map("original_title")
-  year         Int?
-  runtime      Int?
-  language     String?
-  country      String?
-  posterPath   String?   @map("poster_path")
-  popularity   Float?
-  voteAvg      Float?    @map("vote_avg")
-  voteCnt      Int?      @map("vote_cnt")
-  syncedAt     DateTime  @map("synced_at") @default(now())
-  rawJson      Json      @map("raw_json")
-  sourceUpdatedAt DateTime? @map("source_updated_at")
-  sourceHash    String?  @map("source_hash")
-
-  // Relations
-  genres       MovieGenre[]
-  keywords     MovieKeyword[]
-  cast         MovieCast[]
-  crew         MovieCrew[]
-  features     MovieFeature?
+  tmdbId          Int            @id @map("tmdb_id")
+  title           String
+  originalTitle   String         @map("original_title")
+  year            Int?
+  runtime         Int?
+  language        String?
+  country         String?
+  posterPath      String?        @map("poster_path")
+  popularity      Float?
+  voteAvg         Float?         @map("vote_avg")
+  voteCnt         Int?           @map("vote_cnt")
+  syncedAt        DateTime       @default(now()) @map("synced_at")
+  rawJson         Json           @map("raw_json")
+  sourceHash      String?        @map("source_hash")
+  sourceUpdatedAt DateTime?      @map("source_updated_at")
+  cast            MovieCast[]
+  crew            MovieCrew[]
+  features        MovieFeature?
+  genres          MovieGenre[]
+  keywords        MovieKeyword[]
 
   @@map("movie")
 }
 
-// 장르
 model Genre {
-  id   Int    @id @default(autoincrement())
-  name String @unique
-
+  id     Int          @id @default(autoincrement())
+  name   String       @unique
   movies MovieGenre[]
 
   @@map("genre")
 }
 
-// 영화-장르 관계
 model MovieGenre {
-  tmdbId  Int @map("tmdb_id")
-  genreId Int @map("genre_id")
-
-  movie Movie @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
-  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  tmdbId  Int   @map("tmdb_id")
+  genreId Int   @map("genre_id")
+  genre   Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  movie   Movie @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@id([tmdbId, genreId])
   @@map("movie_genre")
 }
 
-// 키워드
 model Keyword {
-  id   Int    @id @default(autoincrement())
-  name String @unique
-
+  id     Int            @id @default(autoincrement())
+  name   String         @unique
   movies MovieKeyword[]
 
   @@map("keyword")
 }
 
-// 영화-키워드 관계
 model MovieKeyword {
-  tmdbId    Int @map("tmdb_id")
-  keywordId Int @map("keyword_id")
-
-  movie   Movie   @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
-  keyword Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  tmdbId    Int     @map("tmdb_id")
+  keywordId Int     @map("keyword_id")
+  keyword   Keyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  movie     Movie   @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@id([tmdbId, keywordId])
   @@map("movie_keyword")
 }
 
-// 인물 (배우/감독 등)
 model Person {
-  id   Int    @id @default(autoincrement())
-  name String
-  tmdbPersonId Int? @unique @map("tmdb_person_id")
-
-  castRoles MovieCast[]
-  crewRoles MovieCrew[]
+  id           Int         @id @default(autoincrement())
+  name         String
+  tmdbPersonId Int?        @unique @map("tmdb_person_id")
+  castRoles    MovieCast[]
+  crewRoles    MovieCrew[]
 
   @@map("person")
 }
 
-// 영화-배우 관계
 model MovieCast {
-  tmdbId   Int     @map("tmdb_id")
-  personId Int     @map("person_id")
+  tmdbId    Int     @map("tmdb_id")
+  personId  Int     @map("person_id")
   character String?
   order     Int     @default(0)
-
-  movie  Movie  @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person    Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  movie     Movie   @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@id([tmdbId, personId])
   @@map("movie_cast")
 }
 
-// 영화-제작진 관계
 model MovieCrew {
-  tmdbId   Int    @map("tmdb_id")
-  personId Int    @map("person_id")
-  job      String
+  tmdbId     Int     @map("tmdb_id")
+  personId   Int     @map("person_id")
+  job        String
   department String?
-
-  movie  Movie  @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  person     Person  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  movie      Movie   @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@id([tmdbId, personId, job])
   @@map("movie_crew")
 }
 
-// Feature Store (추천 서비스용 - 추후 Analysis Service에서 업데이트)
 model MovieFeature {
-  tmdbId        Int       @id @map("tmdb_id")
-  tagsWeight    Json?     @map("tags_weight") // { genre: {...}, keyword: {...}, auto: {...}, user: {...} }
-  embedding     Unsupported("vector")? // pgvector 타입
-  sentimentStats Json?    @map("sentiment_stats")
-  updatedAt     DateTime  @map("updated_at") @default(now())
-
-  movie Movie @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
+  tmdbId         Int                    @id @map("tmdb_id")
+  tagsWeight     Json?                  @map("tags_weight")
+  embedding      Unsupported("vector")?
+  sentimentStats Json?                  @map("sentiment_stats")
+  updatedAt      DateTime               @default(now()) @map("updated_at")
+  movie          Movie                  @relation(fields: [tmdbId], references: [tmdbId], onDelete: Cascade)
 
   @@map("movie_feature")
 }
 
-// 사용자 프로필 (추천 서비스용 - 추후 Analysis Service에서 업데이트)
 model UserProfile {
-  userId      String    @id @map("user_id")
-  tagPref     Json?     @map("tag_pref") // 사용자 태그 선호도
-  embedding   Unsupported("vector")?
-  updatedAt   DateTime  @map("updated_at") @default(now())
+  userId    String                 @id @map("user_id")
+  tagPref   Json?                  @map("tag_pref")
+  embedding Unsupported("vector")?
+  updatedAt DateTime               @default(now()) @map("updated_at")
 
   @@map("user_profile")
 }
-

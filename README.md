@@ -93,7 +93,6 @@
 
 ## 문서
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) – 로컬 개발 플로우, 테스트/린트 규칙, API 스키마 관리 안내
 - [docs/README.md](docs/README.md) – 프로젝트 문서 인덱스 및 시작 가이드
 - **공통 스펙**: `docs/specs/` 폴더 참조
   - [에러 처리 스펙](docs/specs/error-handling.md) – 에러 응답 형식 및 예외 처리 가이드
