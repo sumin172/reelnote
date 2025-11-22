@@ -275,6 +275,25 @@ if ($DryRun) {
             $gradlewPath = Join-Path $projectRoot "gradlew.bat"
             if (Test-Path $gradlewPath) {
                 Push-Location $projectRoot
+
+                # Gradle 데몬 중지 (캐시 잠금 문제 방지)
+                Write-Host "   Gradle 데몬 중지 중..." -ForegroundColor Gray
+                & $gradlewPath --stop 2>&1 | Out-Null
+
+                # Kotlin 증분 캐시 정리 (파일 잠금 문제 방지)
+                $kotlinCachePath = Join-Path $projectRoot "build-logic\build\kotlin"
+                if (Test-Path $kotlinCachePath) {
+                    Write-Host "   Kotlin 증분 캐시 정리 중..." -ForegroundColor Gray
+                    try {
+                        Remove-Item -Recurse -Force $kotlinCachePath -ErrorAction SilentlyContinue
+                    } catch {
+                        # 무시 (이미 삭제되었거나 접근 불가능할 수 있음)
+                    }
+                }
+
+                # 잠시 대기 (파일 잠금 해제 대기)
+                Start-Sleep -Milliseconds 500
+
                 $buildLogicPath = Join-Path $projectRoot "build-logic"
                 & $gradlewPath -p $buildLogicPath build --quiet
                 if ($LASTEXITCODE -eq 0) {

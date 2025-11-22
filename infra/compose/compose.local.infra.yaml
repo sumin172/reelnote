@@ -4,11 +4,16 @@ services:
     container_name: pg
     environment:
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: catalog_db
+      POSTGRES_DB: postgres
     ports:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - ./01-init-roles-databases.sql:/docker-entrypoint-initdb.d/01-init-roles-databases.sql:ro
+      - ./02-setup-review-db.sql:/docker-entrypoint-initdb.d/02-setup-review-db.sql:ro
+      - ./03-setup-catalog-db.sql:/docker-entrypoint-initdb.d/03-setup-catalog-db.sql:ro
+      - ./04-setup-catalog-shadow-db.sql:/docker-entrypoint-initdb.d/04-setup-catalog-shadow-db.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

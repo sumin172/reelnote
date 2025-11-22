@@ -1,0 +1,18 @@
+-- Setup review_db schema and permissions
+CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION db_owner_review;
+
+ALTER ROLE review_app IN DATABASE review_db SET search_path = app, public;
+
+GRANT USAGE, CREATE ON SCHEMA app TO review_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA app TO review_app;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA app TO review_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE db_owner_review IN SCHEMA app
+    GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO review_app;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE db_owner_review IN SCHEMA app
+    GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO review_app;
+
+-- Create pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+

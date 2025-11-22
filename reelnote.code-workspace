@@ -18,6 +18,7 @@
     }
   ],
   "settings": {
+    "workbench.editor.enablePreview": false,
     "nx.enableTelemetry": false,
     "nx.defaultProject": "reelnote",
     "terminal.integrated.defaultProfile.windows": "PowerShell 7",
@@ -62,7 +63,8 @@
       "**/dependency-graph.html": true,
       "**/static": true,
       "**/generated": true
-    }
+    },
+    "java.compile.nullAnalysis.mode": "automatic"
   },
   "extensions": {
     "recommendations": [
