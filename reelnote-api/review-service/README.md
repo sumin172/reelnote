@@ -369,13 +369,33 @@ JaCoCo를 사용하여 테스트 커버리지를 측정합니다. 테스트 실�
 
 브라우저에서 HTML 리포트를 열어 커버리지 상세 정보를 확인할 수 있습니다.
 
+### 테스트 DB 초기화 전략
+
+현재는 **트랜잭션 롤백 방식**을 사용합니다.
+
+**구조**:
+- Testcontainers를 사용하여 로컬 개발 DB와 완전히 분리된 격리된 PostgreSQL 컨테이너 사용
+- 스키마는 `TestcontainersConfig.init`에서 한 번만 생성 (`CREATE SCHEMA IF NOT EXISTS`)
+- `ddl-auto: create` 설정으로 테이블은 자동 생성 (테스트용이므로 안전, 데이터는 트랜잭션 롤백으로 정리)
+- 각 테스트는 트랜잭션 내에서 실행되고, 테스트 후 자동 롤백됨
+
+**장점**:
+- ✅ 성능: 스키마 재생성 오버헤드 없음
+- ✅ 신뢰성: 각 테스트가 깨끗한 상태에서 시작 (트랜잭션 롤백)
+- ✅ 격리: 로컬 개발 DB에 전혀 영향 없음
+- ✅ 구조적 적합성: Testcontainers 컨테이너는 유지, 데이터만 롤백하는 자연스러운 구조
+
+**CI/Local 분리**:
+- 로컬: 컨테이너 재사용 (`withReuse(true)`) + 병렬 실행
+- CI: 컨테이너 재사용 비활성화 (`withReuse(false)`) + 순차 실행 (`-Pci` 프로퍼티 사용)
+
 
 ## 🔧 설정
 
 ### 환경별 프로파일
 
 - **dev**: 개발 환경 (디버그 로깅, PostgreSQL 연결, Flyway 자동 마이그레이션)
-- **test**: 테스트 환경 (Testcontainers PostgreSQL, Flyway 비활성화, ddl-auto: create-drop)
+- **test**: 테스트 환경 (Testcontainers PostgreSQL, Flyway 비활성화, ddl-auto: none, 트랜잭션 롤백)
 - **prod**: 프로덕션 환경 (최적화된 로깅, 보안 강화, Flyway 자동 마이그레이션)
 
 ### Flyway 설정

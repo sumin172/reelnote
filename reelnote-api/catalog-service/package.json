@@ -10,7 +10,8 @@
     "generate:openapi": "ts-node --transpile-only --project tsconfig.openapi.json src/scripts/generate-openapi.ts",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
-    "lint": "pnpm run format:check && eslint ."
+    "eslint": "eslint . --cache",
+    "lint": "pnpm run format:check && pnpm eslint"
   },
   "nx": {
     "targets": {
@@ -149,9 +150,22 @@
       "lint": {
         "executor": "nx:run-commands",
         "options": {
-          "command": "pnpm run lint",
+          "commands": [
+            "pnpm format:check",
+            "pnpm eslint"
+          ],
+          "parallel": false,
           "cwd": "reelnote-api/catalog-service"
-        }
+        },
+        "cache": true,
+        "inputs": [
+          "default",
+          "^default",
+          "{projectRoot}/**/*.{ts,tsx,js,jsx,json}",
+          "{projectRoot}/.prettierrc*",
+          "{projectRoot}/.eslintrc*",
+          "{projectRoot}/eslint.config.*"
+        ]
       },
       "format:write": {
         "executor": "nx:run-commands",

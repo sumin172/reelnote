@@ -34,14 +34,21 @@ import org.testcontainers.containers.PostgreSQLContainer
  * ```
  *
  * ⚠️ 중요:
- * - 컨테이너는 `withReuse(true)`로 설정되어 있어 여러 테스트 간 재사용됩니다.
+ * - 기본 동작: 로컬에서는 컨테이너 재사용, CI에서는 재사용 비활성화
+ * - 필요 시 TESTCONTAINERS_REUSE 환경 변수로 강제 오버라이드 가능
  * - 모든 테스트는 격리된 테스트 데이터베이스를 사용합니다.
  * - 로컬 개발 데이터베이스에 영향을 주지 않습니다.
  */
 object TestcontainersConfig {
+    // 기본 동작: 로컬에서는 컨테이너 재사용, CI에서는 재사용 비활성화
+    // 필요 시 TESTCONTAINERS_REUSE 환경 변수로 강제 오버라이드 가능
+    private val shouldReuse =
+        System.getenv("TESTCONTAINERS_REUSE")?.toBoolean()
+            ?: !System.getProperty("ci", "false").toBoolean()
+
     private val postgres: PostgreSQLContainer<*> =
         PostgreSQLContainer("postgres:16-alpine").apply {
-            withReuse(true) // 컨테이너 재사용으로 테스트 속도 향상
+            withReuse(shouldReuse)
         }
 
     init {

@@ -20,7 +20,11 @@
       "executor": "@nx/gradle:gradle",
       "options": {
         "taskName": ":review-service:test"
-      }
+      },
+      "outputs": [
+        "{projectRoot}/test-output/jacoco/coverage"
+      ],
+      "cache": false
     },
     "lint": {
       "executor": "@nx/gradle:gradle",

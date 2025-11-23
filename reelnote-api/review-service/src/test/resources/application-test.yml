@@ -4,9 +4,9 @@ server:
 spring:
   application:
     name: review-service-test
-  
+
   # ⚠️⚠️⚠️ 매우 중요: 데이터소스 설정 ⚠️⚠️⚠️
-  # 
+  #
   # 이 파일에는 데이터소스 설정이 없습니다. 이는 의도적인 것입니다.
   # 모든 데이터소스 설정은 Testcontainers의 @DynamicPropertySource로 동적으로 설정됩니다.
   #
@@ -16,11 +16,11 @@ spring:
   #
   # 모든 @SpringBootTest는 반드시 Testcontainers를 사용해야 합니다.
   # @DynamicPropertySource가 없으면 테스트가 실패하도록 설계되었습니다.
-  
+
   # JPA 설정
   jpa:
     hibernate:
-      ddl-auto: create-drop  # 테스트용 임시 DB이므로 create-drop 사용 (Testcontainers 사용 시 안전)
+      ddl-auto: create  # 테이블은 자동 생성, 데이터는 트랜잭션 롤백으로 정리 (테스트용이므로 안전)
     show-sql: false
     properties:
       hibernate:
@@ -28,16 +28,16 @@ spring:
         format_sql: true
         default_schema: app
     open-in-view: false
-  
+
   # Flyway 비활성화 (테스트에서는 DDL 사용)
   # ⚠️ 중요: Flyway가 활성화되면 로컬 DB의 마이그레이션을 실행할 수 있습니다.
   flyway:
     enabled: false
-  
+
   # 캐시 설정
   cache:
     type: simple
-  
+
   # 메시지 소스 설정
   messages:
     basename: messages

@@ -125,3 +125,7 @@ tmp/
 *.temp
 .cache/
 *.cache
+
+# ESLint cache
+.eslintcache
+**/.eslintcache

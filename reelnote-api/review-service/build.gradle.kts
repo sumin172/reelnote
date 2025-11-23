@@ -114,5 +114,16 @@ tasks.jacocoTestCoverageVerification {
 
 // test 태스크 실행 후 자동으로 커버리지 리포트 생성
 tasks.test {
+    // CI 모드 감지: -Pci 프로퍼티가 있으면 CI 모드
+    val isCi = project.hasProperty("ci")
+
+    // 병렬도 제어: CI에서는 순차 실행, 로컬에서는 병렬 실행
+    if (isCi) {
+        maxParallelForks = 1
+        systemProperty("ci", "true")
+    } else {
+        maxParallelForks = Runtime.getRuntime().availableProcessors()
+    }
+
     finalizedBy(tasks.jacocoTestReport)
 }
