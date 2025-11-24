@@ -721,6 +721,240 @@ spring:
 
 ---
 
+### 6. 내부 서비스 API 설정 구조 공통화
+
+**현재 상태:**
+- 각 서비스별로 개별 `{Service}ApiProperties` 클래스를 사용 중
+- 예: `CatalogApiProperties` (Review Service에서 Catalog 호출 시)
+- 설정 구조는 일관되지만 (`{service}.api.base-url`, `{service}.api.timeout`), 코드 레벨에서 공통화되지 않음
+- 향후 다른 내부 서비스(추천, 분석 등) 추가 시 동일한 패턴 반복 예상
+
+**영향:**
+- 서비스가 늘어날수록 중복 코드 증가 가능성
+- 공통 필드(`baseUrl`, `timeout`, `connectTimeout`)가 반복될 확률 높음
+- 설정 구조는 표준화되어 있으나, 코드 레벨 공통화 부재
+
+**권장 방향:**
+
+#### 6-1. 공통 타입 정의 (선택사항)
+
+**구현 내용:**
+- 공통 `ServiceApiProperties` data class 정의
+- 각 서비스별 Properties는 공통 타입을 확장하거나 동일한 구조 유지
+- 실제 필요 시점에 도입 (서비스가 2~3개 이상일 때)
+
+**구현 예시:**
+```kotlin
+// 공통 타입 (선택사항)
+data class ServiceApiProperties(
+    val baseUrl: String,
+    val timeout: Duration = Duration.ofSeconds(5),
+    val connectTimeout: Duration = Duration.ofSeconds(5),
+)
+
+// 각 서비스별 Properties는 그대로 유지
+@ConfigurationProperties("catalog.api")
+data class CatalogApiProperties(
+    val baseUrl: String,
+    val timeout: Duration = Duration.ofSeconds(5),
+    val connectTimeout: Duration = Duration.ofSeconds(5),
+)
+```
+
+#### 6-2. 공통 인터페이스/추상 클래스 도입 (장기)
+
+**시점:**
+- 서비스가 2~3개 이상 추가되고, 공통 팩토리 패턴이 필요할 때
+- 여러 서비스 클라이언트를 하나의 공통 팩토리에서 생성하는 경우
+
+**구현 내용:**
+- 공통 인터페이스 또는 추상 클래스 정의
+- 서비스별 클라이언트 팩토리에서 공통 구조 활용
+- 설정 구조는 이미 표준화되어 있으므로, 코드 레벨 공통화에 집중
+
+**기대 효과:**
+- 서비스 추가 시 설정 구조 일관성 유지
+- 중복 코드 감소
+- 유지보수성 향상
+
+**참고:**
+- 현재 설정 구조 표준: `docs/guides/new-service.md`의 "외부 API 클라이언트" 섹션
+- 현재 구현: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/catalog/CatalogApiProperties.kt`
+
+---
+
+### 7. 서비스 간 통신 스펙 검증 개선 (장기)
+
+**현재 상태:**
+- **프론트엔드**: MSW로 `/api/v1/search`(카탈로그), `/api/v1/reviews/*`(리뷰) 모킹
+  - 핸들러는 프론트엔드 내부에만 존재 (`reelnote-frontend/src/lib/msw/handlers.ts`)
+- **리뷰 서비스**: MockK로 서비스 레이어 모킹
+  - `ReviewControllerTest`에서 `ReviewQueryService`를 `@MockkBean(relaxed = true)`로 모킹
+  - `ReviewQueryService`는 `CatalogClient`를 사용하지만, `CatalogClient`를 직접 모킹하는 테스트 없음
+- **계약 테스트**: 없음 (Pact 등 관련 파일 없음)
+- **MSW 핸들러 공유**: 없음 (프론트엔드 전용)
+
+**문제 인식:**
+- **핵심 문제**: "중복 모킹"이 아니라 **"공유 기준(소스 오브 트루스) 부재"**
+- 프론트 MSW와 백엔드 MockK는 테스트 레벨/책임이 다름
+  - 프론트 MSW: 사용자 관점에서 프론트-백엔드 통신 검증
+  - 백엔드 MockK: 리뷰 서비스 내부 레이어 간 협력 검증
+- 문제는 "각자 제멋대로 모킹"이며, **카탈로그 스펙을 기준으로 검증하는 테스트가 없음**
+- 카탈로그 API 변경 시 프론트엔드 MSW 핸들러와 리뷰 서비스 테스트를 수동으로 업데이트해야 함
+- 서비스 간 통신 스펙의 일관성 보장 메커니즘 부재
+
+**영향:**
+- 서비스 간 통신 스펙 불일치 가능성
+- API 변경 시 수동 동기화 부담
+- 개발 효율 저하 (서비스 교체 시 각 레이어에서 모킹 재구성 필요)
+- 통합 테스트에서 실제 HTTP 호출 검증 부재
+
+**권장 방향:**
+
+#### 7-1. 단기: CatalogClient HTTP 기준 통합 테스트 추가
+
+**구현 내용:**
+1. **CatalogClient 전용 테스트 추가**
+   - WebClient가 가리키는 URL을 MockWebServer 또는 WireMock으로 지정
+   - 정상 응답 / 오류 응답 / 타임아웃 / 4xx/5xx 매핑 등 검증
+   - 에러 처리 및 예외 변환 검증
+
+2. **ReviewQueryService + CatalogClient 통합 테스트**
+   - CatalogClient는 실제 HTTP 클라이언트로 두고
+   - 외부 카탈로그는 MockWebServer/WireMock으로 응답
+   - "리뷰 서비스가 카탈로그를 어떤 식으로 사용하고, 에러를 어떻게 번역하는지"를 실제 HTTP 기준으로 검증
+
+**구현 예시:**
+```kotlin
+// CatalogClientTest.kt 예시
+@SpringBootTest
+class CatalogClientTest {
+    @Test
+    fun `카탈로그 검색 성공 시 응답 변환 검증`() {
+        // MockWebServer로 카탈로그 응답 모킹
+        // CatalogClient가 실제 HTTP 호출하여 응답 처리 검증
+    }
+
+    @Test
+    fun `카탈로그 404 응답 시 예외 변환 검증`() {
+        // MockWebServer로 404 응답 모킹
+        // ExternalApiException으로 변환되는지 검증
+    }
+}
+```
+
+**필요 의존성:**
+```kotlin
+testImplementation("com.squareup.okhttp3:mockwebserver")
+// 또는
+testImplementation("org.wiremock:wiremock")
+```
+
+**기대 효과:**
+- 리뷰 서비스가 카탈로그와 실제로 통신하는지 검증
+- HTTP 레벨에서의 에러 처리 및 예외 변환 검증
+- 현재 구조에서 가장 큰 구멍 하나 메꿔짐
+
+#### 7-2. 단기~중기: 카탈로그 API 계약/예제 페이로드 패키지 분리
+
+**구현 내용:**
+1. **공유 패키지 생성**
+   - `@reelnote/catalog-contracts` 또는 `packages/catalog-contracts` 같은 공유 패키지
+   - 포함 내용:
+     - OpenAPI 스키마 (카탈로그 서비스에서 생성)
+     - 타입 정의 (TypeScript)
+     - 예제 JSON 페이로드
+
+2. **프론트엔드 MSW 핸들러 개선**
+   - MSW 핸들러는 공유 패키지의 예제 JSON을 참조하여 응답 구성
+   - 스키마 변경 시 타입 에러로 조기 감지
+
+3. **리뷰 서비스 통합 테스트 개선**
+   - MockWebServer/WireMock 응답을 공유 패키지의 예제 JSON으로 구성
+   - 스키마 변경 시 테스트 실패로 조기 감지
+
+**핵심 원칙:**
+- **공유 단위는 프레임워크(MSW)가 아니라 도메인 계약/데이터**
+- JVM 테스트는 MockWebServer/WireMock 사용 (MSW 아님)
+- 프론트엔드는 MSW, 백엔드는 Mock 서버를 사용하되, **같은 예제 데이터를 참조**
+
+**구현 예시:**
+```
+packages/catalog-contracts/
+├── openapi.json              # 카탈로그 서비스에서 생성
+├── examples/
+│   ├── search-response.json  # 예제 JSON 페이로드
+│   └── movie-response.json
+├── types/
+│   └── catalog-api.ts       # TypeScript 타입 정의
+└── README.md
+```
+
+**기대 효과:**
+- 카탈로그 API 스펙 변경 시 프론트엔드와 백엔드 모두 자동으로 영향 받음
+- 예제 데이터 기반으로 일관된 모킹 응답 보장
+- 스키마 변경 시 타입/테스트 실패로 조기 감지
+
+#### 7-3. 중기: OpenAPI 기반 계약 검증
+
+**구현 내용:**
+1. **OpenAPI 스키마를 소스 오브 트루스로 확립**
+   - 카탈로그 서비스에서 OpenAPI 스키마 생성
+   - 리뷰 서비스, 프론트엔드가 스키마를 가져다가 클라이언트/타입 생성
+
+2. **CI에서 계약 깨짐 감지**
+   - 스키마 변경 시 소비자 쪽 타입/클라이언트 코드 빌드가 깨지도록 구성
+   - OpenAPI 스키마 생성 CI 통합 (이미 `improvements.md` 3번 항목에 계획됨)
+   - 스키마 변경 시 소비자 빌드 실패로 조기 감지
+
+**구현 예시:**
+```yaml
+# CI 워크플로우 예시
+jobs:
+  validate-contracts:
+    steps:
+      - name: Generate OpenAPI schemas
+        run: pnpm api-schema:generate
+
+      - name: Generate TypeScript types
+        run: |
+          # OpenAPI 스키마에서 TypeScript 타입 생성
+          openapi-typescript packages/api-schema/generated/catalog-service-openapi.json
+
+      - name: Build consumers
+        run: |
+          # 프론트엔드, 리뷰 서비스 빌드
+          # 타입 불일치 시 빌드 실패
+```
+
+**기대 효과:**
+- API 스펙 변경 시 자동으로 소비자 코드 빌드 실패
+- 계약 불일치 조기 감지
+- 수동 동기화 부담 감소
+
+#### 7-4. 장기: Consumer-driven Contract Test 도입 검토
+
+**구현 내용:**
+- 서비스가 더 늘어나고 여유가 생기면 Pact 등 Consumer-driven Contract Test 도입 검토
+- OpenAPI 기반 검증만으로도 충분한 효과가 있으므로, 필요 시점에 도입
+
+**기대 효과:**
+- 소비자 관점에서 계약 정의 및 검증
+- 프로바이더와 소비자 간 계약 불일치 방지
+
+**참고:**
+- 프론트엔드 MSW 핸들러: `reelnote-frontend/src/lib/msw/handlers.ts`
+- 리뷰 서비스 CatalogClient: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/catalog/CatalogClient.kt`
+- ReviewQueryService: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/application/ReviewQueryService.kt`
+
+**기대 효과:**
+- 서비스 간 통신 스펙의 일관성 보장
+- API 변경 시 자동 감지 및 동기화
+- 개발 효율 향상 (서비스 교체 시 모킹 재구성 부담 감소)
+- 통합 테스트에서 실제 HTTP 호출 검증으로 신뢰성 향상
+
+---
+
 ## 📝 참고 사항
 
 - 각 개선 사항은 구현 전에 별도의 이슈/태스크로 분리하여 작업 계획을 수립하는 것을 권장합니다

@@ -3,6 +3,8 @@ package app.reelnote.review.shared
 import app.reelnote.review.infrastructure.config.TestcontainersBase
 import app.reelnote.review.shared.response.ErrorCodes
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -65,9 +67,11 @@ class MessageResourceValidationTest(
                         Locale.getDefault(),
                     )
                 // 메시지가 실제로 존재하는지 확인 (키 자체가 반환되지 않아야 함)
-                assert(message != key) {
-                    "Message key '$key' for error code '$code' should return actual message, not the key itself"
-                }
+                assertNotEquals(
+                    key,
+                    message,
+                    "Message key '$key' for error code '$code' should return actual message, not the key itself",
+                )
             }
         }
     }
@@ -92,7 +96,9 @@ class MessageResourceValidationTest(
             )
 
         testKeys.forEach { key ->
-            assertDoesNotThrow { messageSource.getMessage(key, null, Locale.getDefault()) }
+            assertDoesNotThrow {
+                messageSource.getMessage(key, null, Locale.getDefault())
+            }
         }
     }
 
@@ -112,9 +118,10 @@ class MessageResourceValidationTest(
 
         testCases.forEach { (key, args, expectedSubstring) ->
             val message = messageSource.getMessage(key, args, Locale.getDefault())
-            assert(message.contains(expectedSubstring)) {
-                "Message for key '$key' should contain '$expectedSubstring', but got: $message"
-            }
+            assertTrue(
+                message.contains(expectedSubstring),
+                "Message for key '$key' should contain '$expectedSubstring', but got: $message",
+            )
         }
     }
 }

@@ -101,6 +101,59 @@ TMDB_API_MAX_CONCURRENCY=10
 TMDB_API_MAX_RETRY=3
 ```
 
+**Spring Boot 설정 구조 표준 (application.yml)**
+
+Spring Boot 서비스에서 내부 서비스 API 설정은 다음 표준 패턴을 따릅니다:
+
+```yaml
+# 내부 서비스 API 설정 표준 패턴
+{service}:
+  api:
+    base-url: ${SERVICE_API_BASE_URL:http://localhost:PORT/api}
+    timeout: ${SERVICE_API_TIMEOUT:5s}
+    connect-timeout: ${SERVICE_API_CONNECT_TIMEOUT:5s}
+```
+
+**예시:**
+```yaml
+# Review Service에서 Catalog Service 호출 시
+catalog:
+  api:
+    base-url: ${CATALOG_API_BASE_URL:http://localhost:3001/api}
+    timeout: 5s
+    connect-timeout: 5s
+
+# 향후 다른 내부 서비스 추가 시
+analysis:
+  api:
+    base-url: ${ANALYSIS_API_BASE_URL:http://localhost:3002/api}
+    timeout: 5s
+    connect-timeout: 5s
+
+recommendation:
+  api:
+    base-url: ${RECOMMENDATION_API_BASE_URL:http://localhost:3003/api}
+    timeout: 5s
+    connect-timeout: 5s
+```
+
+**설정 원칙:**
+- **base-url**: 환경 변수에서 주입받으며, 기본값은 개발 환경용 localhost URL
+- **timeout**: API 호출 타임아웃 (기본값: 5초)
+- **connect-timeout**: 연결 타임아웃 (기본값: 5초)
+- **버전 관리**: API 버전(`/v1`, `/v2` 등)은 호출부에서 명시적으로 제어 (base-url에는 포함하지 않음)
+- **네이밍**: 서비스 이름은 소문자, 하이픈 사용 가능 (예: `catalog`, `review-service`)
+
+**Kotlin Properties 클래스 예시:**
+```kotlin
+@ConfigurationProperties(prefix = "catalog.api")
+data class CatalogApiProperties(
+    var baseUrl: String = "http://localhost:3001/api",
+    var timeout: Duration = Duration.ofSeconds(5),
+    var connectTimeout: Duration = Duration.ofSeconds(5),
+)
+```
+
 **3. 공통 인프라**
 
 여러 서비스에서 공유하는 인프라 설정은 서비스명 없이 인프라 이름만 사용합니다.

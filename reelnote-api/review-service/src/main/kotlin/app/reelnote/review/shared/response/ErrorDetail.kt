@@ -26,7 +26,26 @@ import io.swagger.v3.oas.annotations.media.Schema
     """,
 )
 data class ErrorDetail(
-    @Schema(description = "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)", example = "VALIDATION_ERROR")
+    @Schema(
+        description = "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)",
+        example = "VALIDATION_ERROR",
+        allowableValues =
+            [
+                "VALIDATION_ERROR",
+                "NOT_FOUND",
+                "INTERNAL_ERROR",
+                "UNKNOWN_ERROR",
+                "EXTERNAL_API_ERROR",
+                "CONFLICT",
+                "UNAUTHORIZED",
+                "FORBIDDEN",
+                "SERVICE_UNAVAILABLE",
+                "REVIEW_NOT_FOUND",
+                "REVIEW_ALREADY_EXISTS",
+                "REVIEW_UNAUTHORIZED_UPDATE",
+                "REVIEW_UNAUTHORIZED_DELETE",
+            ],
+    )
     val code: String,
     @Schema(description = "사람 친화적 에러 메시지", example = "입력 데이터 검증에 실패했습니다") val message: String,
     @Schema(description = "추가 상세 정보 (필드별 에러, 컨텍스트 등)", required = false)

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { CatalogErrorCode } from "../error/catalog-error-code.js";
 
 /**
  * 표준 에러 응답 스키마
@@ -12,7 +13,8 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 export class ErrorDetailDto {
   @ApiProperty({
     description: "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)",
-    example: "VALIDATION_ERROR",
+    enum: CatalogErrorCode,
+    example: CatalogErrorCode.VALIDATION_ERROR,
   })
   code!: string;
 

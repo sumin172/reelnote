@@ -43,7 +43,35 @@ async function bootstrap() {
   // Swagger 설정
   const config = new DocumentBuilder()
     .setTitle("Catalog Service API")
-    .setDescription("ReelNote Catalog Service - 영화 메타데이터 관리")
+    .setDescription(
+      `ReelNote Catalog Service - 영화 메타데이터 관리
+
+## Error Codes
+
+### 공통 에러 코드
+- \`VALIDATION_ERROR\`: 입력 데이터 검증 실패
+- \`NOT_FOUND\`: 리소스를 찾을 수 없음
+- \`INTERNAL_ERROR\`: 내부 서버 오류
+- \`UNKNOWN_ERROR\`: 알 수 없는 오류
+- \`UNAUTHORIZED\`: 인증 필요
+- \`FORBIDDEN\`: 접근 금지
+- \`CONFLICT\`: 리소스 충돌
+- \`EXTERNAL_API_ERROR\`: 외부 API 오류
+- \`SERVICE_UNAVAILABLE\`: 서비스 사용 불가
+
+### 도메인 에러 코드 (CATALOG_*)
+- \`CATALOG_MOVIE_NOT_FOUND\`: 영화를 찾을 수 없음
+- \`CATALOG_TMDB_API_FAILED\`: TMDB API 호출 실패
+- \`CATALOG_JOB_NOT_FOUND\`: 작업을 찾을 수 없음
+- \`CATALOG_JOB_IN_PROGRESS\`: 작업이 이미 진행 중
+
+### TMDB API 관련 에러 코드
+- \`CATALOG_TMDB_API_ERROR\`: TMDB API 오류 (상태 코드 포함)
+- \`CATALOG_TMDB_NETWORK_ERROR\`: TMDB API 네트워크 오류
+- \`CATALOG_TMDB_CIRCUIT_BREAKER_OPEN\`: TMDB API 서킷브레이커 OPEN
+- \`CATALOG_TMDB_TIMEOUT\`: TMDB API 타임아웃
+- \`CATALOG_TMDB_UNEXPECTED_ERROR\`: TMDB API 예상치 못한 오류`,
+    )
     .setVersion("1.0")
     .addTag("movies", "영화 관리")
     .addTag("sync", "동기화")

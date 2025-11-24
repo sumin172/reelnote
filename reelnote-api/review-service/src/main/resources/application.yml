@@ -81,6 +81,7 @@ management:
         enabled: true  # liveness/readiness 프로브 활성화
 
 # OpenAPI 설정
+# info 설정은 OpenApiConfig.kt에서 코드로 관리합니다.
 springdoc:
   api-docs:
     path: /api/docs-json

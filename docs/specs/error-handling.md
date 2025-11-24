@@ -379,6 +379,8 @@ messageSource.getMessage("error.review.not.found", arrayOf(reviewId), Locale.get
 - [ ] HTTP 상태 코드와 올바르게 매핑되는가?
 - [ ] 에러 메시지가 명확한가?
 - [ ] 문서에 등록되었는가?
+- [ ] **OpenAPI Info.description의 Error Codes 섹션 업데이트**
+- [ ] **ErrorDetail 스키마의 enum/allowableValues 업데이트** (Catalog: `CatalogErrorCode` enum, Review: `allowableValues` 배열)
 
 ---
 

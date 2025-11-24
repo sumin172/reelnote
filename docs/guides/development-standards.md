@@ -482,7 +482,141 @@ async getMovie(id: number): Promise<Movie> {  // ❌
 
 ---
 
-### 6-3. API 문서 경로
+### 6-3. 에러 코드 문서화
+
+**OpenAPI 문서에 에러 코드 정보 포함 (필수):**
+
+#### 1. OpenAPI Info Description에 Error Codes 섹션 추가
+
+**목적:** 프런트엔드/외부 협업자가 문서에서 에러 코드를 한눈에 확인할 수 있도록 함
+
+**구현 방법:**
+
+**NestJS (Catalog Service):**
+```typescript
+const config = new DocumentBuilder()
+  .setTitle("Catalog Service API")
+  .setDescription(
+    `ReelNote Catalog Service - 영화 메타데이터 관리
+
+## Error Codes
+
+### 공통 에러 코드
+- \`VALIDATION_ERROR\`: 입력 데이터 검증 실패
+- \`NOT_FOUND\`: 리소스를 찾을 수 없음
+...
+
+### 도메인 에러 코드 (CATALOG_*)
+- \`CATALOG_MOVIE_NOT_FOUND\`: 영화를 찾을 수 없음
+...`,
+  )
+  .build();
+```
+
+**Spring Boot (Review Service):**
+```kotlin
+// OpenApiConfig.kt
+@Configuration
+class OpenApiConfig {
+    @Bean
+    fun openAPI(): OpenAPI {
+        return OpenAPI()
+            .info(
+                Info()
+                    .title("Review Service API")
+                    .description(
+                        """
+                        ReelNote Review Service - 영화 리뷰 관리
+
+                        ## Error Codes
+
+                        ### 공통 에러 코드
+                        - `VALIDATION_ERROR`: 입력 데이터 검증 실패
+                        ...
+                        """.trimIndent()
+                    )
+                    .version("1.0")
+            )
+    }
+}
+```
+
+**⚠️ 중요: SpringDoc 2.x 프로퍼티 제한사항**
+
+SpringDoc OpenAPI 2.x에서는 `springdoc.info.*` 프로퍼티가 제대로 동작하지 않을 수 있습니다.
+따라서 **코드에서 직접 `OpenAPI` Bean을 생성**하는 방식을 사용합니다.
+
+- ❌ **사용하지 않음**: `application.yml`의 `springdoc.info.*` 프로퍼티
+- ✅ **권장 방식**: `@Configuration` 클래스에서 `@Bean`으로 `OpenAPI` 객체 생성
+
+#### 2. ErrorDetail 스키마에 에러 코드 enum/allowableValues 연결
+
+**목적:** Swagger UI에서 에러 코드를 드롭다운으로 선택 가능하도록 함
+
+**구현 방법:**
+
+**NestJS (Catalog Service):**
+```typescript
+// ErrorDetailDto
+import { CatalogErrorCode } from "../error/catalog-error-code.js";
+
+export class ErrorDetailDto {
+  @ApiProperty({
+    description: "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)",
+    enum: CatalogErrorCode,  // ← enum 연결
+    example: CatalogErrorCode.VALIDATION_ERROR,
+  })
+  code!: string;
+}
+```
+
+**Spring Boot (Review Service):**
+```kotlin
+// ErrorDetail
+data class ErrorDetail(
+    @Schema(
+        description = "에러 코드 (머신/사람이 같이 읽기 좋은 짧은 코드)",
+        example = "VALIDATION_ERROR",
+        allowableValues = [  // ← 허용 가능한 값 목록
+            "VALIDATION_ERROR",
+            "NOT_FOUND",
+            // ... 모든 에러 코드 나열
+        ],
+    )
+    val code: String,
+    // ...
+)
+```
+
+**체크리스트:**
+- [ ] OpenAPI Info description에 Error Codes 섹션 추가 (Markdown 형식)
+- [ ] ErrorDetail.code 필드에 enum/allowableValues 연결
+- [ ] 공통 에러 코드와 도메인 에러 코드 구분하여 표시
+- [ ] 각 에러 코드에 간단한 설명 포함
+
+**⚠️ 주의: 문서 드리프트 방지**
+
+에러 코드 추가/변경 시 다음 항목도 함께 업데이트해야 합니다:
+
+- [ ] `ErrorCodes` object 또는 `CatalogErrorCode` enum 업데이트
+- [ ] OpenAPI Info.description의 Error Codes 섹션 업데이트 (Markdown)
+- [ ] ErrorDetail 스키마의 enum/allowableValues 업데이트
+- [ ] 메시지 리소스 파일 업데이트 (`messages.properties`, `messages.ko.json`)
+
+**드리프트 발생 시나리오:**
+- 에러 코드를 추가했는데 OpenAPI description의 Markdown 목록을 업데이트하지 않음
+- 에러 코드 이름을 변경했는데 allowableValues 배열을 업데이트하지 않음
+- 결과: 문서와 실제 코드가 불일치하여 프런트엔드/외부 협업자가 혼란
+
+**향후 개선 방향:**
+- enum/상수에서 자동으로 Markdown을 생성하여 description에 주입하는 방식 고려 가능
+- 현재는 수동 관리이므로 체크리스트를 통해 누락 방지
+
+**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 2
+
+---
+
+### 6-4. API 문서 경로
 
 **API 문서 표준 경로:**
 
