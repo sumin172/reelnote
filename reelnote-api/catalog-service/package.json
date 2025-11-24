@@ -8,9 +8,9 @@
     "start": "nx serve catalog-service",
     "test": "nx test catalog-service",
     "generate:openapi": "tsx --tsconfig tsconfig.openapi.json src/scripts/generate-openapi.ts",
-    "format:check": "prettier --check .",
+    "format:check": "prettier --check . --no-color",
     "format:write": "prettier --write .",
-    "eslint": "eslint . --cache",
+    "eslint": "eslint . --cache --no-color",
     "lint": "pnpm run format:check && pnpm eslint"
   },
   "dependencies": {

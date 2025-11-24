@@ -126,7 +126,16 @@
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["pnpm format:check", "pnpm eslint"],
+        "commands": [
+          {
+            "command": "pnpm format:check",
+            "forwardAllArgs": false
+          },
+          {
+            "command": "pnpm eslint",
+            "forwardAllArgs": false
+          }
+        ],
         "parallel": false,
         "cwd": "reelnote-api/catalog-service"
       },
@@ -138,7 +147,8 @@
         "{projectRoot}/.prettierrc*",
         "{projectRoot}/.eslintrc*",
         "{projectRoot}/eslint.config.*"
-      ]
+      ],
+      "outputs": []
     },
     "format:write": {
       "executor": "nx:run-commands",
