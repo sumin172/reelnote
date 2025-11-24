@@ -13,57 +13,57 @@ import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { ImportMoviesJobStatus } from "../application/jobs/import-movies.job-service.js";
 
 export class MovieResponseDto {
-  @ApiProperty({ description: "TMDB 영화 ID" })
+  @ApiProperty({ description: "TMDB 영화 ID", type: Number })
   @IsNumber()
   tmdbId!: number;
 
-  @ApiProperty({ description: "영화 제목" })
+  @ApiProperty({ description: "영화 제목", type: String })
   @IsString()
   title!: string;
 
-  @ApiProperty({ description: "원본 제목" })
+  @ApiProperty({ description: "원본 제목", type: String })
   @IsString()
   originalTitle!: string;
 
-  @ApiPropertyOptional({ description: "개봉 연도" })
+  @ApiPropertyOptional({ description: "개봉 연도", type: Number })
   @IsOptional()
   @IsNumber()
   year?: number;
 
-  @ApiPropertyOptional({ description: "상영 시간 (분)" })
+  @ApiPropertyOptional({ description: "상영 시간 (분)", type: Number })
   @IsOptional()
   @IsNumber()
   runtime?: number;
 
-  @ApiPropertyOptional({ description: "언어" })
+  @ApiPropertyOptional({ description: "언어", type: String })
   @IsOptional()
   @IsString()
   language?: string;
 
-  @ApiPropertyOptional({ description: "국가" })
+  @ApiPropertyOptional({ description: "국가", type: String })
   @IsOptional()
   @IsString()
   country?: string;
 
-  @ApiPropertyOptional({ description: "포스터 경로" })
+  @ApiPropertyOptional({ description: "포스터 경로", type: String })
   @IsOptional()
   @IsString()
   posterPath?: string;
 
-  @ApiPropertyOptional({ description: "인기도 점수" })
+  @ApiPropertyOptional({ description: "인기도 점수", type: Number })
   @IsOptional()
   popularity?: number;
 
-  @ApiPropertyOptional({ description: "평균 평점" })
+  @ApiPropertyOptional({ description: "평균 평점", type: Number })
   @IsOptional()
   voteAvg?: number;
 
-  @ApiPropertyOptional({ description: "평점 개수" })
+  @ApiPropertyOptional({ description: "평점 개수", type: Number })
   @IsOptional()
   @IsNumber()
   voteCnt?: number;
 
-  @ApiPropertyOptional({ description: "마지막 동기화 시간" })
+  @ApiPropertyOptional({ description: "마지막 동기화 시간", type: Date })
   @IsOptional()
   @IsDate()
   syncedAt?: Date;
@@ -86,23 +86,23 @@ export class ImportMoviesDto {
   @IsNumber({}, { each: true })
   tmdbIds?: number[];
 
-  @ApiPropertyOptional({ description: "언어 코드 (기본: ko-KR)" })
+  @ApiPropertyOptional({ description: "언어 코드 (기본: ko-KR)", type: String })
   @IsOptional()
   @IsString()
   language?: string;
 
-  @ApiPropertyOptional({ description: "재시도할 기존 작업 ID" })
+  @ApiPropertyOptional({ description: "재시도할 기존 작업 ID", type: String })
   @IsOptional()
   @IsUUID()
   resumeJobId?: string;
 }
 
 export class ImportMoviesFailureDto {
-  @ApiProperty({ description: "실패한 TMDB 영화 ID" })
+  @ApiProperty({ description: "실패한 TMDB 영화 ID", type: Number })
   @IsNumber()
   tmdbId!: number;
 
-  @ApiProperty({ description: "실패 사유" })
+  @ApiProperty({ description: "실패 사유", type: String })
   @IsString()
   reason!: string;
 }
@@ -110,7 +110,7 @@ export class ImportMoviesFailureDto {
 export class ImportMoviesImmediateResponseDto {
   @ApiProperty({
     description: "성공적으로 인입된 영화 목록",
-    type: [MovieResponseDto],
+    type: () => [MovieResponseDto],
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -119,7 +119,7 @@ export class ImportMoviesImmediateResponseDto {
 
   @ApiProperty({
     description: "실패한 영화 목록",
-    type: [ImportMoviesFailureDto],
+    type: () => [ImportMoviesFailureDto],
   })
   @IsArray()
   @ValidateNested({ each: true })
@@ -128,7 +128,7 @@ export class ImportMoviesImmediateResponseDto {
 }
 
 export class ImportMoviesJobSummaryDto {
-  @ApiProperty({ description: "작업 ID" })
+  @ApiProperty({ description: "작업 ID", type: String })
   @IsUUID()
   jobId!: string;
 
@@ -136,27 +136,27 @@ export class ImportMoviesJobSummaryDto {
   @IsEnum(ImportMoviesJobStatus)
   status!: ImportMoviesJobStatus;
 
-  @ApiProperty({ description: "총 처리 대상 수" })
+  @ApiProperty({ description: "총 처리 대상 수", type: Number })
   @IsNumber()
   total!: number;
 
-  @ApiProperty({ description: "현재까지 처리된 수" })
+  @ApiProperty({ description: "현재까지 처리된 수", type: Number })
   @IsNumber()
   processed!: number;
 
-  @ApiProperty({ description: "성공한 수" })
+  @ApiProperty({ description: "성공한 수", type: Number })
   @IsNumber()
   succeeded!: number;
 
-  @ApiProperty({ description: "실패한 수" })
+  @ApiProperty({ description: "실패한 수", type: Number })
   @IsNumber()
   failed!: number;
 
-  @ApiProperty({ description: "요청 시각" })
+  @ApiProperty({ description: "요청 시각", type: Date })
   @IsDate()
   requestedAt!: Date;
 
-  @ApiPropertyOptional({ description: "완료 시각" })
+  @ApiPropertyOptional({ description: "완료 시각", type: Date })
   @IsOptional()
   @IsDate()
   completedAt?: Date;
@@ -165,7 +165,7 @@ export class ImportMoviesJobSummaryDto {
 export class ImportMoviesJobDetailDto extends ImportMoviesJobSummaryDto {
   @ApiPropertyOptional({
     description: "완료된 경우 성공한 영화 목록",
-    type: [MovieResponseDto],
+    type: () => [MovieResponseDto],
   })
   @IsOptional()
   @IsArray()
@@ -175,14 +175,17 @@ export class ImportMoviesJobDetailDto extends ImportMoviesJobSummaryDto {
 
   @ApiProperty({
     description: "실패한 영화 정보",
-    type: [ImportMoviesFailureDto],
+    type: () => [ImportMoviesFailureDto],
   })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ImportMoviesFailureDto)
   failures!: ImportMoviesFailureDto[];
 
-  @ApiPropertyOptional({ description: "작업 실패 시 에러 메시지" })
+  @ApiPropertyOptional({
+    description: "작업 실패 시 에러 메시지",
+    type: String,
+  })
   @IsOptional()
   @IsString()
   error?: string;

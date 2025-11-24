@@ -10,6 +10,7 @@ import {
   Max,
 } from "class-validator";
 import { validateSync } from "class-validator";
+import { isSchemaGeneration } from "./schema-generation.js";
 
 /**
  * 환경 변수 검증 DTO
@@ -151,6 +152,11 @@ class EnvironmentVariables {
  * 검증 실패 시 애플리케이션 시작을 중단합니다.
  */
 export function validate(config: Record<string, unknown>) {
+  // OpenAPI 생성 시 환경 변수 검증 비활성화
+  if (isSchemaGeneration()) {
+    console.log("[env.validation] Skipping validation for OpenAPI generation");
+    return config as any;
+  }
   // 빈 문자열을 undefined로 변환 (REDIS_URL 등 선택적 설정)
   const normalizedConfig: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(config)) {

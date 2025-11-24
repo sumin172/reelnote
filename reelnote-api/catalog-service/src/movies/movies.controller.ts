@@ -45,7 +45,7 @@ export class MoviesController {
   @ApiResponse({
     status: 200,
     description: "영화 정보 조회 성공",
-    type: MovieResponseDto,
+    type: () => MovieResponseDto,
   })
   @ApiResponse({ status: 404, description: "영화를 찾을 수 없음" })
   async getMovie(
@@ -63,12 +63,12 @@ export class MoviesController {
   @ApiResponse({
     status: 200,
     description: "소량 인입 즉시 완료",
-    type: ImportMoviesImmediateResponseDto,
+    type: () => ImportMoviesImmediateResponseDto,
   })
   @ApiResponse({
     status: 202,
     description: "대량 인입 비동기 처리",
-    type: ImportMoviesJobSummaryDto,
+    type: () => ImportMoviesJobSummaryDto,
   })
   async importMovies(
     @Body() dto: ImportMoviesDto,
@@ -100,7 +100,7 @@ export class MoviesController {
   @ApiResponse({
     status: 200,
     description: "작업 상세 정보",
-    type: ImportMoviesJobDetailDto,
+    type: () => ImportMoviesJobDetailDto,
   })
   async getImportJob(
     @Param("jobId") jobId: string,

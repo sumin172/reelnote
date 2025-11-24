@@ -81,7 +81,8 @@ dependencies {
 
 openApi {
     apiDocsUrl.set("http://localhost:8080/api/docs-json")
-    outputDir.set(file("/openapi"))
+    // workspace 루트 기준으로 최종 위치에 직접 생성 (catalog-service와 통일)
+    outputDir.set(file("../../packages/api-schema/generated"))
     outputFileName.set("review-service-openapi.json")
 }
 

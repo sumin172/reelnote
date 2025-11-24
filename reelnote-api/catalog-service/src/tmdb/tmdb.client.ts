@@ -55,6 +55,7 @@ export class TmdbClient implements OnModuleDestroy {
     private readonly tmdbConfig: TmdbConfig,
     private readonly messageService: MessageService,
   ) {
+    // TmdbConfig에서 설정값 읽기
     this.apiKey = this.tmdbConfig.apiKey;
     this.timeout = this.tmdbConfig.timeout;
 
@@ -65,6 +66,7 @@ export class TmdbClient implements OnModuleDestroy {
     const resolvedConcurrency = this.tmdbConfig.maxConcurrency;
     this.requestLimiter = this.loadLimiter(resolvedConcurrency);
 
+    // HttpService는 HttpModule.registerAsync에서 자동으로 제공됨
     this.axios = this.httpService.axiosRef;
     const resolvedRetries = this.tmdbConfig.maxRetry;
     const retryDelayWithJitter = (retryCount: number) => {

@@ -169,7 +169,93 @@ checks:
 
 ---
 
-### 3. 테스트 커버리지 개선 (단계적)
+### 3. OpenAPI 스키마 생성 CI 통합
+
+**현재 상태:**
+- `pnpm api-schema:generate` 명령어가 정상 동작
+- Catalog Service: NestJS 스크립트 기반 생성 (DB 연결 스킵 가능)
+- Review Service: SpringDoc Gradle Plugin 기반 생성 (실행 중 서버에서 추출)
+- 두 서비스 모두 `packages/api-schema/generated/`에 직접 생성 (통일된 구조)
+- 수동 실행으로만 스키마 생성 가능
+
+**영향:**
+- OpenAPI 스키마가 깨져도 CI에서 감지되지 않음
+- Swagger 어노테이션 변경 시 스키마 생성 실패를 조기에 발견하지 못함
+- API 문서 동기화 문제 조기 발견 어려움
+
+**권장 방향:**
+
+#### 3-1. CI Job 추가
+
+**구현 내용:**
+1. **OpenAPI 생성 전용 CI Job 추가**
+   - 서버를 띄우지 않고 OpenAPI 스키마만 생성
+   - `pnpm api-schema:generate` 실행
+   - 생성된 `openapi.json` 파일 검증
+
+2. **검증 단계**
+   - OpenAPI 스키마 파일이 정상 생성되었는지 확인
+   - JSON 파싱 검증
+   - 필수 필드 존재 확인 (`openapi`, `paths`, `components` 등)
+
+3. **실패 시 빌드 중단**
+   - 스키마 생성 실패 시 CI 빌드 실패
+   - PR 머지 전에 문제 발견 보장
+
+**구현 예시 (GitHub Actions):**
+```yaml
+name: Validate OpenAPI Schema
+
+on:
+  pull_request:
+    paths:
+      - 'reelnote-api/**'
+      - 'tools/scripts/generate-api-schema.mjs'
+
+jobs:
+  validate-openapi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Generate OpenAPI schemas
+        run: pnpm api-schema:generate
+
+      - name: Validate OpenAPI schemas
+        run: |
+          # JSON 파싱 검증
+          jq empty packages/api-schema/generated/catalog-service-openapi.json
+          jq empty packages/api-schema/generated/review-service-openapi.json
+
+          # 필수 필드 확인
+          jq -e '.openapi' packages/api-schema/generated/catalog-service-openapi.json
+          jq -e '.paths' packages/api-schema/generated/catalog-service-openapi.json
+```
+
+**기대 효과:**
+- Swagger 어노테이션 변경 시 즉시 감지
+- API 문서 동기화 문제 조기 발견
+- 스키마 생성 프로세스 안정성 향상
+- PR 머지 전 문제 해결 보장
+
+**참고:**
+- 현재 스크립트: `tools/scripts/generate-api-schema.mjs`
+- 생성 위치: `packages/api-schema/generated/` (두 서비스 모두 동일)
+- Catalog Service 생성 스크립트: `reelnote-api/catalog-service/src/scripts/generate-openapi.ts`
+- Review Service 설정: `reelnote-api/review-service/build.gradle.kts`의 `openApi` 블록
+  - `outputDir`: `../../packages/api-schema/generated` (직접 생성)
+  - Gradle 태스크: `generateOpenApiDocs`
+
+---
+
+### 4. 테스트 커버리지 개선 (단계적)
 
 **현재 상태:**
 - **Catalog Service**: 테스트 커버리지 약 5-10% (2개 파일만 커버)

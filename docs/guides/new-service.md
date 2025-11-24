@@ -1,5 +1,13 @@
 # 신규 마이크로서비스 체크리스트
 
+> **초기 설계 시 체크리스트** - 새로운 마이크로서비스를 처음부터 만들 때 프로젝트 설계 단계에서 고려해야 하는 모든 항목
+>
+> - **목적**: 새 서비스 추가 시 초기 설계 및 구현 가이드
+> - **대상**: 새로 추가되는 마이크로서비스
+> - **사용 시점**: 서비스 설계 및 초기 구현 단계
+>
+> ⚠️ **이미 개발된 서비스에서 기능 추가/개선 시에는** [개발 표준 가이드](development-standards.md)를 참고하세요.
+
 새로운 서비스를 추가할 때 아래 항목을 순차적으로 점검하세요.
 
 ## 1. 프로젝트 구조 등록
@@ -176,6 +184,9 @@ CACHE_NAMESPACE=catalog-cache
   - 클라이언트 필터/인터셉터에서 자동 처리 (수동 설정 불필요)
   - **⚠️ 수동 헤더 추가 금지**: WebClient/HttpService 요청에 수동으로 `X-Trace-Id` 헤더 추가하지 않음
 
+**지속적 개발 시 참고:**
+- 서비스 간 통신 구현 시 [개발 표준 가이드 - TraceId 전파](development-standards.md#1-1-traceid-전파-필수-) 참조
+
 - [ ] **Spring Boot (Kotlin) 구현**
   - [ ] `TraceIdFilter` 구현 (요청 시작 시 traceId 생성/설정)
     - `@Component` + `@Order(1)`로 가장 먼저 실행
@@ -230,13 +241,71 @@ CACHE_NAMESPACE=catalog-cache
 - **Spring Boot**: `spring-retry` + Resilience4j 또는 WebClient의 `retry()` + `resilience4j-circuitbreaker` 패턴
 - **설정**: 환경 변수로 재시도 횟수, 타임아웃, Circuit Breaker 임계값 관리
 
+**지속적 개발 시 참고:**
+- 외부 서비스 호출 추가/수정 시 [개발 표준 가이드 - Resilience 패턴](development-standards.md#1-2-resilience-패턴-권장) 참조
+
 ### 7.3 클라이언트 설정 표준화
 
-- [ ] **외부 서비스 클라이언트 설정 일관성**
-  - 타임아웃 설정을 환경 변수로 관리
-  - 연결 풀 크기 설정 (필요 시)
-  - 클라이언트별 설정 클래스 분리 (예: `CatalogApiProperties`)
-  - 테스트 환경에서 Mock 클라이언트 사용 가능하도록 인터페이스 분리
+**외부 HTTP 의존성 모듈 표준 패턴:**
+
+외부 API 클라이언트 모듈을 구현할 때는 다음 표준 패턴을 따릅니다:
+
+- [ ] **HttpModule.registerAsync + ConfigService**: 동적 설정 주입
+- [ ] **전용 Config 클래스**: 환경 변수를 타입 안전하게 접근 (`TmdbConfig` 등)
+- [ ] **Client 클래스**: 실제 HTTP 호출 로직 (`TmdbClient` 등)
+- [ ] **Factory 패턴**: 의존성 주입 순서 보장
+- [ ] **Service 클래스**: 비즈니스 로직 레이어 (`TmdbService` 등)
+
+**표준 템플릿 (NestJS):**
+
+```typescript
+@Module({
+  imports: [
+    ConfigModule,
+    HttpModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        timeout: configService.get<number>("{SERVICE}_API_TIMEOUT", { infer: true }) ?? 10000,
+        baseURL: configService.get<string>("{SERVICE}_API_BASE_URL", { infer: true }),
+      }),
+    }),
+  ],
+  providers: [
+    {
+      provide: {Service}Config,
+      useFactory: (configService: ConfigService) => {
+        return new {Service}Config(configService);
+      },
+      inject: [ConfigService],
+    },
+    {
+      provide: {Service}Client,
+      useFactory: (httpService: HttpService, config: {Service}Config, messageService: MessageService) => {
+        return new {Service}Client(httpService, config, messageService);
+      },
+      inject: [HttpService, {Service}Config, MessageService],
+    },
+    {Service}Service,
+  ],
+  exports: [{Service}Service],
+})
+export class {Service}Module {}
+```
+
+**참고 구현:**
+- Catalog Service: `reelnote-api/catalog-service/src/tmdb/tmdb.module.ts`
+- 이 패턴은 다른 외부 API (분석 서비스, 추천 엔진, 결제 등) 추가 시 재사용 가능
+
+**체크리스트:**
+- [ ] 타임아웃 설정을 환경 변수로 관리
+- [ ] 클라이언트별 설정 클래스 분리 (예: `TmdbConfig`)
+- [ ] Factory 패턴으로 의존성 주입 순서 보장
+- [ ] 연결 풀 크기 설정 (필요 시)
+- [ ] 테스트 환경에서 Mock 클라이언트 사용 가능하도록 인터페이스 분리
+
+**지속적 개발 시 참고:**
+- 외부 API 클라이언트 추가/수정 시 [개발 표준 가이드 - 클라이언트 설정 표준화](development-standards.md#1-3-클라이언트-설정-표준화) 참조
 
 ### 7.4 에러 처리
 
@@ -280,16 +349,55 @@ CACHE_NAMESPACE=catalog-cache
 
 ## 9. API 문서화
 
-- [ ] **OpenAPI/Swagger 설정**
+- [ ] **OpenAPI/Swagger 초기 설정**
   - OpenAPI 3.0 스펙 준수
   - **경로 통일**: 모든 신규 서비스는 다음 표준 경로를 사용해야 합니다
     - Swagger UI: `/api/docs` (필수)
     - OpenAPI JSON: `/api/docs-json` (필수)
   - 운영 환경에서는 문서 노출 비활성화 (`application-prod.yml` 등)
-  - DTO 및 에러 응답 스키마 문서화
+
+- [ ] **DTO 및 에러 응답 스키마 문서화**
+  - 모든 DTO에 `@Schema` / `@ApiProperty` 어노테이션 추가
   - 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
   - 태그(Tag) 사용으로 엔드포인트 그룹화
   - 예시 요청/응답 포함
+
+**구현 예시:**
+
+```kotlin
+// Spring Boot
+@Tag(name = "Review", description = "리뷰 관리 API")
+@Operation(summary = "리뷰 조회", description = "ID로 리뷰를 조회합니다")
+@ApiResponses(
+    value = [
+        ApiResponse(
+            responseCode = "200",
+            description = "성공",
+            content = [Content(schema = Schema(implementation = ReviewResponse::class))]
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "리뷰를 찾을 수 없음",
+            content = [Content(schema = Schema(implementation = ErrorDetail::class))]
+        ),
+    ],
+)
+@GetMapping("/{id}")
+fun getReview(@PathVariable id: Long): ResponseEntity<ReviewResponse>
+```
+
+```typescript
+// NestJS
+@ApiTags('Movies')
+@Get(':id')
+@ApiOperation({ summary: '영화 조회', description: 'TMDB ID로 영화 정보를 조회합니다' })
+@ApiResponse({ status: 200, description: '성공', type: MovieResponseDto })
+@ApiResponse({ status: 404, description: '영화를 찾을 수 없음', type: ErrorDetailDto })
+async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
+```
+
+**지속적 개발 시 참고:**
+- 새 엔드포인트 추가 시 [개발 표준 가이드 - API 문서화](development-standards.md#6-api-문서화) 참조
 
 ## 10. API 응답 형식 표준화
 
@@ -301,6 +409,9 @@ CACHE_NAMESPACE=catalog-cache
 - [ ] 서비스 간 응답 형식 일관성 확인
   - 다른 서비스들과 동일한 패턴 사용
   - 클라이언트가 서비스별 분기 처리 불필요하도록 유지
+
+**지속적 개발 시 참고:**
+- 새 엔드포인트 추가 시 [개발 표준 가이드 - API 응답 형식](development-standards.md#5-api-응답-형식) 참조
 
 ### 에러 응답
 - [ ] 공통 에러 스펙 준수 ([docs/specs/error-handling.md](../specs/error-handling.md) 참조)
@@ -316,6 +427,9 @@ CACHE_NAMESPACE=catalog-cache
   - TraceId 정책 준수 (요청 헤더 확인, 전파, 로그 포함)
   - 로깅 정책 준수 (4xx: WARN, 5xx: ERROR, 스택 트레이스 포함 여부)
   - BaseAppException 패턴 사용 (프레임워크 독립 베이스 예외)
+
+**지속적 개발 시 참고:**
+- 새 예외 추가 시 [개발 표준 가이드 - 에러 처리](development-standards.md#2-에러-처리-error-handling) 참조
 
 #### BaseAppException 패턴 (프레임워크 독립 베이스 예외)
 

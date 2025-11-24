@@ -7,7 +7,7 @@
     "dev": "nx serve catalog-service",
     "start": "nx serve catalog-service",
     "test": "nx test catalog-service",
-    "generate:openapi": "ts-node --transpile-only --project tsconfig.openapi.json src/scripts/generate-openapi.ts",
+    "generate:openapi": "tsx --tsconfig tsconfig.openapi.json src/scripts/generate-openapi.ts",
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "eslint": "eslint . --cache",
@@ -191,6 +191,7 @@
   },
   "devDependencies": {
     "@types/pg": "^8.15.6",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "tsx": "^4.20.6"
   }
 }

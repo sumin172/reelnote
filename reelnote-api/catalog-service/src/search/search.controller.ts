@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { SearchService } from "./search.service.js";
+import { SearchResultDto } from "./dto/search.dto.js";
 
 @ApiTags("search")
 @Controller("search")
@@ -23,12 +24,16 @@ export class SearchController {
     required: false,
     description: "언어 코드 (기본: ko-KR)",
   })
-  @ApiResponse({ status: 200, description: "검색 성공" })
+  @ApiResponse({
+    status: 200,
+    description: "검색 성공",
+    type: () => SearchResultDto,
+  })
   async search(
     @Query("q") query: string,
     @Query("page") page = 1,
     @Query("language") language = "ko-KR",
-  ) {
+  ): Promise<SearchResultDto> {
     return this.searchService.search(query, page, language);
   }
 }

@@ -1,9 +1,12 @@
 # 개발 표준 가이드
 
-> 마이크로서비스 확장/개선 개발 시 항상 고려해야 하는 필수 요소 실시간 체크리스트
+> **지속적 개발 시 실시간 참조 가이드** - 이미 개발된 서비스에서 기능 추가/개선 시 항상 고려해야 하는 필수 요소
 >
-> - 목적: 새로운 기능 추가, 엔드포인트 추가, 서비스 간 통신 구현 시 빠른 참조
-> - 대상: 모든 마이크로서비스 (새 서비스 및 기존 서비스)
+> - **목적**: 새로운 기능 추가, 엔드포인트 추가, 서비스 간 통신 구현 시 빠른 참조
+> - **대상**: 모든 마이크로서비스 (새 서비스 및 기존 서비스)
+> - **사용 시점**: 일상적인 개발 작업 중 지속적으로 참조
+>
+> ⚠️ **새 서비스를 처음부터 만들 때는** [신규 서비스 체크리스트](new-service.md)를 먼저 참고하세요.
 
 ---
 
@@ -102,9 +105,19 @@ fun webClient(builder: WebClient.Builder): WebClient {
 
 ### 1-3. 클라이언트 설정 표준화
 
+**외부 HTTP 의존성 모듈 표준 패턴:**
+
+외부 API 클라이언트 모듈을 추가/수정할 때는 다음 표준 패턴을 따릅니다:
+
+**빠른 체크리스트:**
+- [ ] `HttpModule.registerAsync + ConfigService` 사용 (동적 설정 주입)
+- [ ] 전용 Config 클래스 분리 (`TmdbConfig` 등)
+- [ ] Factory 패턴으로 의존성 주입 순서 보장
 - [ ] 타임아웃 설정을 환경 변수로 관리
-- [ ] 클라이언트별 설정 클래스 분리 (예: `CatalogApiProperties`)
-- [ ] 연결 풀 크기 설정 (필요 시)
+
+**표준 템플릿 및 상세 가이드:**
+- 참고 구현: `reelnote-api/catalog-service/src/tmdb/tmdb.module.ts`
+- 상세 구현 가이드는 [신규 서비스 체크리스트 - 클라이언트 설정 표준화](new-service.md#73-클라이언트-설정-표준화) 참조
 
 ---
 
@@ -300,12 +313,12 @@ private val errorCodeToMessageKey = mapOf(
 
 ### 4-1. 로그 레벨 가이드라인
 
-| 로그 레벨 | 사용 시나리오 | 스택 트레이스 |
-|---------|------------|------------|
-| `ERROR` | 예상치 못한 서버 오류 (5xx) | ✅ **필수** |
-| `WARN`  | 비즈니스 예외, 검증 실패 (4xx) | 선택사항 |
-| `INFO`  | 정상적인 비즈니스 로직 | - |
-| `DEBUG` | 개발/디버깅용 상세 정보 | - |
+| 로그 레벨   | 사용 시나리오              | 스택 트레이스  |
+|---------|----------------------|----------|
+| `ERROR` | 예상치 못한 서버 오류 (5xx)   | ✅ **필수** |
+| `WARN`  | 비즈니스 예외, 검증 실패 (4xx) | 선택사항     |
+| `INFO`  | 정상적인 비즈니스 로직         | -        |
+| `DEBUG` | 개발/디버깅용 상세 정보        | -        |
 
 ### 4-2. 로그 형식
 
@@ -393,36 +406,14 @@ return ResponseEntity.ok(ApiResponse.success(reviewResponse))  // 래퍼 사용 
 
 ### 6-1. OpenAPI/Swagger 설정
 
-**새 엔드포인트 추가 시:**
+**새 엔드포인트 추가 시 빠른 체크리스트:**
 
 - [ ] OpenAPI 어노테이션 추가 (`@Operation`, `@ApiResponse` 등)
 - [ ] DTO 스키마 문서화 (`@Schema`, `@ApiProperty`)
 - [ ] 주요 에러 응답(400, 404, 500 등)에 `ErrorDetail` 스키마 명시
 - [ ] 태그(Tag) 사용으로 엔드포인트 그룹화
 
-**예시:**
-
-```kotlin
-// Spring Boot
-@Tag(name = "Review", description = "리뷰 관리 API")
-@Operation(summary = "리뷰 조회", description = "ID로 리뷰를 조회합니다")
-@ApiResponses(
-    value = [
-        ApiResponse(
-            responseCode = "200",
-            description = "성공",
-            content = [Content(schema = Schema(implementation = ReviewResponse::class))]
-        ),
-        ApiResponse(
-            responseCode = "404",
-            description = "리뷰를 찾을 수 없음",
-            content = [Content(schema = Schema(implementation = ErrorDetail::class))]
-        ),
-    ],
-)
-@GetMapping("/{id}")
-fun getReview(@PathVariable id: Long): ResponseEntity<ReviewResponse>
-```
+**코드 예시:**
 
 ```typescript
 // NestJS
@@ -434,9 +425,64 @@ fun getReview(@PathVariable id: Long): ResponseEntity<ReviewResponse>
 async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
 ```
 
+**상세 설정 가이드:**
+- 초기 OpenAPI/Swagger 설정은 [신규 서비스 체크리스트 - API 문서화](new-service.md#9-api-문서화) 참조
+
 ---
 
-### 6-2. API 문서 경로
+### 6-2. Swagger/DTO 타입 안정성 규칙
+
+**필수 준수 사항:**
+
+- [ ] **모든 `@ApiProperty`에 명시적 `type` 지정**
+  - Swagger가 타입을 올바르게 추론하도록 보장
+  - 예: `@ApiProperty({ description: "...", type: Number })`
+
+- [ ] **순환 참조 방지 패턴 사용**
+  - DTO 간 참조 시 `type: () => DTO` 함수 형태 사용
+  - `@Type(() => DTO)` 데코레이터와 함께 사용
+  - 예: `@ApiProperty({ type: () => [MovieResponseDto] })`
+
+- [ ] **Entity/Prisma 모델은 Swagger에 직접 노출하지 않음**
+  - 응답/요청은 전용 DTO만 사용
+  - 도메인 엔티티나 Prisma 모델을 컨트롤러에서 직접 반환하지 않음
+  - DTO를 통해 필요한 필드만 노출
+
+**예시:**
+
+```typescript
+// ✅ 올바른 패턴
+export class MovieResponseDto {
+  @ApiProperty({ description: "TMDB 영화 ID", type: Number })
+  @IsNumber()
+  tmdbId!: number;
+}
+
+export class ImportMoviesJobDetailDto {
+  @ApiPropertyOptional({
+    description: "성공한 영화 목록",
+    type: () => [MovieResponseDto],  // ← 함수 형태로 순환 참조 방지
+  })
+  @Type(() => MovieResponseDto)  // ← class-transformer와 함께 사용
+  movies?: MovieResponseDto[];
+}
+
+// ❌ 잘못된 패턴
+// Prisma 모델을 직접 반환
+async getMovie(id: number): Promise<Movie> {  // ❌
+  return this.prisma.movie.findUnique({ where: { tmdbId: id } });
+}
+```
+
+**체크리스트:**
+- [ ] 모든 `@ApiProperty`에 명시적 `type` 지정
+- [ ] DTO 간 참조는 `type: () => DTO` 패턴 사용
+- [ ] Entity/Prisma 모델을 컨트롤러에서 직접 반환하지 않음
+- [ ] 모든 응답/요청은 전용 DTO 사용
+
+---
+
+### 6-3. API 문서 경로
 
 **API 문서 표준 경로:**
 
@@ -481,9 +527,49 @@ async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
 - [ ] Spring Boot: `@ConfigurationProperties` + `@Valid` 사용
 - [ ] NestJS: `class-validator` + DTO 기반 설정 검증
 
+### 8-1. OpenAPI 스키마 생성 시 검증 스킵 (NestJS 전용)
+
+**⚠️ 중요: `SKIP_ENV_VALIDATION` 플래그 역할 고정**
+
+`SKIP_ENV_VALIDATION` 환경 변수는 **오직 OpenAPI 스키마 생성 시에만 사용**합니다.
+
+**역할:**
+- OpenAPI 스키마 생성 모드를 나타내는 플래그
+- `isSchemaGeneration()` 헬퍼 함수로 일관되게 확인
+- 환경 변수 검증 및 DB 연결을 건너뛰기 위한 목적
+
+**❌ 사용 금지:**
+- 테스트에서 DB 연결을 건너뛰기 위한 용도로 재사용 금지
+- 로컬 개발 편의를 위한 검증 스킵 용도로 재사용 금지
+- 기타 편의 목적으로 재사용 금지
+
+**이유:**
+- 플래그의 의미가 "스키마 생성 모드"에서 "검증 스킵 스위치"로 타락하는 것을 방지
+- 명확한 책임 분리로 유지보수성 향상
+
+**구현:**
+```typescript
+// schema-generation.ts
+export const isSchemaGeneration = (): boolean => {
+  return process.env.SKIP_ENV_VALIDATION === "true";
+};
+
+// 사용 예시
+if (isSchemaGeneration()) {
+  // OpenAPI 생성 시에만 실행되는 로직
+  return;
+}
+```
+
+**체크리스트:**
+- [ ] `SKIP_ENV_VALIDATION`은 OpenAPI 스키마 생성 시에만 사용
+- [ ] 테스트/로컬 편의 목적으로 재사용하지 않음
+- [ ] `isSchemaGeneration()` 헬퍼 함수로 일관되게 확인
+- [ ] 프로덕션 환경에서는 절대 설정되지 않도록 CI/CD에서 확인
+
 ---
 
-## 9. Health Check (새 엔드포인트 추가 시)
+## 9. Health Check
 
 **새 의존성 추가 시 Health Check 업데이트 고려:**
 
@@ -493,7 +579,9 @@ async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
 - [ ] 타임아웃: 외부 연동 체크는 1초 이내
 - [ ] 실패해도 전체 `status`는 `UP` 유지 (외부 API의 경우)
 
-**참고 문서:** [docs/specs/health-check.md](../specs/health-check.md)
+**참고 문서:**
+- Health Check 스펙: [docs/specs/health-check.md](../specs/health-check.md)
+- 초기 Health Check 구현: [신규 서비스 체크리스트 - 컨테이너 & 로컬 개발](new-service.md#6-컨테이너--로컬-개발)
 
 ---
 
@@ -516,8 +604,14 @@ async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
    - [ ] OpenAPI 어노테이션 추가
    - [ ] 에러 응답 스키마 명시
    - [ ] DTO 직접 반환 (래퍼 없음)
+   - [ ] Entity/Prisma 모델 직접 반환하지 않음
 
-4. **로깅 시:**
+4. **외부 API 클라이언트 추가 시:**
+   - [ ] 표준 패턴 준수 (Config + Client + Factory)
+   - [ ] 타임아웃 환경 변수로 관리
+   - [ ] Resilience 패턴 적용
+
+5. **로깅 시:**
    - [ ] 로그 레벨 적절함 (4xx: WARN, 5xx: ERROR)
    - [ ] `traceId` 포함됨 (MDC 자동)
    - [ ] 민감 정보 포함되지 않음
@@ -541,6 +635,12 @@ async getMovie(@Param('id') id: number): Promise<MovieResponseDto>
 
 ## 📝 변경 이력
 
+- `2025-01-24`: 문서 역할 명확화 및 중복 정리
+  - 지속적 개발 가이드로 역할 명확화 (초기 설계는 new-service.md 참조)
+  - 중복 내용 간소화 및 상호 참조 링크 추가
+  - OpenAPI 스키마 생성 및 외부 HTTP 모듈 패턴 추가
+  - `SKIP_ENV_VALIDATION` 플래그 역할 고정 (OpenAPI 전용)
+  - Swagger/DTO 타입 안정성 규칙 (Entity 직접 노출 금지)
 - `2025-01-XX`: 초안 작성
   - 서비스 간 통신 표준 (TraceId 전파, Resilience 패턴)
   - 에러 처리 표준 (BaseAppException, 예외 생성 팩토리)

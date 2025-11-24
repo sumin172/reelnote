@@ -1,11 +1,22 @@
+// OpenAPI 생성 시 환경 변수 검증 비활성화 (먼저 import)
+import "./setup-openapi-env.js";
+
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { writeFileSync, mkdirSync } from "fs";
 import { dirname, join } from "path";
-import { AppModule } from "../app/app.module.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 async function generateCatalogOpenApi() {
-  const app = await NestFactory.create(AppModule);
+  // AppModule을 동적으로 import하여 ESM hoisting 문제 방지
+  const { AppModule } = await import("../app/app.module.js");
+
+  const app = await NestFactory.create(AppModule, {
+    logger: false, // 로그를 줄이기 위해 비활성화
+  });
   await app.init();
 
   const config = new DocumentBuilder()
