@@ -669,6 +669,58 @@ jobs:
 
 ---
 
+### 5. Review Service 캐시 설정
+
+**현재 상태:**
+- **위치**: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/CacheConfig.kt`
+- 인메모리 캐시만 사용 중 (`ConcurrentMapCacheManager`)
+- `application.yml`에서 `cache.type: simple` 설정과 일치
+- 프로덕션 환경에서는 Redis 등 외부 캐시로 전환 고려 필요
+- 현재는 개발 환경용 설정으로 적절
+
+**분석:**
+- `ConcurrentMapCacheManager`는 단일 인스턴스 내에서만 동작
+- 서버 재시작 시 캐시 데이터 손실
+- 여러 인스턴스 간 캐시 공유 불가
+- 개발 환경에서는 충분하나, 프로덕션 환경에서는 제한적
+
+**영향:**
+- 프로덕션 환경에서 수평 확장 시 각 인스턴스별로 캐시가 분리됨
+- 캐시 무효화가 인스턴스별로 개별적으로 처리되어야 함
+- 메모리 사용량이 인스턴스별로 증가
+
+**권장 방향:**
+- **현재**: 개발 환경용 설정으로 적절하므로 유지
+- **향후 프로덕션 전환 시**: Redis 등 외부 캐시로 전환 고려
+  - Spring Cache Abstraction을 사용 중이므로 `RedisCacheManager`로 전환 용이
+  - `application.yml`에서 `cache.type: redis` 설정 변경
+  - Redis 연결 설정 추가
+  - Health Check에 Redis 체크 추가 (2번 항목 참고)
+
+**구현 예시 (향후 프로덕션 전환 시):**
+```yaml
+# application.yml
+spring:
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+```
+
+**기대 효과:**
+- 프로덕션 환경에서 수평 확장 시 캐시 공유 가능
+- 중앙 집중식 캐시 관리로 일관성 향상
+- 캐시 무효화가 모든 인스턴스에 일괄 적용
+
+**참고:**
+- 현재 설정 파일: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/CacheConfig.kt`
+- Catalog Service는 이미 Redis 캐시 사용 중 (참고 가능)
+
+---
+
 ## 📝 참고 사항
 
 - 각 개선 사항은 구현 전에 별도의 이슈/태스크로 분리하여 작업 계획을 수립하는 것을 권장합니다

@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.RestController
 
 /** 리뷰 REST API 컨트롤러 */
 @RestController
-@RequestMapping("/api/v1/reviews")
+@RequestMapping("/v1/reviews")
 @Validated
 @Tag(name = "Reviews", description = "영화 리뷰 관리 API")
 class ReviewController(
@@ -82,9 +82,7 @@ class ReviewController(
         logger.info("리뷰 생성 API 호출: userSeq={}, movieId={}", userSeq, request.movieId)
 
         val review = reviewService.createReview(request, userSeq)
-        return ResponseEntity
-            .status(HttpStatus.CREATED)
-            .body(review)
+        return ResponseEntity.status(HttpStatus.CREATED).body(review)
     }
 
     /** 유저+영화 단건 리뷰 조회 */
