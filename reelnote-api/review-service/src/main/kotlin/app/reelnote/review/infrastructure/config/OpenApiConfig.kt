@@ -14,11 +14,12 @@ import org.springframework.context.annotation.Configuration
 class OpenApiConfig {
     @Bean
     fun openAPI(): OpenAPI =
-            OpenAPI()
-                    .info(
-                            Info().title("Review Service API")
-                                    .description(
-                                            """
+        OpenAPI()
+            .info(
+                Info()
+                    .title("Review Service API")
+                    .description(
+                        """
                         ReelNote Review Service - 영화 리뷰 관리
 
                         ## Error Codes
@@ -40,7 +41,6 @@ class OpenApiConfig {
                         - `REVIEW_UNAUTHORIZED_UPDATE`: 리뷰 수정 권한 없음 (본인의 리뷰만 수정 가능)
                         - `REVIEW_UNAUTHORIZED_DELETE`: 리뷰 삭제 권한 없음 (본인의 리뷰만 삭제 가능)
                         """.trimIndent(),
-                                    )
-                                    .version("1.0"),
-                    )
+                    ).version("1.0"),
+            )
 }
