@@ -24,7 +24,62 @@
       "executor": "nx:run-script",
       "options": {
         "script": "test"
-      }
+      },
+      "cache": true,
+      "dependsOn": ["^build"]
+    },
+    "test:watch": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:watch"
+      },
+      "cache": false
+    },
+    "test:e2e": {
+      "executor": "nx:run-script",
+      "options": {
+        "script": "test:e2e"
+      },
+      "cache": false
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --check .",
+        "cwd": "reelnote-frontend"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{projectRoot}/**/*.{ts,tsx,js,jsx,json,css,scss,md}",
+        "{projectRoot}/.prettierrc*"
+      ]
+    },
+    "format:write": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prettier --write .",
+        "cwd": "reelnote-frontend"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["pnpm run format:check", "eslint ."],
+        "parallel": false,
+        "cwd": "reelnote-frontend"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{projectRoot}/**/*.{ts,tsx,js,jsx,json}",
+        "{projectRoot}/.prettierrc*",
+        "{projectRoot}/.eslintrc*",
+        "{projectRoot}/eslint.config.*"
+      ]
     }
   },
   "tags": ["frontend", "react", "nextjs"]

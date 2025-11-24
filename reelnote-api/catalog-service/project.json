@@ -1,0 +1,159 @@
+{
+  "name": "catalog-service",
+  "root": "reelnote-api/catalog-service",
+  "sourceRoot": "reelnote-api/catalog-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:swc",
+      "dependsOn": ["catalog-service:prisma:generate"],
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "reelnote-api/catalog-service/dist",
+        "main": "reelnote-api/catalog-service/src/main.ts",
+        "tsConfig": "reelnote-api/catalog-service/tsconfig.app.json",
+        "generatePackageJson": true,
+        "generateLockfile": true,
+        "assets": [
+          "reelnote-api/catalog-service/src/assets",
+          {
+            "input": "reelnote-api/catalog-service/src/i18n",
+            "glob": "*.json",
+            "output": "src/i18n"
+          }
+        ]
+      },
+      "configurations": {
+        "development": {
+          "sourceMap": true,
+          "watch": false
+        },
+        "production": {
+          "generateLockfile": true
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/reelnote-api/catalog-service/dist/package.json",
+        "{workspaceRoot}/reelnote-api/catalog-service/dist/pnpm-lock.yaml"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": [
+        "{workspaceRoot}/reelnote-api/catalog-service/dist/workspace_modules"
+      ],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "catalog-service:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "catalog-service:build:development",
+          "inspect": false,
+          "watch": true,
+          "runBuildTargetDependencies": true,
+          "runtimeArgs": ["--inspect=127.0.0.1:9230"]
+        },
+        "production": {
+          "buildTarget": "catalog-service:build:production"
+        }
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jest --config jest.config.cjs --passWithNoTests",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "prisma:generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma generate",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "prisma:migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate dev",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "prisma:migrate:deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma migrate deploy",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "prisma:seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma db seed",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "prisma:studio": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma studio",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["pnpm format:check", "pnpm eslint"],
+        "parallel": false,
+        "cwd": "reelnote-api/catalog-service"
+      },
+      "cache": true,
+      "inputs": [
+        "default",
+        "^default",
+        "{projectRoot}/**/*.{ts,tsx,js,jsx,json}",
+        "{projectRoot}/.prettierrc*",
+        "{projectRoot}/.eslintrc*",
+        "{projectRoot}/eslint.config.*"
+      ]
+    },
+    "format:write": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run format:write",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run format:check",
+        "cwd": "reelnote-api/catalog-service"
+      }
+    }
+  },
+  "tags": ["backend", "nodejs", "nestjs"]
+}
