@@ -349,6 +349,43 @@ export class {Service}Module {}
 
 ## 9. API 문서화
 
+- [ ] **전역 API prefix 설정 (필수)**
+  - 모든 API 엔드포인트에 `/api` prefix를 전역으로 적용
+  - 컨트롤러에서는 버전만 선언하고, `/api` prefix는 전역 설정에서 자동 추가
+  - **일관성**: 모든 서비스에서 동일한 방식으로 적용하여 유지보수성 향상
+  - **확장성**: 향후 `/api/v2` 병행 운영 시 컨트롤러별 버전 분리 용이
+
+  **프레임워크별 구현:**
+
+  - **Spring Boot (Kotlin)**: `WebMvcConfig`에서 `addPathPrefix` 사용
+    ```kotlin
+    @Configuration
+    class WebMvcConfig : WebMvcConfigurer {
+        override fun configurePathMatch(configurer: PathMatchConfigurer) {
+            // RestController가 있는 컨트롤러에만 /api prefix 추가
+            // 예: RequestMapping("/v1/reviews") -> /api/v1/reviews
+            configurer.addPathPrefix("/api") { clazz ->
+                clazz.isAnnotationPresent(RestController::class.java)
+            }
+        }
+    }
+    ```
+    - 컨트롤러 예시: `@RequestMapping("/v1/reviews")` → 실제 경로: `/api/v1/reviews`
+    - 헬스 체크와 액추에이터는 자동으로 제외됨 (RestController가 아니므로)
+
+  - **NestJS (TypeScript)**: `main.ts`에서 `setGlobalPrefix` 사용
+    ```typescript
+    const globalPrefix = "api";
+    app.setGlobalPrefix(globalPrefix);
+    ```
+    - 컨트롤러 예시: `@Controller("v1/movies")` → 실제 경로: `/api/v1/movies`
+
+  **체크리스트:**
+  - [ ] 전역 API prefix 설정 구현 (`/api` 자동 추가)
+  - [ ] 컨트롤러 경로에서 `/api` 제거하고 버전만 선언 (예: `/v1/reviews`)
+  - [ ] 테스트 코드 경로도 전역 설정 반영 (예: `/v1/reviews`로 요청, 실제는 `/api/v1/reviews`로 매핑)
+  - [ ] 헬스 체크(`/health/**`)와 액추에이터는 `/api` prefix 없이 동작 확인
+
 - [ ] **OpenAPI/Swagger 초기 설정**
   - OpenAPI 3.0 스펙 준수
   - **경로 통일**: 모든 신규 서비스는 다음 표준 경로를 사용해야 합니다
