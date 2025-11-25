@@ -1,14 +1,20 @@
 /**
  * 환경 변수 설정
- * 단순하고 실용적인 환경 변수 관리
+ * Zod 기반 런타임 검증을 통한 안전한 환경 변수 관리
  */
+
+import { validateEnv } from "./validation";
+
+// 환경 변수 검증 (서버 사이드에서만 실행)
+// Next.js 빌드/런타임 시점에 검증하여 조기 실패 보장
+validateEnv();
 
 // 환경 감지
 const isDevelopment = process.env.NODE_ENV === "development";
 const isProduction = process.env.NODE_ENV === "production";
 const isTest = process.env.NODE_ENV === "test";
-const isServer = typeof window === "undefined";
 
+// 기본값 (개발 환경용)
 const fallbackEnvVars = {
   NEXT_PUBLIC_REVIEW_API_BASE_URL: "http://localhost:8080/api",
   NEXT_PUBLIC_CATALOG_API_BASE_URL: "http://localhost:3001/api",
@@ -16,18 +22,17 @@ const fallbackEnvVars = {
   NEXT_PUBLIC_APP_VERSION: "0.1.0",
 } as const;
 
-function reportMissingEnvVars() {
-  if (!isServer) {
-    return;
-  }
-}
-
-reportMissingEnvVars();
-
 // 환경 변수에 대한 안전한 접근자 함수
+// 클라이언트 사이드에서는 process.env에서 직접 읽고,
+// 서버 사이드에서는 검증된 값 또는 기본값 사용
 function getEnvVar<Key extends keyof typeof fallbackEnvVars>(key: Key): string {
   const value = process.env[key];
   if (!value) {
+    // 개발 환경에서만 기본값 사용
+    if (isDevelopment || isTest) {
+      return fallbackEnvVars[key];
+    }
+    // 프로덕션에서는 검증 단계에서 이미 실패했을 것
     return fallbackEnvVars[key];
   }
   return value;
