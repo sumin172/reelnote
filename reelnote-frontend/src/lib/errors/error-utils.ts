@@ -9,6 +9,8 @@ export type HandledError = {
   retryable: boolean;
   redirect?: string;
   logLevel: "error" | "warn" | "info";
+  traceId?: string;
+  errorCode?: string;
 };
 
 /**
@@ -25,6 +27,8 @@ export function handleError(error: ApiError): HandledError {
       message: error.message || "알 수 없는 오류가 발생했습니다",
       retryable: false,
       logLevel: "error",
+      traceId: error.traceId,
+      errorCode: error.code,
     };
   }
 
@@ -32,14 +36,17 @@ export function handleError(error: ApiError): HandledError {
   const code = error.code;
   const config = errorConfig[code];
 
-  // 설정에서 메시지 가져오기 (우선순위: error.message > config.message > 기본값)
-  const message = error.message || config?.message || "오류가 발생했습니다";
+  // 제품 메시지 우선 (error-config.ts의 메시지가 UX 기준)
+  const configMessage = config?.message;
+  const message = configMessage || error.message || "오류가 발생했습니다";
 
   return {
     message,
     retryable: config?.retryable ?? false,
     redirect: config?.redirect,
     logLevel: config?.logLevel ?? "error",
+    traceId: error.traceId,
+    errorCode: error.code,
   };
 }
 
@@ -64,7 +71,9 @@ export function getUserMessage(error: unknown): string {
     const code = error.code;
     const config = errorConfig[code];
 
-    return error.message || config?.message || "오류가 발생했습니다";
+    // 제품 메시지 우선 (error-config.ts의 메시지가 UX 기준)
+    const configMessage = config?.message;
+    return configMessage || error.message || "오류가 발생했습니다";
   }
 
   if (error instanceof Error) {

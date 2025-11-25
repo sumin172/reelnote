@@ -12,7 +12,7 @@
 
 새로운 기능을 추가할 때 다음을 빠르게 확인하세요:
 
-- [ ] **에러 처리**: `useErrorHandler` 훅 사용, `getUserMessage`로 메시지 표시
+- [ ] **에러 처리**: `useErrorHandler` 훅 사용, `handleError()`로 에러 처리 후 `ErrorState`에 traceId, retryable 포함
 - [ ] **에러 코드**: 백엔드와 동기화된 에러 코드 Enum 사용
 - [ ] **React Query**: React Query v5 패턴 준수 (`onError` 제거, `useEffect`로 처리)
 - [ ] **타입 안전성**: API 응답 타입 명시, `unknown` 타입 안전하게 처리
@@ -53,26 +53,48 @@
 
 ✅ **올바른 패턴:**
 - `useErrorHandler` 훅으로 전역 정책 처리 (리다이렉트, 로깅 등 부작용)
-- `getUserMessage()` 함수로 화면 메시지 표시 (순수 함수)
+- `handleError()` 함수로 에러 처리하여 traceId, retryable, errorCode 정보 추출
+- `ErrorState` 컴포넌트에 traceId, retryable, onRetryAction, errorCode 전달 (새 패턴)
 - React Query v5: `useQuery`는 `onError` 제거, `useEffect`로 처리
 - React Query v5: `useMutation`은 `onError` 사용 가능
 
 ```typescript
-// Query 에러 처리
-const handleError = useErrorHandler();
-const { data, isError, error } = useQuery<ResponseType>({ /* ... */ });
+// Query 에러 처리 (새 패턴: handleError 사용, traceId 포함)
+import { handleError, getUserMessage } from "@/lib/errors/error-utils";
+import { ApiError } from "@/lib/api/client";
+
+const handleErrorSideEffects = useErrorHandler();
+const { data, isError, error, refetch } = useQuery<ResponseType>({ /* ... */ });
 
 useEffect(() => {
   if (error) {
-    handleError(error);  // 리다이렉트, 로깅 등
+    handleErrorSideEffects(error);  // 리다이렉트, 로깅 등 부작용
   }
-}, [error, handleError]);
+}, [error, handleErrorSideEffects]);
 
 if (isError) {
+  if (error instanceof ApiError) {
+    const handled = handleError(error);
+    return (
+      <ErrorState
+        message={handled.message}
+        traceId={handled.traceId}
+        retryable={handled.retryable}
+        onRetryAction={() => refetch()}
+        errorCode={
+          process.env.NODE_ENV !== "production"
+            ? handled.errorCode
+            : undefined
+        }
+      />
+    );
+  }
+  // ApiError가 아닌 경우 fallback
   return <ErrorState message={getUserMessage(error)} />;
 }
 
 // Mutation 에러 처리
+const handleError = useErrorHandler();
 const { mutate } = useMutation({
   mutationFn: createData,
   onError: (error) => {
@@ -98,11 +120,23 @@ if (error instanceof Error) { /* ... */ }
 
 **체크리스트:**
 - [ ] 모든 React Query 사용 컴포넌트에서 `useErrorHandler` 사용
-- [ ] 화면 메시지는 `getUserMessage(error)` 사용
+- [ ] Query 에러 처리: `handleError()`로 에러 처리 후 `ErrorState`에 traceId, retryable 등 전달
+- [ ] `ErrorState`에 traceId, retryable, onRetryAction, errorCode 포함 (새 패턴)
 - [ ] `useQuery`는 `onError` 제거, `useEffect`로 처리
 - [ ] `useMutation`은 `onError` 사용 가능
 
-**코드 참고:** `src/hooks/use-error-handler.ts`, `src/lib/errors/error-utils.ts`
+**코드 참고:**
+- `src/hooks/use-error-handler.ts` - 부작용 처리 (리다이렉트, 로깅)
+- `src/lib/errors/error-utils.ts` - `handleError()`, `getUserMessage()`
+- `src/app/reviews/ReviewsList.tsx` - 새 패턴 예시 (Query 에러 처리)
+- `src/app/catalog/CatalogSearch.tsx` - 새 패턴 예시 (Query 에러 처리)
+- `src/app/reviews/new/ReviewCreateForm.tsx` - Mutation 에러 처리 예시
+
+**참고: Toast 알림**
+- 현재 `useErrorHandler` 내부의 toast 알림은 주석 처리되어 있습니다 (47번째 줄)
+- Query 에러는 `ErrorState` 컴포넌트로 화면에 표시되므로 toast가 필요 없습니다
+- Mutation 에러는 필요시 컴포넌트 내에서 별도로 toast를 구현할 수 있습니다
+- 향후 전역 toast 알림이 필요하면 `useErrorHandler` 내부의 주석을 해제하고 toast 라이브러리를 설정해야 합니다
 
 ---
 
@@ -336,14 +370,4 @@ if (error instanceof Error) { /* ... */ }
 - 에러 처리 훅: `src/hooks/use-error-handler.ts`
 
 ---
-
-## 📝 변경 이력
-
-- `2025-01-XX`: 초안 작성
-  - 에러 코드 관리 체계 (Enum, 타입 안전성)
-  - 에러 처리 패턴 (useErrorHandler, getUserMessage)
-  - React Query v5 사용법 (onError 제거, useEffect로 처리)
-  - API 통신 패턴 (apiFetch, TraceId 전파)
-  - 타입 안전성 가이드
-  - MSW 핸들러 패턴
 

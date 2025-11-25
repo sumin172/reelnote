@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/card";
 import { useDebouncedValue } from "@/lib/hooks/useDebounce";
 import { useErrorHandler } from "@/hooks/use-error-handler";
-import { getUserMessage } from "@/lib/errors/error-utils";
+import { handleError, getUserMessage } from "@/lib/errors/error-utils";
 import { ErrorState } from "@/domains/shared/components/state/Error";
+import { ApiError } from "@/lib/api/client";
 
 export default function CatalogSearch() {
   const [inputValue, setInputValue] = useState("");
@@ -24,7 +25,7 @@ export default function CatalogSearch() {
   const [committedQuery, setCommittedQuery] = useState("");
   const debouncedQuery = useDebouncedValue(committedQuery, 400);
   const canSearch = !isComposing && debouncedQuery.trim().length > 0;
-  const handleError = useErrorHandler();
+  const handleErrorSideEffects = useErrorHandler();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
@@ -45,19 +46,20 @@ export default function CatalogSearch() {
     setCommittedQuery(value);
   };
 
-  const { data, isFetching, isError, error } = useQuery<SearchResponse>({
-    queryKey: catalogQueryKeys.search(debouncedQuery, 1),
-    queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
-    enabled: canSearch,
-    staleTime: 1000 * 30,
-  });
+  const { data, isFetching, isError, error, refetch } =
+    useQuery<SearchResponse>({
+      queryKey: catalogQueryKeys.search(debouncedQuery, 1),
+      queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
+      enabled: canSearch,
+      staleTime: 1000 * 30,
+    });
 
   // React Query v5에서는 onError가 제거되었으므로 useEffect로 처리
   useEffect(() => {
     if (error) {
-      handleError(error);
+      handleErrorSideEffects(error);
     }
-  }, [error, handleError]);
+  }, [error, handleErrorSideEffects]);
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -72,7 +74,30 @@ export default function CatalogSearch() {
       {isFetching && (
         <div className="text-sm text-muted-foreground">검색 중...</div>
       )}
-      {isError && <ErrorState message={getUserMessage(error)} />}
+      {isError && (
+        <>
+          {error instanceof ApiError ? (
+            (() => {
+              const handled = handleError(error);
+              return (
+                <ErrorState
+                  message={handled.message}
+                  traceId={handled.traceId}
+                  retryable={handled.retryable}
+                  onRetryAction={() => refetch()}
+                  errorCode={
+                    process.env.NODE_ENV !== "production"
+                      ? handled.errorCode
+                      : undefined
+                  }
+                />
+              );
+            })()
+          ) : (
+            <ErrorState message={getUserMessage(error)} />
+          )}
+        </>
+      )}
       {data && !isError && (
         <div className="space-y-6">
           <SearchSection

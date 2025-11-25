@@ -8,7 +8,8 @@ import { LoadingState } from "@/domains/shared/components/state/Loading";
 import { ErrorState } from "@/domains/shared/components/state/Error";
 import { EmptyState } from "@/domains/shared/components/state/Empty";
 import { useErrorHandler } from "@/hooks/use-error-handler";
-import { getUserMessage } from "@/lib/errors/error-utils";
+import { handleError, getUserMessage } from "@/lib/errors/error-utils";
+import { ApiError } from "@/lib/api/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,9 +21,9 @@ import {
 } from "@/components/ui/card";
 
 export default function ReviewsList() {
-  const handleError = useErrorHandler();
+  const handleErrorSideEffects = useErrorHandler();
 
-  const { data, isLoading, isError, error } = useQuery<Page<Review>>({
+  const { data, isLoading, isError, error, refetch } = useQuery<Page<Review>>({
     queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
     queryFn: () => fetchReviews({ page: 0, size: 10 }),
   });
@@ -30,17 +31,33 @@ export default function ReviewsList() {
   // React Query v5에서는 onError가 제거되었으므로 useEffect로 처리
   useEffect(() => {
     if (error) {
-      handleError(error);
+      handleErrorSideEffects(error);
     }
-  }, [error, handleError]);
+  }, [error, handleErrorSideEffects]);
 
   const hasReviews = data && data.content.length > 0;
 
   const body = (() => {
     if (isLoading) return <LoadingState />;
     if (isError) {
-      const errorMessage = getUserMessage(error);
-      return <ErrorState message={errorMessage} />;
+      if (error instanceof ApiError) {
+        const handled = handleError(error);
+        return (
+          <ErrorState
+            message={handled.message}
+            traceId={handled.traceId}
+            retryable={handled.retryable}
+            onRetryAction={() => refetch()}
+            errorCode={
+              process.env.NODE_ENV !== "production"
+                ? handled.errorCode
+                : undefined
+            }
+          />
+        );
+      }
+      // ApiError가 아닌 경우 fallback
+      return <ErrorState message={getUserMessage(error)} />;
     }
     if (!hasReviews)
       return (

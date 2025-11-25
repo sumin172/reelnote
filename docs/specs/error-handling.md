@@ -870,14 +870,3 @@ if (!response.ok) {
 
 ---
 
-## 📝 변경 이력
-
-- `2024-12-XX`: 초안 작성 (Review Service, Catalog Service 통일)
-- `2025-01-XX`: Catalog Service 구현 가이드 업데이트
-  - 에러 코드 중심 설계 (CatalogErrorCode enum)
-  - 메시지 리소스 관리 (messages.ko.json, MessageService)
-  - 예외 생성 패턴 (CatalogException, ExceptionFactoryService)
-- `2025-01-XX`: 문서 통합 및 위치 변경
-  - `ERROR_SPECIFICATION.md` + `ERROR_HANDLING_GUIDE.md` → `docs/specs/error-handling.md` 통합
-  - 공통 스펙 문서를 `docs/specs/` 폴더로 이동
-
