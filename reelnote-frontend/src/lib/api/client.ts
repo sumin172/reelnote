@@ -4,6 +4,7 @@ import {
   NormalizedErrorCode,
   isErrorCode,
 } from "../errors/error-codes";
+import { logFromApiError } from "../logger";
 
 export type FetchOptions = RequestInit & { baseUrl?: string };
 
@@ -46,6 +47,8 @@ export class ApiError extends Error {
       this.code === "UNKNOWN_ERROR" &&
       code !== "UNKNOWN_ERROR"
     ) {
+      // logger는 여기서 사용하지 않음 (순환 참조 방지)
+      // ApiError 생성 시점에는 logger가 아직 초기화되지 않을 수 있음
       console.warn(
         `[ApiError] Unknown error code: ${code}. Normalized to UNKNOWN_ERROR.`,
       );
@@ -170,44 +173,33 @@ export async function apiFetch<T>(
       // 응답의 traceId가 없으면 요청의 traceId 사용 (전파 보장)
       const finalTraceId = errorDetail.traceId || traceId;
 
-      // 에러 로깅 (개발 환경에서만)
-      if (process.env.NODE_ENV === "development") {
-        console.error("[API Error]", {
-          url,
-          status: res.status,
-          code: errorDetail.code,
-          message: errorDetail.message,
-          traceId: finalTraceId,
-          details: errorDetail.details,
-        });
-      }
-
-      throw new ApiError(
+      const apiError = new ApiError(
         errorDetail.message,
         res.status,
         errorDetail.code,
         errorDetail.details,
         finalTraceId,
       );
+
+      // 구조화된 로깅 (error-config.ts의 logLevel 활용)
+      logFromApiError(apiError);
+
+      throw apiError;
     }
 
     // 표준 에러 스키마가 없으면 기본 에러
-    if (process.env.NODE_ENV === "development") {
-      console.error("[API Error] Non-standard error format", {
-        url,
-        status: res.status,
-        message: errorText || res.statusText,
-        traceId,
-      });
-    }
-
-    throw new ApiError(
+    const apiError = new ApiError(
       errorText || res.statusText || `API 요청 실패 (${res.status})`,
       res.status,
       "UNKNOWN_ERROR", // 표준 에러 스키마가 없는 경우
-      undefined,
+      { url, message: errorText || res.statusText },
       traceId,
     );
+
+    // 구조화된 로깅
+    logFromApiError(apiError);
+
+    throw apiError;
   }
 
   // 성공 응답: 리소스를 그대로 반환 (래퍼 없음)

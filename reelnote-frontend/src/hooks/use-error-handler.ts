@@ -28,20 +28,7 @@ export function useErrorHandler() {
         router.push(handled.redirect);
       }
 
-      // 로깅 (개발 환경 또는 필요시)
-      if (process.env.NODE_ENV === "development") {
-        const logMethod =
-          handled.logLevel === "error"
-            ? console.error
-            : handled.logLevel === "warn"
-              ? console.warn
-              : console.info;
-        logMethod(`[Error Handler] ${handled.message}`, {
-          code: error.code,
-          status: error.status,
-          traceId: error.traceId,
-        });
-      }
+      // 로깅은 client.ts의 apiFetch에서 이미 처리됨 (중복 방지)
 
       // 사용자에게 메시지 표시 (toast 등)
       // toast.error(handled.message);
