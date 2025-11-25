@@ -1,84 +1,79 @@
 /**
  * 환경 변수 설정
  * Zod 기반 런타임 검증을 통한 안전한 환경 변수 관리
+ *
+ * @important 서버/클라이언트 분리
+ * - 클라이언트 컴포넌트에서는 NEXT_PUBLIC_* 접두사가 있는 환경 변수만 접근 가능
+ * - 서버 전용 환경 변수는 이 모듈에서 export하지 않음
  */
 
-import { validateEnv } from "./validation";
+import { validateEnv, type ValidatedEnv } from "./validation";
 
 // 환경 변수 검증 (서버 사이드에서만 실행)
 // Next.js 빌드/런타임 시점에 검증하여 조기 실패 보장
 validateEnv();
 
-// 환경 감지
-const isDevelopment = process.env.NODE_ENV === "development";
-const isProduction = process.env.NODE_ENV === "production";
-const isTest = process.env.NODE_ENV === "test";
-
-// 기본값 (개발 환경용)
-const fallbackEnvVars = {
-  NEXT_PUBLIC_REVIEW_API_BASE_URL: "http://localhost:8080/api",
-  NEXT_PUBLIC_CATALOG_API_BASE_URL: "http://localhost:3001/api",
-  NEXT_PUBLIC_APP_NAME: "ReelNote",
-  NEXT_PUBLIC_APP_VERSION: "0.1.0",
-} as const;
-
-// 환경 변수에 대한 안전한 접근자 함수
-// 클라이언트 사이드에서는 process.env에서 직접 읽고,
-// 서버 사이드에서는 검증된 값 또는 기본값 사용
-function getEnvVar<Key extends keyof typeof fallbackEnvVars>(key: Key): string {
-  const value = process.env[key];
-  if (!value) {
-    // 개발 환경에서만 기본값 사용
-    if (isDevelopment || isTest) {
-      return fallbackEnvVars[key];
-    }
-    // 프로덕션에서는 검증 단계에서 이미 실패했을 것
-    return fallbackEnvVars[key];
+/**
+ * 검증된 환경 변수 객체
+ *
+ * 모든 환경 변수는 Zod 스키마로 검증되어 타입 안전하게 접근 가능합니다.
+ * 검증은 서버 사이드에서만 수행되며, 클라이언트에서는 기본값이 반환됩니다.
+ *
+ * @example
+ * ```typescript
+ * import { env } from "@/lib/env";
+ * const baseUrl = env.NEXT_PUBLIC_REVIEW_API_BASE_URL;
+ * ```
+ */
+export const env: ValidatedEnv = (() => {
+  // 클라이언트 사이드에서는 process.env에서 직접 읽기
+  if (typeof window !== "undefined") {
+    return {
+      NEXT_PUBLIC_REVIEW_API_BASE_URL:
+        process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL || "",
+      NEXT_PUBLIC_REVIEW_API_TIMEOUT: parseInt(
+        process.env.NEXT_PUBLIC_REVIEW_API_TIMEOUT || "10000",
+        10,
+      ),
+      NEXT_PUBLIC_REVIEW_API_RETRY: parseInt(
+        process.env.NEXT_PUBLIC_REVIEW_API_RETRY || "3",
+        10,
+      ),
+      NEXT_PUBLIC_CATALOG_API_BASE_URL:
+        process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL || "",
+      NEXT_PUBLIC_CATALOG_API_TIMEOUT: parseInt(
+        process.env.NEXT_PUBLIC_CATALOG_API_TIMEOUT || "10000",
+        10,
+      ),
+      NEXT_PUBLIC_CATALOG_API_RETRY: parseInt(
+        process.env.NEXT_PUBLIC_CATALOG_API_RETRY || "3",
+        10,
+      ),
+      NEXT_PUBLIC_ENABLE_MSW: process.env.NEXT_PUBLIC_ENABLE_MSW === "true",
+      NEXT_PUBLIC_USER_SEQ: process.env.NEXT_PUBLIC_USER_SEQ
+        ? parseInt(process.env.NEXT_PUBLIC_USER_SEQ, 10)
+        : null,
+      NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+      NEXT_PUBLIC_APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION,
+      NODE_ENV:
+        (process.env.NODE_ENV as "development" | "production" | "test") ||
+        "development",
+    } as ValidatedEnv;
   }
-  return value;
-}
 
-export const config = {
-  // API 설정
-  get reviewApiBaseUrl() {
-    return getEnvVar("NEXT_PUBLIC_REVIEW_API_BASE_URL");
-  },
-
-  get catalogApiBaseUrl() {
-    return getEnvVar("NEXT_PUBLIC_CATALOG_API_BASE_URL");
-  },
-
-  // MSW 설정 (환경 변수 우선, 기본은 비-프로덕션에서 활성화)
-  get enableMSW() {
-    const raw = process.env.NEXT_PUBLIC_ENABLE_MSW;
-    if (typeof raw === "string") {
-      return raw === "true";
-    }
-    return !isProduction;
-  },
-
-  // 사용자 설정
-  get userSeq() {
-    const value = process.env.NEXT_PUBLIC_USER_SEQ;
-    return value ? parseInt(value, 10) : null;
-  },
-
-  // 앱 설정
-  get appName() {
-    return getEnvVar("NEXT_PUBLIC_APP_NAME");
-  },
-  get appVersion() {
-    return getEnvVar("NEXT_PUBLIC_APP_VERSION");
-  },
-
-  // 환경 설정
-  isDevelopment,
-  isProduction,
-  isTest,
-  environment: process.env.NODE_ENV,
-} as const;
+  // 서버 사이드에서는 검증된 값 사용
+  return validateEnv();
+})();
 
 /**
- * MSW 활성화 여부 (환경 변수 기반)
+ * 사용자 시퀀스
+ * 개발 환경에서 사용자 식별을 위한 설정
  */
-export const isMSWEnabled = config.enableMSW;
+export const userSeq = env.NEXT_PUBLIC_USER_SEQ;
+
+/**
+ * MSW 활성화 여부
+ * 환경 변수가 명시되지 않으면 프로덕션이 아닌 환경에서 자동으로 활성화
+ */
+export const isMSWEnabled =
+  env.NEXT_PUBLIC_ENABLE_MSW ?? env.NODE_ENV !== "production";

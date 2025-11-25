@@ -10,11 +10,11 @@
 
 ## 2. 레이어 & 도메인 구조
 
-| 계층                 | 폴더         | 책임                              | 예시                              |
-|--------------------|------------|---------------------------------|---------------------------------|
-| Presentation       | `app/`     | Next.js App Router 페이지 및 레이아웃   | `page.tsx`, `layout.tsx`        |
+| 계층               | 폴더       | 책임                                            | 예시                            |
+| ------------------ | ---------- | ----------------------------------------------- | ------------------------------- |
+| Presentation       | `app/`     | Next.js App Router 페이지 및 레이아웃           | `page.tsx`, `layout.tsx`        |
 | Domain/Application | `domains/` | 도메인별 비즈니스 로직, 서비스 레이어, QueryKey | `domains/review/services.ts`    |
-| Infrastructure     | `lib/`     | API 클라이언트, 환경 변수, MSW, 에러 처리    | `lib/api/client.ts`, `lib/env/` |
+| Infrastructure     | `lib/`     | API 클라이언트, 환경 변수, MSW, 에러 처리       | `lib/api/client.ts`, `lib/env/` |
 
 ### 레이어 간 데이터 흐름
 
@@ -58,16 +58,19 @@ domains/
 ### 3.2 도메인별 책임
 
 **Review 도메인**
+
 - 사용자 리뷰 생성/조회/수정/삭제
 - 리뷰 타입 정의 및 Zod 스키마 검증
 - Review Service와의 통신
 
 **Catalog 도메인**
+
 - 영화 메타데이터 검색 및 조회
 - Catalog Service와의 통신
 - 검색 결과 타입 정의
 
 **Shared 도메인**
+
 - 레이아웃 컴포넌트 (Header, ThemeToggle)
 - 공통 UI 컴포넌트 (Loading, Error, Empty)
 - 모든 도메인에서 사용 가능
@@ -99,6 +102,7 @@ export const catalogQueryKeys = {
 ```
 
 **장점:**
+
 - **계층적 구조**: `all` 기반으로 전체 그룹 캐시 무효화 가능
 - **타입 안전성**: `as const`로 QueryKey 타입 보장
 - **중앙 관리**: 도메인별 서비스 레이어에서 통합 관리
@@ -121,11 +125,13 @@ useQuery({
 **현재 구현**
 
 각 도메인의 `services.ts`에서 다음을 통합 관리:
+
 - API 호출 로직 (`fetchReviews`, `searchMovies`)
 - QueryKey 팩토리 (`reviewQueryKeys`, `catalogQueryKeys`)
 - API 응답 타입과 도메인 타입 변환
 
 **책임 분리:**
+
 - **서비스 레이어**: API 호출, 데이터 변환, QueryKey 관리
 - **컴포넌트**: React Query 훅 사용, UI 렌더링
 
@@ -202,6 +208,7 @@ const { data } = useQuery({
 ### 5.2 역할 분리
 
 **handleError()의 역할** (`lib/errors/error-utils.ts`)
+
 - 에러 코드별 처리 전략 결정 (retryable, redirect, logLevel)
 - `error-config.ts` 기반 중앙화된 에러 처리
 - 순수 함수 (부작용 없음)
@@ -220,6 +227,7 @@ export function handleError(error: ApiError): HandledError {
 ```
 
 **useErrorHandler()의 역할** (`hooks/use-error-handler.ts`)
+
 - 전역 정책 실행 (리다이렉트, 로깅)
 - React Hook (라우터 등 React 의존성 사용)
 - 부작용 중심 처리
@@ -242,6 +250,7 @@ export function useErrorHandler() {
 ```
 
 **getUserMessage()의 역할** (`lib/errors/error-utils.ts`)
+
 - 어떤 타입의 에러든 사용자 친화적 메시지로 변환
 - 순수 함수 (문구 변환기)
 - 화면에 표시할 메시지 추출
@@ -271,6 +280,7 @@ export function useErrorHandler() {
 ### 6.1 React Query 캐싱 전략
 
 **기본 설정:**
+
 - `staleTime: 5분`: 5분간 데이터를 fresh로 간주
 - `refetchOnWindowFocus: false`: 포커스 시 자동 리패칭 비활성화
 - `retry: 1`: 실패 시 1회 재시도
@@ -311,6 +321,7 @@ lib/msw/
 ```
 
 **현재 지원하는 API:**
+
 - `GET /api/v1/reviews/my` - 리뷰 목록 조회
 - `POST /api/v1/reviews` - 리뷰 생성
 - `GET /api/v1/search` - 영화 검색
@@ -360,22 +371,26 @@ export const config = {
 ### 7.1 라우팅 구조
 
 **그룹 라우팅:**
+
 - `(desktop)/`: 데스크톱 레이아웃 그룹
 - `(mobile)/`: 모바일 레이아웃 그룹
 - 각 그룹은 독립적인 `layout.tsx`를 가짐
 
 **도메인별 페이지:**
+
 - `reviews/`: 리뷰 관련 페이지 (`/reviews`, `/reviews/new`)
 - `catalog/`: 카탈로그 관련 페이지 (`/catalog`)
 
 ### 7.2 전역 설정
 
 **Providers** (`app/providers.tsx`):
+
 - React Query Provider
 - Theme Provider (next-themes)
 - MSW 초기화 (개발 환경)
 
 **Layout** (`app/layout.tsx`):
+
 - 루트 레이아웃
 - 전역 메타데이터 설정
 - Header 컴포넌트 포함
@@ -489,14 +504,13 @@ export interface ErrorDetail {
 
 ## 12. 공용 용어 (Frontend ↔ Backend)
 
-| 용어          | 프론트엔드                   | 백엔드                    | 일관성     |
-|-------------|-------------------------|------------------------|---------|
+| 용어              | 프론트엔드              | 백엔드                 | 일관성       |
+| ----------------- | ----------------------- | ---------------------- | ------------ |
 | **서비스 레이어** | `domains/*/services.ts` | `application/*Service` | ✅ 개념 일치 |
-| **도메인 모델**  | `domains/*/types.ts`    | `domain/*`             | ✅ 개념 일치 |
+| **도메인 모델**   | `domains/*/types.ts`    | `domain/*`             | ✅ 개념 일치 |
 | **인프라 레이어** | `lib/`                  | `infrastructure/`      | ✅ 개념 일치 |
-| **에러 처리**   | `lib/errors/`           | `exception/`           | ✅ 개념 일치 |
-| **에러 코드**   | `error-codes.ts`        | `ErrorCode`            | ✅ 일치    |
-| **에러 스키마**  | `ErrorDetail`           | `ErrorDetail`          | ✅ 동일    |
+| **에러 처리**     | `lib/errors/`           | `exception/`           | ✅ 개념 일치 |
+| **에러 코드**     | `error-codes.ts`        | `ErrorCode`            | ✅ 일치      |
+| **에러 스키마**   | `ErrorDetail`           | `ErrorDetail`          | ✅ 동일      |
 
 이 가이드는 Review Service와 Catalog Service와 동일한 문체로 작성되어 있으므로, 세 문서를 교차 검토하며 전체 시스템의 아키텍처를 일관되게 이해할 수 있습니다.
-

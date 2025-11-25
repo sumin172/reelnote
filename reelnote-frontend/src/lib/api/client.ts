@@ -1,4 +1,5 @@
-import { config, isMSWEnabled } from "../env";
+import { userSeq, isMSWEnabled } from "../env";
+import { reviewConfig } from "../config/review.config";
 import {
   ErrorCode,
   NormalizedErrorCode,
@@ -112,7 +113,7 @@ export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { baseUrl = config.reviewApiBaseUrl, headers, ...rest } = options;
+  const { baseUrl = reviewConfig.baseUrl, headers, ...rest } = options;
   const isBrowser = typeof window !== "undefined";
 
   // MSW 활성화 여부 확인
@@ -125,7 +126,7 @@ export async function apiFetch<T>(
   const requestHeaders: HeadersInit = {
     "Content-Type": "application/json",
     "X-Trace-Id": traceId,
-    ...(config.userSeq ? { "X-User-Seq": config.userSeq.toString() } : {}),
+    ...(userSeq ? { "X-User-Seq": userSeq.toString() } : {}),
     ...headers,
   };
 

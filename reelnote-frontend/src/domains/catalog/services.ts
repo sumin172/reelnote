@@ -1,5 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
-import { config } from "@/lib/env";
+import { catalogConfig } from "@/lib/config/catalog.config";
 import type { CatalogMovie, SearchResponse } from "./types";
 
 export const catalogQueryKeys = {
@@ -58,7 +58,7 @@ export async function searchMovies(
   const raw = await apiFetch<CatalogSearchApiResponse>(
     `/v1/search?${params.toString()}`,
     {
-      baseUrl: config.catalogApiBaseUrl,
+      baseUrl: catalogConfig.baseUrl,
       signal,
     },
   );

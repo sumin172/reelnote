@@ -38,7 +38,11 @@ describe("validateEnv", () => {
 
         expect(result).toBeDefined();
         expect(result.NEXT_PUBLIC_REVIEW_API_BASE_URL).toBe("");
+        expect(result.NEXT_PUBLIC_REVIEW_API_TIMEOUT).toBe(10000);
+        expect(result.NEXT_PUBLIC_REVIEW_API_RETRY).toBe(3);
         expect(result.NEXT_PUBLIC_CATALOG_API_BASE_URL).toBe("");
+        expect(result.NEXT_PUBLIC_CATALOG_API_TIMEOUT).toBe(10000);
+        expect(result.NEXT_PUBLIC_CATALOG_API_RETRY).toBe(3);
         expect(result.NEXT_PUBLIC_ENABLE_MSW).toBe(false);
         expect(result.NEXT_PUBLIC_USER_SEQ).toBeNull();
       } finally {
@@ -283,6 +287,50 @@ describe("validateEnv", () => {
       const result = validateEnv();
 
       expect(result.NEXT_PUBLIC_APP_NAME).toBe("MyApp");
+    });
+
+    it("should use default timeout values when not set", async () => {
+      delete process.env.NEXT_PUBLIC_REVIEW_API_TIMEOUT;
+      delete process.env.NEXT_PUBLIC_CATALOG_API_TIMEOUT;
+
+      const { validateEnv } = await import("../validation");
+      const result = validateEnv();
+
+      expect(result.NEXT_PUBLIC_REVIEW_API_TIMEOUT).toBe(10000);
+      expect(result.NEXT_PUBLIC_CATALOG_API_TIMEOUT).toBe(10000);
+    });
+
+    it("should parse timeout values from environment", async () => {
+      process.env.NEXT_PUBLIC_REVIEW_API_TIMEOUT = "5000";
+      process.env.NEXT_PUBLIC_CATALOG_API_TIMEOUT = "15000";
+
+      const { validateEnv } = await import("../validation");
+      const result = validateEnv();
+
+      expect(result.NEXT_PUBLIC_REVIEW_API_TIMEOUT).toBe(5000);
+      expect(result.NEXT_PUBLIC_CATALOG_API_TIMEOUT).toBe(15000);
+    });
+
+    it("should use default retry values when not set", async () => {
+      delete process.env.NEXT_PUBLIC_REVIEW_API_RETRY;
+      delete process.env.NEXT_PUBLIC_CATALOG_API_RETRY;
+
+      const { validateEnv } = await import("../validation");
+      const result = validateEnv();
+
+      expect(result.NEXT_PUBLIC_REVIEW_API_RETRY).toBe(3);
+      expect(result.NEXT_PUBLIC_CATALOG_API_RETRY).toBe(3);
+    });
+
+    it("should parse retry values from environment", async () => {
+      process.env.NEXT_PUBLIC_REVIEW_API_RETRY = "5";
+      process.env.NEXT_PUBLIC_CATALOG_API_RETRY = "2";
+
+      const { validateEnv } = await import("../validation");
+      const result = validateEnv();
+
+      expect(result.NEXT_PUBLIC_REVIEW_API_RETRY).toBe(5);
+      expect(result.NEXT_PUBLIC_CATALOG_API_RETRY).toBe(2);
     });
   });
 });

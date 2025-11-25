@@ -23,19 +23,45 @@ const isValidUrl = (url: string): boolean => {
 };
 
 const envSchema = z.object({
-  // API 설정 (형태만 정의: URL 형식의 문자열)
+  // Review API 설정
   NEXT_PUBLIC_REVIEW_API_BASE_URL: z
     .string()
     .optional()
     .refine((val) => !val || isValidUrl(val), {
       message: "유효한 URL 형식이어야 합니다 (예: http://localhost:8080/api)",
     }),
+  NEXT_PUBLIC_REVIEW_API_TIMEOUT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(10000),
+  NEXT_PUBLIC_REVIEW_API_RETRY: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .default(3),
+
+  // Catalog API 설정
   NEXT_PUBLIC_CATALOG_API_BASE_URL: z
     .string()
     .optional()
     .refine((val) => !val || isValidUrl(val), {
       message: "유효한 URL 형식이어야 합니다 (예: http://localhost:3001/api)",
     }),
+  NEXT_PUBLIC_CATALOG_API_TIMEOUT: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(10000),
+  NEXT_PUBLIC_CATALOG_API_RETRY: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .default(3),
 
   // MSW 설정 (선택)
   NEXT_PUBLIC_ENABLE_MSW: z
@@ -79,7 +105,11 @@ export function validateEnv(): ValidatedEnv {
     // 클라이언트에서는 기본값 반환 (타입 안전성을 위해)
     return {
       NEXT_PUBLIC_REVIEW_API_BASE_URL: "",
+      NEXT_PUBLIC_REVIEW_API_TIMEOUT: 10000,
+      NEXT_PUBLIC_REVIEW_API_RETRY: 3,
       NEXT_PUBLIC_CATALOG_API_BASE_URL: "",
+      NEXT_PUBLIC_CATALOG_API_TIMEOUT: 10000,
+      NEXT_PUBLIC_CATALOG_API_RETRY: 3,
       NEXT_PUBLIC_ENABLE_MSW: false,
       NEXT_PUBLIC_USER_SEQ: null,
       NEXT_PUBLIC_APP_NAME: undefined,
@@ -112,6 +142,7 @@ export function validateEnv(): ValidatedEnv {
         NEXT_PUBLIC_CATALOG_API_BASE_URL:
           process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL ||
           defaultApiUrls.NEXT_PUBLIC_CATALOG_API_BASE_URL,
+        // timeout, retry는 스키마에서 기본값 처리
       };
       parsed = envSchema.parse(envWithDefaults);
     } else {
