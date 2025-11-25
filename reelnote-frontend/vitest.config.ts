@@ -10,6 +10,14 @@ export default defineConfig({
     globals: true,
     testTimeout: 30000,
     hookTimeout: 30000,
+    // __tests__ 폴더와 co-located 패턴 모두 커버
+    // 기본 패턴: **/*.{test,spec}.{ts,tsx} (co-located)
+    //            **/__tests__/**/*.{test,spec}.{ts,tsx} (__tests__ 폴더)
+    // 명시적으로 설정하려면:
+    // include: [
+    //   "**/__tests__/**/*.test.{ts,tsx}",
+    //   "**/*.test.{ts,tsx}",
+    // ],
     exclude: [
       "**/node_modules/**",
       "**/dist/**",

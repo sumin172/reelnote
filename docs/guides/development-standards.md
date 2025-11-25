@@ -360,9 +360,45 @@
 
 ## 7. 테스트
 
-### 7-1. 필수 테스트 항목
+### 7-1. 테스트 작성 전략 (기능 구현 시)
 
-**새 기능 추가 시:**
+**새 기능 구현 시 테스트 작성 (TDD 스타일 권장):**
+
+✅ **해야 할 것:**
+- 기능 구현과 함께 테스트 작성 (TDD 스타일 권장)
+- 계층별 테스트 작성 (Application, Interface, Infrastructure)
+- UseCase/Service 테스트 작성 (`application/{Service}Test`)
+- Controller 테스트 작성 (`interfaces/rest/{Controller}Test`)
+- 통합 테스트 작성 (필요 시, Testcontainers 사용)
+
+**체크리스트:**
+- [ ] Application 계층 테스트: UseCase/Service 로직 검증 (MockK/Mockito 사용)
+- [ ] Interface 계층 테스트: Controller API 엔드포인트 검증 (WebMvcTest/MockMvc 사용)
+- [ ] Infrastructure 계층 테스트: 실제 DB/외부 서비스 연동 검증 (Testcontainers 사용, 필요 시)
+- [ ] 예외 처리 테스트: GlobalExceptionHandler/Filter가 예외를 올바르게 변환하는지
+- [ ] TraceId 전파 테스트: 서비스 간 호출 시 TraceId가 전파되는지
+- [ ] 에러 코드-메시지 매핑 검증: 새 에러 코드가 메시지 리소스에 존재하는지
+- [ ] 에러 응답 형식 검증: `ErrorDetail` 스키마 준수 확인
+
+**테스트 범위:**
+- **Application 계층**: 비즈니스 로직, 예외 처리, 도메인 규칙 검증
+- **Interface 계층**: HTTP 요청/응답 변환, DTO 검증, 상태 코드 매핑
+- **Infrastructure 계층**: 실제 DB 연동, 외부 서비스 호출, 캐시 동작 (통합 테스트)
+
+**코드 참고:**
+- Review Service 예시:
+  - Application: `src/test/kotlin/app/reelnote/review/application/ReviewServiceTest.kt`
+  - Interface: `src/test/kotlin/app/reelnote/review/interfaces/rest/ReviewControllerTest.kt`
+  - Infrastructure: `src/test/kotlin/app/reelnote/review/infrastructure/SoftDeleteIntegrationTest.kt`
+
+**참고 문서:**
+- 테스트 커버리지 개선 계획: [docs/improvements.md](../improvements.md) 섹션 5
+
+---
+
+### 7-2. 필수 테스트 항목
+
+**새 기능 추가 시 반드시 포함해야 하는 테스트:**
 
 ✅ **해야 할 것:**
 - 예외 처리 테스트: GlobalExceptionHandler/Filter가 예외를 올바르게 변환하는지
@@ -467,6 +503,11 @@
    - [ ] 로그 레벨 적절함 (4xx: WARN, 5xx: ERROR)
    - [ ] `traceId` 포함됨 (MDC 자동)
    - [ ] 민감 정보 포함되지 않음
+
+6. **테스트 (기능 구현 시):**
+   - [ ] Application 계층 테스트 작성 (UseCase/Service 로직 검증)
+   - [ ] Interface 계층 테스트 작성 (Controller API 엔드포인트 검증)
+   - [ ] 예외 처리, TraceId 전파, 에러 코드-메시지 매핑 검증 포함
 
 ---
 

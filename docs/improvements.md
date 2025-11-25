@@ -255,7 +255,111 @@ jobs:
 
 ---
 
-### 4. 테스트 커버리지 개선 (단계적)
+### 4. 프론트엔드 테스트 커버리지 개선 (단계적)
+
+**현재 상태:**
+- **Phase 1 완료**: 인프라/유틸리티 레벨 테스트 완료
+  - API 클라이언트 테스트: 22개 테스트 통과 (`lib/api/__tests__/client.test.ts`)
+  - 에러 처리 유틸리티 테스트: 29개 테스트 통과 (`lib/errors/__tests__/error-utils.test.ts`)
+  - 환경 변수 검증 테스트: 16개 테스트 통과 (`lib/env/__tests__/validation.test.ts`)
+  - 총 74개 테스트 통과
+- **Phase 2 진행 중**: 기능 구현과 함께 테스트 작성 (TDD 스타일)
+  - 도메인 서비스 테스트: 미구현 (`domains/review/__tests__/services.test.ts`)
+  - 커스텀 훅 테스트: 미구현 (`hooks/__tests__/use*.test.ts`)
+  - 폼 검증 로직 테스트: 미구현 (`domains/review/__tests__/schema.test.ts`)
+- **Phase 3 계획**: 기능 완성 후 통합/회귀 테스트
+  - 컴포넌트 통합 테스트: 미구현
+  - MSW 핸들러 테스트: 미구현 (낮은 우선순위)
+  - E2E 테스트: Playwright 기반, 일부 구현됨
+
+**영향:**
+- 도메인 로직 테스트 부재로 리팩토링 시 안전성 저하
+- 컴포넌트 통합 테스트 부재로 사용자 플로우 검증 어려움
+- 회귀 테스트 부족으로 코드 변경 시 버그 조기 발견 어려움
+
+**권장 방향:**
+
+#### 4-1. Phase 2: 기능 구현과 함께 테스트 작성 (TDD 스타일)
+
+**구현 내용:**
+1. **도메인 서비스 테스트** (`domains/{domain}/__tests__/services.test.ts`)
+   - API 호출 파라미터 변환 검증 (URLSearchParams 등)
+   - 에러 처리 검증 (ApiError 전파)
+   - 타입 안전성 검증
+
+2. **커스텀 훅 테스트** (`hooks/__tests__/use*.test.ts`)
+   - React Query 동작 검증 (fetching, caching, error handling)
+   - 비즈니스 로직이 훅에 포함된 경우 검증
+
+3. **폼 검증 로직 테스트** (`domains/{domain}/__tests__/schema.test.ts`)
+   - Zod 스키마 검증 (필수 필드, 타입 변환, 커스텀 규칙)
+
+**구현 예시:**
+```typescript
+// domains/review/__tests__/services.test.ts
+describe("fetchReviews", () => {
+  it("should build correct query string with page and size", async () => {
+    // URLSearchParams 생성 로직 검증
+  });
+
+  it("should handle empty params", async () => {
+    // 파라미터 없을 때 기본 동작
+  });
+});
+
+// hooks/__tests__/useReviews.test.ts
+describe("useReviews", () => {
+  it("should fetch reviews with React Query", async () => {
+    // React Query 동작 검증
+  });
+});
+```
+
+**작성 시점:**
+- 리뷰 작성/조회 기능 구현 시
+- 카탈로그 검색 기능 구현 시
+- 각 기능 구현과 함께 작성 (TDD 스타일)
+
+**기대 효과:**
+- 기능 구현 시 비즈니스 로직 검증 보장
+- 리팩토링 시 안전성 확보
+- 버그 조기 발견
+
+#### 4-2. Phase 3: 기능 완성 후 통합/회귀 테스트
+
+**구현 내용:**
+1. **컴포넌트 통합 테스트** (`app/{page}/__tests__/*.test.tsx`)
+   - 사용자 인터랙션 검증 (클릭, 입력)
+   - API 연동 검증 (MSW 사용)
+   - 에러 상태 UI 검증
+
+2. **MSW 핸들러 테스트** (`lib/msw/__tests__/handlers.test.ts`) - 낮은 우선순위
+   - 핸들러가 올바른 응답을 반환하는지 검증
+   - 에러 케이스 처리 검증
+   - 페이지네이션 로직 검증
+
+3. **E2E 테스트 보완** (Playwright)
+   - 주요 사용자 플로우 완성 후 시나리오 추가
+   - 배포 전 회귀 테스트
+
+**작성 시점:**
+- 주요 페이지 컴포넌트 완성 후
+- 사용자 플로우가 명확해진 후
+- 배포 전 회귀 테스트 필요 시
+
+**기대 효과:**
+- 사용자 플로우 검증
+- 회귀 테스트 강화
+- 배포 전 자동 검증
+
+**참고:**
+- Phase 1 테스트: `src/lib/api/__tests__/client.test.ts` (완료)
+- Phase 2 테스트: 기능 구현과 함께 작성 예정
+- Phase 3 테스트: 기능 완성 후 작성 예정
+
+---
+
+### 5. 백엔드 테스트 커버리지 개선 (단계적)
 
 **현재 상태:**
 - **Catalog Service**: 테스트 커버리지 약 5-10% (2개 파일만 커버)
@@ -273,7 +377,7 @@ jobs:
 
 **권장 방향:**
 
-#### 3-1. Catalog Service 테스트 추가
+#### 5-1. Catalog Service 테스트 추가
 
 **우선순위 높음:**
 - `MoviesFacade` 테스트 (`movies.facade.spec.ts`)
@@ -314,7 +418,7 @@ describe('MoviesFacade', () => {
 });
 ```
 
-#### 3-2. Review Service 테스트 추가
+#### 5-2. Review Service 테스트 추가
 
 **우선순위 높음:**
 - `ReviewQueryService` 테스트 (`ReviewQueryServiceTest.kt`)
@@ -366,7 +470,7 @@ class ReviewQueryServiceTest {
 
 ## 🟢 낮은 우선순위
 
-### 3. 로깅 집계 및 모니터링 개선 (장기)
+### 6. 로깅 집계 및 모니터링 개선 (장기)
 
 **현재 상태:**
 - 로깅 가이드 및 구조화 로깅 표준 정의 완료 (`docs/guides/logging.md`)
@@ -535,7 +639,7 @@ scrape_configs:
 
 ---
 
-### 4. 테스트 커버리지 개선 (장기)
+### 7. 테스트 커버리지 개선 (장기)
 
 **현재 상태:**
 - 단위 테스트는 일부 구현됨
@@ -627,7 +731,7 @@ describe('Movies API Performance', () => {
 
 ---
 
-### 4. Catalog Service 마이그레이션 자동화 (CI/CD)
+### 8. Catalog Service 마이그레이션 자동화 (CI/CD)
 
 **현재 상태:**
 - 로컬 개발 환경에서만 마이그레이션 관리
@@ -669,7 +773,7 @@ jobs:
 
 ---
 
-### 5. Review Service 캐시 설정
+### 9. Review Service 캐시 설정
 
 **현재 상태:**
 - **위치**: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/CacheConfig.kt`
@@ -721,7 +825,7 @@ spring:
 
 ---
 
-### 6. 내부 서비스 API 설정 구조 공통화
+### 10. 내부 서비스 API 설정 구조 공통화
 
 **현재 상태:**
 - 각 서비스별로 개별 `{Service}ApiProperties` 클래스를 사용 중
@@ -783,7 +887,7 @@ data class CatalogApiProperties(
 
 ---
 
-### 7. 서비스 간 통신 스펙 검증 개선 (장기)
+### 11. 서비스 간 통신 스펙 검증 개선 (장기)
 
 **현재 상태:**
 - **프론트엔드**: MSW로 `/api/v1/search`(카탈로그), `/api/v1/reviews/*`(리뷰) 모킹

@@ -308,7 +308,78 @@ if (error instanceof Error) { /* ... */ }
 
 ## 9. 테스트
 
-### 9-1. 에러 코드 매핑 검증
+### 9-1. 테스트 파일 구조
+
+**테스트 파일 위치 규칙:**
+
+| 디렉토리          | 패턴             | 예시                                             | 이유                               |
+|---------------|----------------|------------------------------------------------|----------------------------------|
+| `lib/`        | `__tests__` 폴더 | `lib/api/__tests__/client.test.ts`             | 유틸/인프라 레벨, 테스트 파일 다수 예상          |
+| `domains/`    | `__tests__` 폴더 | `domains/review/__tests__/services.test.ts`    | 서비스/스키마/도메인 테스트 여러 개 생기므로 묶어서 관리 |
+| `components/` | Co-located     | `components/ui/button.tsx` / `button.test.tsx` | 컴포넌트와 테스트를 같이 열어보는 게 자연스러움       |
+| `hooks/`      | 성격에 따라 분리      | 아래 참고                                          | UI 전용 vs 도메인/인프라 구분              |
+
+**hooks/ 테스트 위치 규칙:**
+
+✅ **기본 원칙:**
+- **UI 전용 훅** (컴포넌트에 강하게 붙어있는 훅): 컴포넌트와 co-located
+  - 예: `useButtonState`, `useModal`
+  - 위치: `components/.../useX.ts` + `useX.test.ts`
+- **도메인/인프라 훅** (여러 곳에서 재사용되는 훅): `hooks/__tests__` 폴더
+  - 예: `useReviewQuery`, `useAuth`, `useErrorHandler`, `useInfiniteScroll`
+  - 위치: `hooks/__tests__/useX.test.ts`
+
+**테스트 파일 네이밍:**
+- 파일명: `*.test.ts`, `*.test.tsx`로 통일
+- `.spec.ts` 사용 금지 (일관성 유지)
+
+**도구 설정 확인:**
+- Vitest는 기본적으로 `__tests__` 폴더와 co-located 패턴 모두 자동 인식
+- 명시적 설정이 필요한 경우 `vitest.config.ts`에서 확인:
+  ```typescript
+  // Vitest 기본 패턴이 둘 다 커버함:
+  // **/*.{test,spec}.{ts,tsx} (co-located)
+  // **/__tests__/**/*.{test,spec}.{ts,tsx} (__tests__ 폴더)
+  ```
+
+**체크리스트:**
+- [ ] 테스트 파일 위치가 프로젝트 규칙에 맞음
+- [ ] 테스트 파일명은 `*.test.ts` 또는 `*.test.tsx` 형식 (`.spec` 사용 금지)
+- [ ] hooks는 성격에 따라 위치 결정 (UI 전용: co-located, 도메인/인프라: `__tests__`)
+- [ ] 테스트 파일이 소스 파일과 함께 버전 관리됨
+
+---
+
+### 9-2. 테스트 작성 전략 (기능 구현 시)
+
+**새 기능 구현 시 테스트 작성:**
+
+✅ **해야 할 것:**
+- 기능 구현과 함께 테스트 작성 (TDD 스타일 권장)
+- 도메인 서비스 테스트 작성 (`domains/{domain}/__tests__/services.test.ts`)
+- 커스텀 훅 테스트 작성 (도메인/인프라 훅: `hooks/__tests__/use*.test.ts`, UI 전용 훅: 컴포넌트와 co-located)
+- 폼 검증 로직 테스트 작성 (`domains/{domain}/__tests__/schema.test.ts`)
+
+**체크리스트:**
+- [ ] 도메인 서비스 테스트: API 호출 파라미터 변환, 에러 처리, 타입 안전성 검증
+- [ ] 커스텀 훅 테스트: 데이터 fetching, 캐싱 동작, 에러 상태 관리 검증
+- [ ] 폼 검증 로직 테스트: 필수 필드 검증, 타입 변환, 커스텀 검증 규칙 검증
+
+**테스트 범위:**
+- **도메인 서비스**: API 호출 로직, 파라미터 변환 (URLSearchParams 등), 에러 전파
+- **커스텀 훅**: React Query 동작 (fetching, caching, error handling)
+- **폼 검증**: Zod 스키마 검증, 타입 변환 (날짜, 숫자 등)
+
+**코드 참고:**
+- Phase 1 테스트 예시: `src/lib/api/__tests__/client.test.ts` (인프라 레벨, 완료)
+- Phase 2 테스트 예시: 향후 `src/domains/review/__tests__/services.test.ts` (도메인 레벨)
+
+**참고 문서:**
+- Phase 3 테스트 전략: [docs/improvements.md](../improvements.md) 섹션 4-2
+
+---
+
+### 9-3. 에러 코드 매핑 검증
 
 **새 에러 코드 추가 시:**
 
@@ -349,6 +420,11 @@ if (error instanceof Error) { /* ... */ }
 4. **컴포넌트:**
    - [ ] 로딩/에러/빈 상태는 공통 컴포넌트 사용
    - [ ] 환경 변수는 `config` 객체를 통해서만 접근
+
+5. **테스트 (Phase 2):**
+   - [ ] 도메인 서비스 테스트 작성 (기능 구현 시)
+   - [ ] 커스텀 훅 테스트 작성 (React Query 동작 검증)
+   - [ ] 폼 검증 로직 테스트 작성 (Zod 스키마 검증)
 
 ---
 
