@@ -1,6 +1,7 @@
 import { http, HttpResponse } from "msw";
 import type { RequestHandler } from "msw";
 import type { ReviewCreateInput } from "@/domains/review/schema";
+import { CommonErrorCode } from "@/lib/errors/error-codes";
 
 /**
  * MSW 핸들러 생성 함수
@@ -89,7 +90,7 @@ export function createHandlers(): RequestHandler[] {
 
           return HttpResponse.json(
             {
-              code: "VALIDATION_ERROR",
+              code: CommonErrorCode.VALIDATION_ERROR,
               message: "필수 필드가 누락되었습니다.",
               details: {
                 path: "/api/v1/reviews",
@@ -112,7 +113,7 @@ export function createHandlers(): RequestHandler[] {
       } catch {
         return HttpResponse.json(
           {
-            code: "VALIDATION_ERROR",
+            code: CommonErrorCode.VALIDATION_ERROR,
             message: "잘못된 JSON 형식입니다.",
             details: {
               path: "/api/v1/reviews",
@@ -128,7 +129,7 @@ export function createHandlers(): RequestHandler[] {
     http.get(/\/api\/v[12]\/.*/, ({ request }) => {
       return HttpResponse.json(
         {
-          code: "NOT_FOUND",
+          code: CommonErrorCode.NOT_FOUND,
           message: "API 엔드포인트를 찾을 수 없습니다.",
           details: {
             path: new URL(request.url).pathname,

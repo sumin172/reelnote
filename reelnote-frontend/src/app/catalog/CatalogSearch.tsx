@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ChangeEvent, CompositionEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { catalogQueryKeys, searchMovies } from "@/domains/catalog/services";
@@ -14,6 +14,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useDebouncedValue } from "@/lib/hooks/useDebounce";
+import { useErrorHandler } from "@/hooks/use-error-handler";
+import { getUserMessage } from "@/lib/errors/error-utils";
+import { ErrorState } from "@/domains/shared/components/state/Error";
 
 export default function CatalogSearch() {
   const [inputValue, setInputValue] = useState("");
@@ -21,6 +24,7 @@ export default function CatalogSearch() {
   const [committedQuery, setCommittedQuery] = useState("");
   const debouncedQuery = useDebouncedValue(committedQuery, 400);
   const canSearch = !isComposing && debouncedQuery.trim().length > 0;
+  const handleError = useErrorHandler();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
@@ -41,12 +45,19 @@ export default function CatalogSearch() {
     setCommittedQuery(value);
   };
 
-  const { data, isFetching } = useQuery<SearchResponse>({
+  const { data, isFetching, isError, error } = useQuery<SearchResponse>({
     queryKey: catalogQueryKeys.search(debouncedQuery, 1),
     queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
     enabled: canSearch,
     staleTime: 1000 * 30,
   });
+
+  // React Query v5에서는 onError가 제거되었으므로 useEffect로 처리
+  useEffect(() => {
+    if (error) {
+      handleError(error);
+    }
+  }, [error, handleError]);
 
   return (
     <div className="container mx-auto p-4 space-y-4">
@@ -61,7 +72,8 @@ export default function CatalogSearch() {
       {isFetching && (
         <div className="text-sm text-muted-foreground">검색 중...</div>
       )}
-      {data && (
+      {isError && <ErrorState message={getUserMessage(error)} />}
+      {data && !isError && (
         <div className="space-y-6">
           <SearchSection
             title="카탈로그"

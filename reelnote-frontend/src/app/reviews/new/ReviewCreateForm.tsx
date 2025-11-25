@@ -9,6 +9,7 @@ import {
 } from "@/domains/review/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createReview, reviewQueryKeys } from "@/domains/review/services";
+import { useErrorHandler } from "@/hooks/use-error-handler";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -43,6 +44,8 @@ export default function ReviewCreateForm() {
     },
   });
 
+  const handleError = useErrorHandler();
+
   const { mutate, isPending } = useMutation({
     mutationFn: (data: ReviewCreateInput) => createReview(data),
     onSuccess: async () => {
@@ -50,6 +53,10 @@ export default function ReviewCreateForm() {
         queryKey: [...reviewQueryKeys.all],
       });
       router.push("/reviews");
+    },
+    onError: (error) => {
+      handleError(error);
+      // handleError가 이미 redirect를 처리하므로 여기서는 추가 처리만
     },
   });
 

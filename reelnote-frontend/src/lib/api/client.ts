@@ -1,4 +1,9 @@
 import { config, isMSWEnabled } from "../env";
+import {
+  ErrorCode,
+  NormalizedErrorCode,
+  isErrorCode,
+} from "../errors/error-codes";
 
 export type FetchOptions = RequestInit & { baseUrl?: string };
 
@@ -16,15 +21,58 @@ export interface ErrorDetail {
  * API 에러 (표준 에러 스키마 포함)
  */
 export class ApiError extends Error {
+  /**
+   * 정규화된 에러 코드
+   * 알려진 ErrorCode이거나 "UNKNOWN_ERROR"
+   */
+  public readonly code: NormalizedErrorCode;
+
   constructor(
     message: string,
     public readonly status: number,
-    public readonly code?: string,
+    code: string | ErrorCode, // 입력은 string도 허용 (하위 호환성)
     public readonly details?: Record<string, unknown>,
     public readonly traceId?: string,
   ) {
     super(message);
     this.name = "ApiError";
+
+    // 에러 코드 정규화: 알려진 코드인지 검증하고, 아니면 UNKNOWN_ERROR로 설정
+    this.code = isErrorCode(code) ? code : "UNKNOWN_ERROR";
+
+    // 개발 환경에서 알 수 없는 에러 코드 경고
+    if (
+      process.env.NODE_ENV === "development" &&
+      this.code === "UNKNOWN_ERROR" &&
+      code !== "UNKNOWN_ERROR"
+    ) {
+      console.warn(
+        `[ApiError] Unknown error code: ${code}. Normalized to UNKNOWN_ERROR.`,
+      );
+    }
+  }
+
+  /**
+   * 에러 코드가 특정 타입인지 확인 (타입 가드)
+   *
+   * 예시:
+   * ```typescript
+   * if (error.isCode(CommonErrorCode.UNAUTHORIZED)) {
+   *   // UNAUTHORIZED 에러에 대한 특정 처리
+   * }
+   * ```
+   *
+   * 참고: 현재는 사용되지 않지만, 향후 특정 에러 코드별 분기 처리가 필요할 때 유용합니다.
+   */
+  isCode<T extends ErrorCode>(code: T): this is ApiError & { code: T } {
+    return this.code === code;
+  }
+
+  /**
+   * 에러 코드가 알려진 코드인지 확인
+   */
+  isKnownCode(): this is ApiError & { code: ErrorCode } {
+    return this.code !== "UNKNOWN_ERROR";
   }
 }
 
@@ -156,7 +204,7 @@ export async function apiFetch<T>(
     throw new ApiError(
       errorText || res.statusText || `API 요청 실패 (${res.status})`,
       res.status,
-      undefined,
+      "UNKNOWN_ERROR", // 표준 에러 스키마가 없는 경우
       undefined,
       traceId,
     );

@@ -1,10 +1,14 @@
 "use client";
 
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { reviewQueryKeys, fetchReviews } from "@/domains/review/services";
+import type { Page, Review } from "@/domains/review/types";
 import { LoadingState } from "@/domains/shared/components/state/Loading";
 import { ErrorState } from "@/domains/shared/components/state/Error";
 import { EmptyState } from "@/domains/shared/components/state/Empty";
+import { useErrorHandler } from "@/hooks/use-error-handler";
+import { getUserMessage } from "@/lib/errors/error-utils";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,16 +20,28 @@ import {
 } from "@/components/ui/card";
 
 export default function ReviewsList() {
-  const { data, isLoading, isError } = useQuery({
+  const handleError = useErrorHandler();
+
+  const { data, isLoading, isError, error } = useQuery<Page<Review>>({
     queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
     queryFn: () => fetchReviews({ page: 0, size: 10 }),
   });
+
+  // React Query v5에서는 onError가 제거되었으므로 useEffect로 처리
+  useEffect(() => {
+    if (error) {
+      handleError(error);
+    }
+  }, [error, handleError]);
 
   const hasReviews = data && data.content.length > 0;
 
   const body = (() => {
     if (isLoading) return <LoadingState />;
-    if (isError) return <ErrorState />;
+    if (isError) {
+      const errorMessage = getUserMessage(error);
+      return <ErrorState message={errorMessage} />;
+    }
     if (!hasReviews)
       return (
         <EmptyState message="아직 작성된 리뷰가 없습니다. 첫 번째 리뷰를 작성해보세요!" />
