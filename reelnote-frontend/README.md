@@ -56,36 +56,22 @@ src/
 
 ## 🏗️ 아키텍처 & 설계
 
-### 계층형 아키텍처
+> **📖 상세 아키텍처 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
+>
+> 프론트엔드는 **Domain-Driven Design** + **Layered Architecture** + **React Query 패턴**을 적용했습니다. 백엔드 서비스와 일관된 아키텍처 개념을 사용하여 전체 시스템을 이해하기 쉽도록 구성했습니다.
 
-- **Presentation Layer**: Next.js App Router + React 컴포넌트
-- **Application Layer**: React Query + 커스텀 훅 (비즈니스 로직)
-- **Infrastructure Layer**: API 클라이언트 + 환경 설정
-- **Domain Layer**: 도메인별 모듈 분리 (domains 폴더)
+### 핵심 아키텍처 패턴
 
-### 관심사 분리
+- **Domain-Driven Design**: 도메인별 모듈 분리 (`domains/review`, `domains/catalog`, `domains/shared`)
+- **Layered Architecture**: Presentation (`app/`) → Domain/Application (`domains/`) → Infrastructure (`lib/`) 레이어 분리
+- **React Query 패턴**: QueryKey 팩토리, 서비스 레이어 분리로 서버 상태 관리
 
-- **API 통신**: `lib/api/client.ts`에서 중앙 관리
-- **환경 변수**: `lib/env`에서 타입 안전하게 관리
-- **모킹**: MSW를 통한 개발 환경 독립성 확보
-- **상태 관리**: React Query (서버 상태) + Zustand (클라이언트 상태)
+### 주요 특징
 
-```typescript
-// API 클라이언트: 표준 HTTP 응답 처리
-export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
-  const res = await fetch(url, { ... });
-
-  // 성공 응답: 리소스를 그대로 반환 (래퍼 없음)
-  // 에러 응답: 표준 에러 스키마 { code, message, details, traceId } 처리
-  return json as T;
-}
-```
-
-### 마이크로서비스 연동
-
-- **API Gateway 패턴**: 단일 API 클라이언트로 여러 서비스 통합
-- **MSW 모킹**: 백엔드 서비스 없이도 프론트엔드 개발 가능
-- **타입 안전성**: TypeScript로 API 응답 타입 보장
+- API 통신 중앙 관리 및 타입 안전한 환경 변수 관리
+- MSW를 통한 개발 환경 독립성 확보
+- 계층화된 에러 처리 아키텍처
+- React Query (서버 상태) + Zustand (클라이언트 상태) 분리
 
 ## 💡 핵심 구현 특징
 
@@ -104,99 +90,6 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
 7. **테스트 전략**: Vitest + Testing Library + Playwright
    - _단위 테스트, 통합 테스트, E2E 테스트로 안정성 확보_
 
-## 🔧 구현 예시
-
-### 환경 변수 관리: 타입 안전한 설정
-
-```typescript
-// lib/env/index.ts
-export const config = {
-  // API 설정 (안전한 접근자 사용)
-  get reviewApiBaseUrl() {
-    return getReviewApiBaseUrl();
-  },
-
-  // MSW 설정 (개발 환경에서만)
-  get enableMSW() {
-    return process.env.NEXT_PUBLIC_ENABLE_MSW === "true" && isDevelopment;
-  },
-
-  // 앱 설정
-  get appName() {
-    return getAppName();
-  },
-  get appVersion() {
-    return getAppVersion();
-  },
-
-  // 환경 감지
-  isDevelopment,
-  isProduction,
-  isTest,
-} as const;
-
-// 사용 예시
-import { config } from "@/lib/env";
-const reviewApiUrl = config.reviewApiBaseUrl; // 타입 안전하게 접근
-```
-
-**장점:**
-
-- **타입 안전성**: TypeScript로 환경 변수 접근 보장
-- **지연 검증**: 개발 환경에서만 필수 변수 검증
-- **기본값 처리**: 누락된 변수에 대한 안전한 기본값 제공
-
-### MSW를 활용한 개발 환경 독립성
-
-```typescript
-// lib/msw/manager.ts
-export async function initializeMSW(handlers: RequestHandler[]): Promise<void> {
-  if (!isMSWEnabled) return;
-
-  const worker = setupWorker(...handlers);
-  await worker.start({
-    onUnhandledRequest: "bypass", // 처리되지 않은 요청은 그대로 통과
-  });
-}
-
-// app/providers.tsx
-React.useEffect(() => {
-  if (process.env.NODE_ENV === "development") {
-    import("@/lib/msw")
-      .then(({ initializeMSW, createHandlers }) =>
-        initializeMSW(createHandlers()),
-      )
-      .catch((error) => console.warn("MSW 초기화 실패:", error));
-  }
-}, []);
-```
-
-**장점:**
-
-- **개발 독립성**: 백엔드 서비스 없이도 프론트엔드 개발 가능
-- **점진적 통합**: 실제 API와 모킹 간 전환 용이
-- **에러 처리**: MSW 초기화 실패 시에도 애플리케이션 동작 보장
-
-## 🤔 기술적 의사결정
-
-### 아키텍처 선택
-
-- **Next.js App Router 선택 이유**: 최신 React 기능 활용 및 서버 컴포넌트 지원
-- **React Query 선택 이유**: 서버 상태 관리와 캐싱 전략의 표준화
-- **Zustand 선택 이유**: 간단한 클라이언트 상태 관리가 필요한 경우 활용
-
-### 기술 스택 선택
-
-- **Next.js 16**: React 19 지원 및 성능 최적화 기능 활용
-- **Tailwind CSS 4.1**: 유틸리티 퍼스트 CSS로 빠른 개발
-- **shadcn/ui**: 접근성과 커스터마이징이 용이한 컴포넌트 라이브러리
-- **MSW 2.12**: 실제 네트워크 레벨에서의 모킹으로 현실적인 테스트 환경 제공
-
-### 개발 경험 최적화
-
-- **타입 안전성**: TypeScript로 런타임 에러 방지
-- **환경 변수 검증**: 개발 환경에서 필수 변수 누락 감지
-- **에러 처리**: React Query의 에러 핸들링과 재시도 로직 활용
 
 ## 🚀 실행 방법
 

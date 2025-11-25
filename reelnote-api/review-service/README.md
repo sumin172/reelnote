@@ -46,137 +46,23 @@ src/main/kotlin/app/reelnote/review/
 
 ## 🏗️ 아키텍처 & 설계
 
-> **상세 아키텍처 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요. Catalog Service와 동일한 Port/Adapter 언어로 작성되어 있어 두 서비스를 비교하며 학습할 수 있습니다.
+> **📖 상세 아키텍처 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
+>
+> Review Service는 **Hexagonal Architecture (Port/Adapter)** + **DDD** + **CQRS** 패턴을 적용했습니다. Catalog Service와 동일한 Port/Adapter 언어로 작성되어 있어 두 서비스를 비교하며 학습할 수 있습니다.
 
-### 도메인 주도 설계 구현
-- **값 객체**: `Rating` 클래스로 도메인 개념 명확화
-- **엔티티**: `Review`의 비즈니스 메서드 구현
-- **리포지토리**: 데이터 접근 계층 추상화
-- **CQRS 패턴**: `ReviewService`(명령)와 `ReviewQueryService`(조회) 분리로 성능 최적화
+### 핵심 아키텍처 패턴
 
-```kotlin
-// 값 객체: 불변성과 유효성 검증
-@Embeddable
-data class Rating(val value: Int) {
-    init {
-        require(value in 1..5) { "평점은 1-5 사이여야 합니다" }
-    }
-    companion object {
-        fun of(value: Int) = Rating(value)  // 팩토리 메서드
-    }
-}
-```
+- **Hexagonal Architecture**: 도메인 중심 설계로 인프라 의존성 제거
+- **Domain-Driven Design**: 도메인 모델 중심의 비즈니스 로직 캡슐화
+- **CQRS**: 명령(`ReviewService`)과 조회(`ReviewQueryService`) 분리로 성능 최적화
+- **멀티테넌시**: 사용자별 데이터 격리 및 독립적 배포
 
-### 마이크로서비스 패턴
-- **멀티테넌시 지원**: 사용자별 데이터 격리
-- **이벤트 기반 연동**: 다른 서비스와의 느슨한 결합
-- **독립적 배포**: 서비스별 독립적인 개발/배포
+### 주요 특징
 
-## 💡 핵심 구현 특징
-
-1. **DDD 패턴**: 값 객체의 불변성과 유효성 검증
-   - *비즈니스 규칙을 도메인 객체에 캡슐화하여 유지보수성 향상*
-2. **CQRS 패턴**: 명령과 조회 분리
-   - *ReviewService(명령)와 ReviewQueryService(조회)로 읽기/쓰기 최적화*
-3. **고급 JPA**: @Embeddable, @ElementCollection, Optimistic Locking
-   - *동시성 제어와 데이터 무결성 보장*
-4. **카탈로그 연동**: WebClient + Reactor (Catalog 서비스 호출)
-   - *영화 메타데이터는 Catalog 서비스에서 일괄 관리*
-   - *타임아웃 및 연결 설정으로 안정성 확보*
-5. **캐싱 전략**: 다층 캐싱으로 성능 최적화
-   - *리뷰 조회 성능 향상*
-6. **예외 처리**: @RestControllerAdvice + 도메인 예외
-   - *일관된 에러 응답과 디버깅 효율성 증대*
-7. **테스트**: MockK + @WebMvcTest + SpringMockK + Testcontainers
-   - *단위 테스트와 통합 테스트로 안정성 확보*
-   - *Testcontainers로 실제 PostgreSQL 환경에서 검증*
-8. **운영**: 환경별 프로파일 + 구조화된 로깅
-   - *개발/운영 환경 분리로 안정성 확보*
-9. **이벤트 발행**: BaseEntity에 이벤트 발행 추적 기능 포함
-   - *도메인 이벤트 추적 및 재발행 지원*
-
-## 🔧 구현 예시
-
-### 소프트 삭제: @SQLDelete + @SQLRestriction
-
-```kotlin
-@Entity
-@Table(name = "reviews", schema = "app")
-@SQLDelete(sql = "UPDATE app.reviews SET deleted = true, deleted_at = NOW(), version = version + 1 WHERE id = ? AND version = ?")
-@SQLRestriction("deleted = false")
-data class Review(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    val id: Long = 0,
-
-    @Column(name = "deleted", nullable = false)
-    val deleted: Boolean = false,
-
-    @Column(name = "deleted_at")
-    val deletedAt: LocalDateTime? = null
-) : BaseEntity()
-
-// 서비스에서 사용
-fun deleteReview(id: Long, userSeq: Long) {
-    val review = reviewRepository.findById(id)
-        .orElseThrow { exceptionFactory.notFound(id) }
-
-    // @SQLDelete 어노테이션이 자동으로 soft delete 처리
-    reviewRepository.delete(review)
-}
-```
-
-**장점:**
-- **@SQLRestriction**: JPQL 쿼리에서 `deleted = false` 조건 자동 추가로 성능 최적화
-- **@SQLDelete**: 실제 삭제 대신 플래그 업데이트로 데이터 복구 가능
-- **Optimistic Locking**: 동시 삭제 요청 시 데이터 무결성 보장
-
-### BaseEntity: 공통 메타데이터 관리
-
-모든 엔티티가 상속받는 `BaseEntity`는 다음 기능을 제공합니다:
-
-```kotlin
-@MappedSuperclass
-abstract class BaseEntity {
-    var createdAt: Instant          // 생성일시
-    var updatedAt: Instant          // 수정일시
-    var version: Long               // Optimistic Locking용 버전
-    var createdBy: Long            // 생성자 ID
-    var updatedBy: Long?           // 수정자 ID
-    var deleted: Boolean           // 삭제 여부
-    var deletedAt: Instant?        // 삭제일시
-    var eventPublished: Boolean    // 이벤트 발행 여부
-    var eventPublishedAt: Instant? // 이벤트 발행일시
-
-    fun markEventAsPublished()     // 이벤트 발행 완료 표시
-    fun restore()                  // 삭제 취소
-}
-```
-
-**특징:**
-- **자동 감사(Auditing)**: `@CreatedBy`, `@LastModifiedBy`로 생성자/수정자 자동 추적
-- **이벤트 추적**: 도메인 이벤트 발행 상태를 추적하여 재발행 지원
-- **소프트 삭제**: `deleted` 플래그와 `deletedAt`으로 삭제 추적
-- **Optimistic Locking**: `@Version`으로 동시성 제어
-
-## 🤔 기술적 의사결정
-
-### 아키텍처 선택
-- **DDD 선택 이유**: 복잡한 비즈니스 로직을 도메인 객체에 캡슐화하여 유지보수성 향상
-- **마이크로서비스**: 서비스별 독립적 배포와 확장성 확보
-- **계층형 아키텍처**: 관심사 분리로 코드 가독성과 테스트 용이성 증대
-
-### 기술 스택 선택
-- **Kotlin + Java 21**: null safety와 최신 JVM 기능 활용
-- **WebClient**: 외부 API 호출 시 비동기 처리 지원
-- **PostgreSQL**: 프로덕션과 동일한 데이터베이스 사용으로 환경 차이 최소화
-- **Testcontainers**: 통합 테스트에서 실제 PostgreSQL 사용으로 방언/타입/DDL 검증
-- **MockK vs Mockito**: Kotlin의 null safety와 더 나은 통합
-
-### 성능 최적화
-- **캐싱 전략**: 자주 조회되는 데이터의 메모리 캐싱으로 DB 부하 감소
-- **지연 로딩**: JPA FetchType.LAZY로 불필요한 데이터 로딩 방지
-- **페이지네이션**: 대용량 데이터의 효율적 처리
+- 값 객체(`Rating`)를 통한 도메인 개념 명확화
+- BaseEntity를 통한 공통 메타데이터 자동 관리 (소프트 삭제, Optimistic Locking, 이벤트 추적)
+- Catalog Service 연동을 통한 영화 메타데이터 관리
+- 캐싱 전략으로 조회 성능 최적화
 
 ## 🚀 실행 방법
 

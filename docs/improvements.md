@@ -359,7 +359,115 @@ describe("useReviews", () => {
 
 ---
 
-### 5. 백엔드 테스트 커버리지 개선 (단계적)
+### 5. 프론트엔드 관측성 (Observability) 개선
+
+**현재 상태:**
+- 로깅은 구현되어 있으나 에러 리포팅 서비스 미연동
+- 메트릭 수집 없음
+- 성능 모니터링 없음
+
+**마이크로서비스 비교:**
+- **Review Service**: 헬스 체크 메트릭 (`health_check_failures_total`)
+- **Catalog Service**: Prometheus 메트릭, 헬스 체크 메트릭
+
+**영향:**
+- 프로덕션 환경에서 에러 발생 시 즉시 감지 어려움
+- 사용자 경험에 영향을 주는 성능 이슈 조기 발견 어려움
+- 백엔드 서비스와 비교하여 관측성 격차 존재
+
+**권장 방향:**
+
+#### 5-1. 에러 리포팅 서비스 연동
+
+**구현 내용:**
+1. **Sentry 연동**
+   - 프로덕션 환경에서만 활성화
+   - 에러 발생 시 Sentry로 자동 전송
+   - 에러 코드, traceId, 로그 레벨 등 컨텍스트 정보 포함
+
+2. **로거 수정** (`lib/logger/index.ts`)
+   - 에러 로깅 시 Sentry로 전송하는 함수 추가
+   - 프로덕션 환경에서만 동작하도록 조건부 처리
+
+**구현 예시:**
+```typescript
+// lib/logger/index.ts 수정
+function sendToErrorReportingService(logContext: LogContext): void {
+  if (isProduction) {
+    // Sentry 연동
+    if (isBrowser) {
+      Sentry.captureException(new Error(logContext.message), {
+        tags: {
+          errorCode: logContext.errorCode,
+          traceId: logContext.traceId,
+        },
+        level: logContext.level === "error" ? "error" : "warning",
+      });
+    }
+  }
+}
+```
+
+**필요 의존성:**
+```json
+{
+  "dependencies": {
+    "@sentry/nextjs": "^8.0.0"
+  }
+}
+```
+
+#### 5-2. 성능 메트릭 수집
+
+**구현 내용:**
+1. **API 응답 시간 메트릭**
+   - API 호출 시 시작 시간 기록
+   - 응답 완료 시 소요 시간 측정
+   - Web Vitals 또는 커스텀 메트릭으로 수집
+
+2. **에러 메트릭 수집**
+   - API 호출 실패 시 에러 메트릭 수집
+   - 에러 타입별 분류 (네트워크 오류, 4xx, 5xx 등)
+
+**구현 예시:**
+```typescript
+// lib/api/client.ts 수정
+export async function apiFetch<T>(...) {
+  const startTime = performance.now();
+  try {
+    const result = await fetch(...);
+    const duration = performance.now() - startTime;
+    // 메트릭 수집 (예: Web Vitals)
+    return result;
+  } catch (error) {
+    const duration = performance.now() - startTime;
+    // 에러 메트릭 수집
+    throw error;
+  }
+}
+```
+
+**메트릭 수집 옵션:**
+- **옵션 1: Web Vitals**
+  - Next.js의 Web Vitals 라이브러리 활용
+  - Core Web Vitals (LCP, FID, CLS) 자동 수집
+- **옵션 2: 커스텀 메트릭**
+  - API 응답 시간, 에러율 등 비즈니스 메트릭
+  - Prometheus 또는 다른 메트릭 수집 도구로 전송
+
+**기대 효과:**
+- 프로덕션 환경에서 에러 발생 시 즉시 알림 수신
+- 사용자 경험에 영향을 주는 성능 이슈 조기 발견
+- 백엔드 서비스와 유사한 수준의 관측성 확보
+- 에러 패턴 분석 및 개선 방향 도출
+
+**참고:**
+- 현재 로거 구현: `reelnote-frontend/src/lib/logger/index.ts`
+- 현재 API 클라이언트: `reelnote-frontend/src/lib/api/client.ts`
+
+---
+
+### 6. 백엔드 테스트 커버리지 개선 (단계적)
 
 **현재 상태:**
 - **Catalog Service**: 테스트 커버리지 약 5-10% (2개 파일만 커버)
@@ -470,7 +578,7 @@ class ReviewQueryServiceTest {
 
 ## 🟢 낮은 우선순위
 
-### 6. 로깅 집계 및 모니터링 개선 (장기)
+### 7. 로깅 집계 및 모니터링 개선 (장기)
 
 **현재 상태:**
 - 로깅 가이드 및 구조화 로깅 표준 정의 완료 (`docs/guides/logging.md`)
@@ -639,7 +747,7 @@ scrape_configs:
 
 ---
 
-### 7. 테스트 커버리지 개선 (장기)
+### 8. 테스트 커버리지 개선 (장기)
 
 **현재 상태:**
 - 단위 테스트는 일부 구현됨
@@ -731,7 +839,7 @@ describe('Movies API Performance', () => {
 
 ---
 
-### 8. Catalog Service 마이그레이션 자동화 (CI/CD)
+### 9. Catalog Service 마이그레이션 자동화 (CI/CD)
 
 **현재 상태:**
 - 로컬 개발 환경에서만 마이그레이션 관리
@@ -773,7 +881,7 @@ jobs:
 
 ---
 
-### 9. Review Service 캐시 설정
+### 10. Review Service 캐시 설정
 
 **현재 상태:**
 - **위치**: `reelnote-api/review-service/src/main/kotlin/app/reelnote/review/infrastructure/config/CacheConfig.kt`
@@ -825,7 +933,7 @@ spring:
 
 ---
 
-### 10. 내부 서비스 API 설정 구조 공통화
+### 11. 내부 서비스 API 설정 구조 공통화
 
 **현재 상태:**
 - 각 서비스별로 개별 `{Service}ApiProperties` 클래스를 사용 중
@@ -887,7 +995,7 @@ data class CatalogApiProperties(
 
 ---
 
-### 11. 서비스 간 통신 스펙 검증 개선 (장기)
+### 12. 서비스 간 통신 스펙 검증 개선 (장기)
 
 **현재 상태:**
 - **프론트엔드**: MSW로 `/api/v1/search`(카탈로그), `/api/v1/reviews/*`(리뷰) 모킹

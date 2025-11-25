@@ -37,35 +37,23 @@ src/
 
 ## 🏗 아키텍처 & 설계
 
-### 다층 Port/Adapter
+> **📖 상세 아키텍처 문서**: [ARCHITECTURE.md](./ARCHITECTURE.md)를 참고하세요.
+>
+> Catalog Service는 **Hexagonal Architecture (Port/Adapter)** + **Resilience Layer** 패턴을 적용했습니다. Review Service와 동일한 포트/어댑터 언어를 사용하여 학습 경험을 자연스럽게 이어가도록 구성했습니다.
 
-- **Domain & Application**: `movies/domain`, `movies/application`에서 엔티티와 UseCase를 정의합니다.
-- **Inbound Ports**: `movies/application`의 파사드/UseCase가 핵심 진입점입니다.
-- **Outbound Ports**: `movies/application/ports`에 저장소, 캐시, 외부 API 포트가 명시됩니다.
-- **Adapters**: `database/`, `cache/`, `tmdb/`가 각각 Prisma, Redis, TMDB 통합을 담당합니다.
+### 핵심 아키텍처 패턴
 
-### Resilience Layer
+- **Hexagonal Architecture**: 도메인 중심 설계로 외부 시스템 의존성 제거
+- **Resilience Layer**: Retry, Circuit Breaker, Rate Limiter로 TMDB API 호출 보호
+- **Lazy Hydration**: 캐시 → DB → TMDB 순서로 조회하여 성능 최적화
+- **Warm Pool**: 인기/트렌딩 콘텐츠를 미리 적재하는 배치 파이프라인
 
-- **Concurrency**: `p-limit`을 통한 동시성 제어 (`TMDB_API_MAX_CONCURRENCY`)
-- **Retry**: `axios-retry` 지수 백오프 + 지터 (`TMDB_API_MAX_RETRY`)
-- **Circuit Breaker**: `opossum` 기반 보호 (`TMDB_BREAKER_*`)
-- **Warm Pool**: 인기/트렌딩 콘텐츠를 주기적으로 채우는 배치 파이프라인 (`sync` 모듈)
+### 주요 특징
 
-### 데이터 전략
-
-- **Lazy Hydration**: 요청 시 캐시 → DB → TMDB 순서로 조회
-- **Warm Pool**: `WARM_POOL_SIZE`만큼 인기/트렌딩 데이터를 미리 적재
-- **Stale Tolerance**: `synced_at`이 만료되었어도 응답 후 비동기 갱신
-- 더 자세한 흐름은 `ARCHITECTURE.md`에서 다루고 있습니다.
-
-## 💡 핵심 구현 특징
-
-1. **정제된 Hexagonal 계층**: `movies/application`의 Facade·UseCase·Port와 `movies/infrastructure` 어댑터 분리
-2. **다층 캐싱**: cache-manager v7 기반으로 Redis(ioredis) + 인메모리 폴백을 추상화 (`CacheService`)
-3. **Resilience 강화**: `p-limit` 동적 로딩 + `axios-retry` 지터 + `opossum` 회로차단기로 TMDB 호출 보호
-4. **비동기 임포트 큐**: 소량은 즉시 처리, 대량은 `ImportMoviesJobService`가 인메모리 큐로 비동기 전환
-5. **검색 Aggregator**: 로컬 DB + TMDB 결과를 병합하고 60초 TTL 캐시에 저장하여 빠른 검색 제공
-6. **타입 안전한 설정 관리**: Config Provider 패턴으로 환경 변수를 타입 안전하게 접근하며, 시작 시점 검증으로 조기 실패 보장 (Review Service와 일관성 유지)
+- 다층 캐싱 (Redis + 인메모리 폴백)으로 조회 성능 최적화
+- 비동기 임포트 큐를 통한 대량 데이터 처리
+- 로컬 DB + TMDB 하이브리드 검색 Aggregator
+- 타입 안전한 설정 관리 (시작 시점 검증으로 조기 실패 보장)
 
 ## 🔐 환경 변수
 
