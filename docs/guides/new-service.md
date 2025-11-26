@@ -91,7 +91,7 @@ REVIEW_DB_SCHEMA=app
 **예시:**
 ```env
 # 다른 마이크로서비스 호출
-CATALOG_API_BASE_URL=http://localhost:3001/api
+CATALOG_API_BASE_URL=http://localhost:4000/api
 
 # 외부 API 호출
 TMDB_API_BASE_URL=https://api.themoviedb.org/3
@@ -119,20 +119,20 @@ Spring Boot 서비스에서 내부 서비스 API 설정은 다음 표준 패턴�
 # Review Service에서 Catalog Service 호출 시
 catalog:
   api:
-    base-url: ${CATALOG_API_BASE_URL:http://localhost:3001/api}
+    base-url: ${CATALOG_API_BASE_URL:http://localhost:4000/api}
     timeout: 5s
     connect-timeout: 5s
 
 # 향후 다른 내부 서비스 추가 시
 analysis:
   api:
-    base-url: ${ANALYSIS_API_BASE_URL:http://localhost:3002/api}
+    base-url: ${ANALYSIS_API_BASE_URL:http://localhost:6000/api}
     timeout: 5s
     connect-timeout: 5s
 
 recommendation:
   api:
-    base-url: ${RECOMMENDATION_API_BASE_URL:http://localhost:3003/api}
+    base-url: ${RECOMMENDATION_API_BASE_URL:http://localhost:7000/api}
     timeout: 5s
     connect-timeout: 5s
 ```
@@ -148,7 +148,7 @@ recommendation:
 ```kotlin
 @ConfigurationProperties(prefix = "catalog.api")
 data class CatalogApiProperties(
-    var baseUrl: String = "http://localhost:3001/api",
+    var baseUrl: String = "http://localhost:4000/api",
     var timeout: Duration = Duration.ofSeconds(5),
     var connectTimeout: Duration = Duration.ofSeconds(5),
 )

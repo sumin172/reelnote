@@ -20,7 +20,7 @@ process.env.CATALOG_DB_URL =
 process.env.REDIS_URL = process.env.REDIS_URL || "";
 process.env.CACHE_NAMESPACE = process.env.CACHE_NAMESPACE || "catalog-cache";
 process.env.CACHE_TTL_SECONDS = process.env.CACHE_TTL_SECONDS || "3600";
-process.env.PORT = process.env.PORT || "3001";
+process.env.PORT = process.env.PORT || "4000";
 process.env.MOVIE_STALE_THRESHOLD_DAYS =
   process.env.MOVIE_STALE_THRESHOLD_DAYS || "30";
 process.env.WARM_POOL_SIZE = process.env.WARM_POOL_SIZE || "100";

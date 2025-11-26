@@ -78,8 +78,8 @@ src/main/kotlin/app/reelnote/review/
 
 ### 2. API 문서 확인
 
-- **Swagger UI**: http://localhost:8080/api/docs
-- **OpenAPI JSON**: http://localhost:8080/api/docs-json
+- **Swagger UI**: http://localhost:5000/api/docs
+- **OpenAPI JSON**: http://localhost:5000/api/docs-json
 
 ### 3. 데이터베이스 연결 (개발 환경)
 
@@ -134,7 +134,7 @@ src/main/resources/db/migration/
 ### 리뷰 생성
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/reviews \
+curl -X POST http://localhost:5000/api/v1/reviews \
   -H "Content-Type: application/json" \
   -H "X-User-Seq: 1" \
   -d '{
@@ -150,22 +150,22 @@ curl -X POST http://localhost:8080/api/v1/reviews \
 
 ```bash
 # 전체 리뷰 조회
-curl "http://localhost:8080/api/v1/reviews?page=0&size=20&sortBy=createdAt&sortDirection=desc"
+curl "http://localhost:5000/api/v1/reviews?page=0&size=20&sortBy=createdAt&sortDirection=desc"
 
 # 특정 사용자의 리뷰 조회
-curl "http://localhost:8080/api/v1/reviews?userSeq=1"
+curl "http://localhost:5000/api/v1/reviews?userSeq=1"
 
 # 특정 영화의 리뷰 조회
-curl "http://localhost:8080/api/v1/reviews?movieId=12345"
+curl "http://localhost:5000/api/v1/reviews?movieId=12345"
 
 # 태그로 필터링
-curl "http://localhost:8080/api/v1/reviews?tag=액션"
+curl "http://localhost:5000/api/v1/reviews?tag=액션"
 ```
 
 ### 리뷰 수정
 
 ```bash
-curl -X PUT http://localhost:8080/api/v1/reviews/1 \
+curl -X PUT http://localhost:5000/api/v1/reviews/1 \
   -H "Content-Type: application/json" \
   -H "X-User-Seq: 1" \
   -d '{
@@ -177,7 +177,7 @@ curl -X PUT http://localhost:8080/api/v1/reviews/1 \
 ### 리뷰 삭제
 
 ```bash
-curl -X DELETE http://localhost:8080/api/v1/reviews/1 \
+curl -X DELETE http://localhost:5000/api/v1/reviews/1 \
   -H "X-User-Seq: 1"
 ```
 
@@ -306,7 +306,7 @@ spring:
 ```yaml
 # application.yml
 server:
-  port: 8080
+  port: 5000
 
 spring:
   application:
@@ -314,7 +314,7 @@ spring:
 
 catalog:
   api:
-    base-url: http://localhost:3001/api
+    base-url: http://localhost:4000/api
     timeout: 5s
     connect-timeout: 5s
 ```

@@ -86,9 +86,9 @@
    pnpm down          # 종료 및 볼륨 정리
    ```
 3. 각 서비스는 다음 포트로 노출됩니다.
-   - Frontend: `http://localhost:3900`
-   - Catalog: `http://localhost:4000`
-   - Review: `http://localhost:9000` (기본 monitor 계정 `monitor / monitor123`)
+   - Frontend: `http://localhost:3100`
+   - Catalog: `http://localhost:4100`
+   - Review: `http://localhost:5100` (기본 monitor 계정 `monitor / monitor123`)
 4. E2E 타깃(`pnpm nx run e2e-*:e2e`)은 `.env.e2e`를 자동으로 로드하므로 별도 export 없이 바로 실행할 수 있습니다.
 
 ## 문서

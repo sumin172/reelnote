@@ -69,25 +69,25 @@ describe("validateEnv", () => {
       const result = validateEnv();
 
       expect(result.NEXT_PUBLIC_REVIEW_API_BASE_URL).toBe(
-        "http://localhost:8080/api",
+        "http://localhost:5000/api",
       );
       expect(result.NEXT_PUBLIC_CATALOG_API_BASE_URL).toBe(
-        "http://localhost:3001/api",
+        "http://localhost:4000/api",
       );
     });
 
     it("should use provided env vars when set", async () => {
-      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://custom:8080/api";
-      process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL = "http://custom:3001/api";
+      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://custom:5000/api";
+      process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL = "http://custom:4000/api";
 
       const { validateEnv } = await import("../validation");
       const result = validateEnv();
 
       expect(result.NEXT_PUBLIC_REVIEW_API_BASE_URL).toBe(
-        "http://custom:8080/api",
+        "http://custom:5000/api",
       );
       expect(result.NEXT_PUBLIC_CATALOG_API_BASE_URL).toBe(
-        "http://custom:3001/api",
+        "http://custom:4000/api",
       );
     });
 
@@ -148,10 +148,10 @@ describe("validateEnv", () => {
       const result = validateEnv();
 
       expect(result.NEXT_PUBLIC_REVIEW_API_BASE_URL).toBe(
-        "http://localhost:8080/api",
+        "http://localhost:5000/api",
       );
       expect(result.NEXT_PUBLIC_CATALOG_API_BASE_URL).toBe(
-        "http://localhost:3001/api",
+        "http://localhost:4000/api",
       );
     });
   });
@@ -237,21 +237,21 @@ describe("validateEnv", () => {
     });
 
     it("should cache validated result", async () => {
-      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://first:8080/api";
-      process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL = "http://first:3001/api";
+      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://first:5000/api";
+      process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL = "http://first:4000/api";
 
       const { validateEnv } = await import("../validation");
       const result1 = validateEnv();
 
       // 환경 변수 변경
-      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://second:8080/api";
+      process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL = "http://second:5000/api";
 
       const result2 = validateEnv();
 
       // 캐싱되어 첫 번째 결과와 동일해야 함
       expect(result1).toBe(result2);
       expect(result1.NEXT_PUBLIC_REVIEW_API_BASE_URL).toBe(
-        "http://first:8080/api",
+        "http://first:5000/api",
       );
     });
   });

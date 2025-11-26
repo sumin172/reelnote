@@ -19,7 +19,7 @@ import { env } from "../env";
 export const catalogConfig = {
   /**
    * Catalog API Base URL
-   * 예: http://localhost:3001/api
+   * 예: http://localhost:4000/api
    */
   baseUrl: env.NEXT_PUBLIC_CATALOG_API_BASE_URL,
 

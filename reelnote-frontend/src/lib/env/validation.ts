@@ -8,8 +8,8 @@ import { z } from "zod";
  */
 // 개발/테스트 환경용 기본값
 const defaultApiUrls = {
-  NEXT_PUBLIC_REVIEW_API_BASE_URL: "http://localhost:8080/api",
-  NEXT_PUBLIC_CATALOG_API_BASE_URL: "http://localhost:3001/api",
+  NEXT_PUBLIC_REVIEW_API_BASE_URL: "http://localhost:5000/api",
+  NEXT_PUBLIC_CATALOG_API_BASE_URL: "http://localhost:4000/api",
 };
 
 // URL 검증 헬퍼 함수
@@ -28,7 +28,7 @@ const envSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || isValidUrl(val), {
-      message: "유효한 URL 형식이어야 합니다 (예: http://localhost:8080/api)",
+      message: "유효한 URL 형식이어야 합니다 (예: http://localhost:5000/api)",
     }),
   NEXT_PUBLIC_REVIEW_API_TIMEOUT: z.coerce
     .number()
@@ -48,7 +48,7 @@ const envSchema = z.object({
     .string()
     .optional()
     .refine((val) => !val || isValidUrl(val), {
-      message: "유효한 URL 형식이어야 합니다 (예: http://localhost:3001/api)",
+      message: "유효한 URL 형식이어야 합니다 (예: http://localhost:4000/api)",
     }),
   NEXT_PUBLIC_CATALOG_API_TIMEOUT: z.coerce
     .number()

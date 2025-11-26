@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 5000
   servlet:
     context-path: /
 
@@ -64,7 +64,7 @@ logging:
 # Catalog 서비스 설정
 catalog:
   api:
-    base-url: ${CATALOG_API_BASE_URL:http://localhost:3001/api}
+    base-url: ${CATALOG_API_BASE_URL:http://localhost:4000/api}
     timeout: 5s
     connect-timeout: 5s
 

@@ -13,10 +13,10 @@ export class ApplicationConfig {
 
   /**
    * 서버 포트
-   * 기본값: 3001
+   * 기본값: 4000
    */
   get port(): number {
-    return this.configService.get<number>("PORT", { infer: true }) ?? 3001;
+    return this.configService.get<number>("PORT", { infer: true }) ?? 4000;
   }
 
   /**

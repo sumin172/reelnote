@@ -7,7 +7,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("apiFetch", () => {
-  const baseUrl = "http://localhost:8080/api";
+  const baseUrl = "http://localhost:5000/api";
 
   beforeEach(() => {
     mockFetch.mockClear();

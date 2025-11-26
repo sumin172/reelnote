@@ -19,7 +19,7 @@ import { env } from "../env";
 export const reviewConfig = {
   /**
    * Review API Base URL
-   * 예: http://localhost:8080/api
+   * 예: http://localhost:5000/api
    */
   baseUrl: env.NEXT_PUBLIC_REVIEW_API_BASE_URL,
 

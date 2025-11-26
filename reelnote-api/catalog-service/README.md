@@ -146,12 +146,12 @@ nx serve catalog-service
 
 ```bash
 # 헬스 체크 (K8s 프로브용)
-curl http://localhost:3001/health/live
-curl http://localhost:3001/health/ready
+curl http://localhost:4000/health/live
+curl http://localhost:4000/health/ready
 
 # API 테스트
-curl http://localhost:3001/api/v1/movies/550
-curl -X POST http://localhost:3001/api/v1/sync/trending
+curl http://localhost:4000/api/v1/movies/550
+curl -X POST http://localhost:4000/api/v1/sync/trending
 ```
 
 **NX Daemon**이 꺼져 있으면 먼저 시작해야 파일 변경 감지가 정상 동작합니다.
