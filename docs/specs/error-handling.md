@@ -386,125 +386,31 @@ messageSource.getMessage("error.review.not.found", arrayOf(reviewId), Locale.get
 
 ## 3. TraceId 정책
 
-### 3-1. 목적
+### 3-1. 핵심 정책 요약
 
-- **분산 추적**: 마이크로서비스 간 요청 추적
-- **로그 상관관계**: 동일 요청의 모든 로그를 연결
-- **디버깅**: 문제 발생 시 전체 요청 흐름 파악
+**TraceId는 HTTP 요청 단위로 생성되는 분산 추적 ID입니다.**
 
-### 3-2. 형식
+- **생성 주체**: 백엔드 (마이크로서비스)
+- **형식**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`)
+- **헤더 이름**: `X-Trace-Id`
+- **처리 규칙**:
+  - 요청 헤더에서 `X-Trace-Id` 확인 (없으면 UUID v4 생성)
+  - 모든 로그에 `traceId` 포함 (MDC/Span 활용)
+  - 서비스 간 호출 시 헤더에 자동 전파
+  - 모든 에러 응답에 `traceId` 필드 포함
 
-- **표준**: UUID v4 (`xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx`)
-- **예시**: `550e8400-e29b-41d4-a716-446655440000`
-- **길이**: 36자 (하이픈 포함)
-- **포맷 검증**: 외부에서 들어온 `X-Trace-Id`가 UUID v4 포맷이 아니면 무시하고 새로 생성
+**프론트엔드 참고:**
+- 프론트엔드는 `X-Trace-Id` 헤더를 보내지 않습니다 (백엔드가 생성/관리)
+- 프론트엔드는 에러 응답에서 traceId를 읽어와서 사용합니다
 
-### 3-3. 처리 규칙
+### 3-2. 상세 가이드
 
-#### 1. 요청 수신 시
+구현 방법, 생성 방식, 서비스 간 전파 등 상세 내용은 다음 가이드를 참고하세요:
 
-```
-1. X-Trace-Id 헤더 확인
-   ├─ 있음 → UUID v4 포맷 검증
-   │   ├─ 유효한 UUID v4 → 해당 값 사용
-   │   └─ 유효하지 않음 → 무시하고 새로 생성
-   └─ 없음 → 새로 생성 (UUID v4)
-```
+- **[TraceId 가이드](../guides/trace-id-guide.md)** - HTTP 요청 단위 분산 추적 ID 관리 가이드
+- **[로깅 가이드](../guides/logging.md)** - TraceId 전파 및 로깅 (섹션 5)
 
-**포맷 검증 정책:**
-- 외부에서 들어온 `X-Trace-Id`가 UUID v4 포맷이 아니면 버리고 새로 생성
-- 이는 향후 Gateway/BFF에서 traceId를 생성하는 경우에도 일관성 유지
-- 포맷 검증은 선택사항이지만, 권장됨 (보안 및 일관성 측면)
-
-#### 2. 로깅 시
-
-- 모든 로그에 `traceId` 포함
-- MDC (Mapped Diagnostic Context)에 저장하여 자동 포함
-- 로그 형식: `[traceId=xxx] 메시지`
-
-#### 3. 서비스 간 호출 시
-
-- 요청 헤더에 `X-Trace-Id` 포함하여 전파
-- 동일한 `traceId`를 모든 서비스에서 사용
-
-#### 4. 응답 시
-
-- 모든 에러 응답에 `traceId` 필드 포함
-- 성공 응답에는 포함하지 않음 (선택사항)
-
-### 3-4. 생성 방식 통일
-
-**모든 서비스는 표준 라이브러리/API를 사용하여 UUID v4를 생성합니다:**
-
-- **Node.js/TypeScript (Catalog Service)**: `crypto.randomUUID()` 사용
-  - Node.js 14.17.0+ / 16+ 기본 지원
-  - 암호학적 랜덤 보장
-  - 추가 의존성 불필요
-
-- **Kotlin/Java (Review Service)**: `UUID.randomUUID().toString()` 사용
-  - Java 표준 라이브러리
-  - 암호학적 랜덤 보장
-
-- **Frontend (TypeScript)**: `crypto.randomUUID()` 우선 사용, 없으면 fallback
-
-**중요:** `Math.random()` 기반의 수동 UUID 생성은 사용하지 않습니다.
-- 암호학적 랜덤이 아님
-- 구현 버그 가능성
-- 서비스 간 일관성 저하
-
-### 3-5. 구현 예시
-
-#### NestJS (Catalog Service)
-
-```typescript
-import { randomUUID } from "crypto";
-
-// 필터에서 traceId 처리
-private getOrCreateTraceId(request: Request): string {
-  const traceIdHeader = request.headers["x-trace-id"] as string | undefined;
-  if (traceIdHeader) {
-    // 선택사항: UUID v4 포맷 검증
-    // if (this.isValidUUIDv4(traceIdHeader)) {
-    //   return traceIdHeader;
-    // }
-    return traceIdHeader;
-  }
-  return this.generateTraceId(); // UUID v4 생성
-}
-
-// UUID v4 형식의 traceId 생성
-// Node.js 표준 crypto.randomUUID() 사용 (암호학적 랜덤 보장)
-private generateTraceId(): string {
-  return randomUUID();
-}
-```
-
-#### Spring Boot (Review Service)
-
-```kotlin
-import java.util.UUID
-
-// GlobalExceptionHandler에서 traceId 처리
-private fun getOrCreateTraceId(request: WebRequest): String {
-  val traceIdHeader = request.getHeader("X-Trace-Id")
-  if (!traceIdHeader.isNullOrBlank()) {
-    // 선택사항: UUID v4 포맷 검증
-    // if (isValidUUIDv4(traceIdHeader)) {
-    //   return traceIdHeader
-    // }
-    return traceIdHeader
-  }
-  // MDC에서 확인
-  val mdcTraceId = MDC.get("traceId")
-  if (!mdcTraceId.isNullOrBlank()) {
-    return mdcTraceId
-  }
-  // 새로 생성 (Java 표준 UUID.randomUUID() 사용)
-  return UUID.randomUUID().toString()
-}
-```
-
-### 3-6. TraceId 전파 체크리스트
+### 3-3. TraceId 전파 체크리스트
 
 - [ ] 요청 헤더에서 `X-Trace-Id` 확인
 - [ ] 없으면 표준 라이브러리로 UUID v4 생성 (`crypto.randomUUID()` 또는 `UUID.randomUUID()`)
@@ -517,114 +423,30 @@ private fun getOrCreateTraceId(request: WebRequest): String {
 
 ## 4. 로깅 정책
 
-### 4-1. 로그 레벨 가이드라인
+### 4-1. 에러 로깅 핵심 정책
 
-| 로그 레벨   | 사용 시나리오              | 예시             |
-|---------|----------------------|----------------|
-| `ERROR` | 예상치 못한 서버 오류 (5xx)   | 예외 스택 트레이스 포함  |
-| `WARN`  | 비즈니스 예외, 검증 실패 (4xx) | 예외 메시지 포함      |
-| `INFO`  | 정상적인 비즈니스 로직         | 중요한 상태 변경      |
-| `DEBUG` | 개발/디버깅용 상세 정보        | 상세 파라미터, 중간 상태 |
+**에러 발생 시 로깅 규칙:**
 
-### 4-2. 예외별 로깅 규칙
+- **로그 레벨**: 4xx → `WARN`, 5xx → `ERROR`
+- **스택 트레이스**: 5xx 오류는 필수 포함
+- **TraceId**: 모든 로그에 `traceId` 포함 (MDC/Span 활용)
+- **민감 정보**: 비밀번호, 토큰, API 키, 개인정보 포함 금지
 
-#### 1. 비즈니스 예외 (4xx)
+**예외별 로깅 규칙:**
 
-```typescript
-// NestJS
-logger.warn(`예외 발생: ${errorDetail.message}, traceId=${traceId}`);
-```
+| 예외 타입 | 로그 레벨 | 스택 트레이스 | 예시 |
+|---------|---------|------------|------|
+| 비즈니스 예외 (4xx) | `WARN` | 선택사항 | `logger.warn("비즈니스 예외 발생: ${ex.message}, traceId=$traceId")` |
+| 서버 오류 (5xx) | `ERROR` | **필수** | `logger.error("예상치 못한 예외 발생: ${ex.message}, traceId=$traceId", ex)` |
+| 검증 실패 (400) | `WARN` | 생략 | `logger.warn("검증 예외 발생: ${ex.message}, traceId=$traceId")` |
 
-```kotlin
-// Spring Boot
-logger.warn("비즈니스 예외 발생: ${ex.message}, traceId=$traceId", ex)
-```
+### 4-2. 상세 가이드
 
-**규칙:**
-- 레벨: `WARN`
-- 메시지: 예외 메시지 + `traceId`
-- 스택 트레이스: 선택사항 (간단한 예외는 생략 가능)
+구조화 로깅, 로그 레벨 매핑, 에러 로깅 구조화 등 상세 내용은 다음 가이드를 참고하세요:
 
-#### 2. 서버 오류 (5xx)
+- **[로깅 가이드](../guides/logging.md)** - 로그 레벨 매핑, 구조화 로깅, 에러 로깅 구조화 등 전체 로깅 가이드
 
-```typescript
-// NestJS
-logger.error(
-  `예상치 못한 예외 발생: ${errorDetail.message}, traceId=${traceId}`,
-  exception instanceof Error ? exception.stack : String(exception),
-);
-```
-
-```kotlin
-// Spring Boot
-logger.error("예상치 못한 예외 발생: ${ex.message ?: "알 수 없는 오류"}, traceId=$traceId", ex)
-```
-
-**규칙:**
-- 레벨: `ERROR`
-- 메시지: 예외 메시지 + `traceId`
-- 스택 트레이스: **필수** (디버깅에 필요)
-
-#### 3. 검증 실패 (400)
-
-```typescript
-// NestJS
-logger.warn(`검증 예외 발생: ${errorDetail.message}, traceId=${traceId}`);
-```
-
-```kotlin
-// Spring Boot
-logger.warn("검증 예외 발생: ${ex.message}, traceId=$traceId")
-```
-
-**규칙:**
-- 레벨: `WARN`
-- 메시지: 검증 실패 내용 + `traceId`
-- 스택 트레이스: 생략 (일반적인 클라이언트 오류)
-
-### 4-3. 로그 형식
-
-#### 표준 형식
-
-```
-[YYYY-MM-DD HH:mm:ss.SSS] [LEVEL] [traceId=xxx] [LoggerName] 메시지
-```
-
-#### 예시
-
-```
-[2025-01-15 10:30:45.123] [WARN] [traceId=550e8400-e29b-41d4-a716-446655440000] [GlobalExceptionHandler] 비즈니스 예외 발생: 리뷰를 찾을 수 없습니다. ID: 123
-[2025-01-15 10:30:45.456] [ERROR] [traceId=550e8400-e29b-41d4-a716-446655440000] [HttpExceptionFilter] 예상치 못한 예외 발생: 서버 내부 오류가 발생했습니다
-```
-
-### 4-4. 로그에 포함할 정보
-
-#### 필수 정보
-
-- `traceId`: 요청 추적 ID
-- 예외 메시지: 사용자에게 표시될 메시지
-- 로그 레벨: 적절한 레벨
-
-#### 선택 정보
-
-- HTTP 상태 코드: 에러 응답의 상태 코드
-- 요청 경로: 어떤 엔드포인트에서 발생했는지
-- 사용자 정보: 인증된 사용자 ID (보안 주의)
-- 요청 파라미터: 디버깅에 필요한 파라미터 (민감 정보 제외)
-
-### 4-5. 민감 정보 처리
-
-**절대 로그에 포함하지 말 것:**
-- 비밀번호, 토큰, API 키
-- 개인정보 (주민등록번호, 전화번호 등)
-- 신용카드 정보
-
-**주의해서 포함할 것:**
-- 사용자 ID (필요시 마스킹)
-- 이메일 (필요시 마스킹)
-- 요청 본문 (민감 정보 제외)
-
-### 4-6. 로깅 체크리스트
+### 4-3. 로깅 체크리스트
 
 - [ ] 모든 예외에 `traceId` 포함
 - [ ] 로그 레벨이 적절한가? (4xx: WARN, 5xx: ERROR)

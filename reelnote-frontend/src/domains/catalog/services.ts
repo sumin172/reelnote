@@ -65,6 +65,7 @@ function mapMovie(
 type SearchMoviesOptions = {
   language?: string;
   signal?: AbortSignal;
+  actionId?: string;
 };
 
 export async function searchMovies(
@@ -72,7 +73,7 @@ export async function searchMovies(
   page = 1,
   options: SearchMoviesOptions = {},
 ): Promise<SearchResponse> {
-  const { language = "ko-KR", signal } = options;
+  const { language = "ko-KR", signal, actionId } = options;
 
   const params = new URLSearchParams({
     q,
@@ -85,6 +86,7 @@ export async function searchMovies(
     {
       baseUrl: catalogConfig.baseUrl,
       signal,
+      actionId,
     },
   );
 

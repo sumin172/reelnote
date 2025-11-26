@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import type { ChangeEvent, CompositionEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { catalogQueryKeys, searchMovies } from "@/domains/catalog/services";
+import { catalogQueryKeys } from "@/domains/catalog/services";
+import { useCatalogApi } from "@/domains/catalog/hooks/useCatalogApi";
 import type { CatalogMovie, SearchResponse } from "@/domains/catalog/types";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +27,7 @@ export default function CatalogSearch() {
   const debouncedQuery = useDebouncedValue(committedQuery, 400);
   const canSearch = !isComposing && debouncedQuery.trim().length > 0;
   const handleErrorSideEffects = useErrorHandler();
+  const { searchMovies } = useCatalogApi();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;

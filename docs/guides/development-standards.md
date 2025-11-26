@@ -43,8 +43,9 @@
 - [ ] 수동으로 `X-Trace-Id` 헤더 추가하는 코드 없음
 - [ ] 테스트에서 TraceId 전파 확인됨
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 3
-**초기 구현 가이드:** [신규 서비스 체크리스트 - TraceId 전파](new-service.md#71-traceid-전파-필수)
+**참고 문서:**
+- [신규 서비스 체크리스트 - TraceId 전파](new-service.md#71-traceid-전파-필수) - 초기 구현 가이드
+- [TraceId 가이드](./trace-id-guide.md) - 상세 구현 가이드
 
 ---
 
@@ -69,7 +70,7 @@
 - [ ] Circuit Breaker 적용 (실패율 50% 이상 시 OPEN)
 - [ ] 환경 변수로 설정 관리
 
-**초기 구현 가이드:** [신규 서비스 체크리스트 - Resilience 패턴](new-service.md#72-resilience-패턴)
+**참고 문서:** [신규 서비스 체크리스트 - Resilience 패턴](new-service.md#72-resilience-패턴) - 초기 구현 가이드
 
 ---
 
@@ -89,7 +90,7 @@
 - [ ] Factory 패턴으로 의존성 주입 순서 보장
 - [ ] 타임아웃 설정을 환경 변수로 관리
 
-**초기 구현 가이드:** [신규 서비스 체크리스트 - 클라이언트 설정 표준화](new-service.md#73-클라이언트-설정-표준화)
+**참고 문서:** [신규 서비스 체크리스트 - 클라이언트 설정 표준화](new-service.md#73-클라이언트-설정-표준화) - 초기 구현 가이드
 
 ---
 
@@ -131,8 +132,9 @@
 - [ ] 메시지 리소스 파일에서 메시지 관리
 - [ ] 에러 코드가 먼저 정의되고, 메시지 리소스에 매핑됨
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 5, 6
-**초기 구현 가이드:** [신규 서비스 체크리스트 - BaseAppException 패턴](new-service.md#10-api-응답-형식-표준화)
+**참고 문서:**
+- [에러 처리 스펙](../specs/error-handling.md) - BaseAppException 패턴, 예외 생성 팩토리 (섹션 5, 6)
+- [신규 서비스 체크리스트 - BaseAppException 패턴](new-service.md#10-api-응답-형식-표준화) - 초기 구현 가이드
 
 ---
 
@@ -156,7 +158,7 @@
 - [ ] 도메인 코드는 서비스 prefix 사용
 - [ ] 검증 코드는 `VALIDATION_{FIELD}_{RULE}` 형식
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 2.1, 2.2
+**참고 문서:** [에러 처리 스펙](../specs/error-handling.md) - 에러 코드 네이밍 규칙 (섹션 2.1, 2.2)
 
 ---
 
@@ -180,7 +182,7 @@
 - [ ] 선택적 필드는 `null`/`undefined`인 경우 JSON에서 제외
 - [ ] HTTP 상태 코드 매핑 준수
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 1
+**참고 문서:** [에러 처리 스펙](../specs/error-handling.md) - 에러 응답 스펙 (섹션 1)
 
 ---
 
@@ -197,7 +199,7 @@
 - [ ] 매핑 검증 테스트 작성/업데이트
 - [ ] 에러 코드 추가 시 테스트 업데이트
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 2.4
+**참고 문서:** [에러 처리 스펙](../specs/error-handling.md) - 에러 코드 vs 메시지 키 (섹션 2.4)
 
 ---
 
@@ -217,7 +219,9 @@
 - [ ] 모든 로그에 `traceId` 포함 (MDC/Span 자동 포함)
 - [ ] 모든 에러 응답에 `traceId` 필드 포함
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 3
+**참고 문서:**
+- [TraceId 가이드](./trace-id-guide.md) - 상세 구현 가이드
+- [에러 처리 스펙](../specs/error-handling.md) - TraceId 정책 (섹션 3)
 
 ---
 
@@ -242,7 +246,9 @@
 - [ ] 모든 로그에 `traceId` 포함
 - [ ] 민감 정보 포함되지 않음
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 4
+**참고 문서:**
+- [로깅 가이드](./logging.md) - 상세 로깅 가이드 (로그 레벨 매핑, 구조화 로깅, 에러 로깅 등)
+- [에러 처리 스펙](../specs/error-handling.md) - 로깅 정책 (섹션 4)
 
 ---
 

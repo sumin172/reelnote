@@ -303,142 +303,23 @@ logger.info("리뷰 생성 완료", mapOf("movieId" to movieId, "reviewId" to re
 
 ## 5. TraceId 전파
 
-### 5-1. TraceId란?
+### 5-1. 로깅 관점에서의 TraceId
 
-**TraceId (분산 추적 ID)**
-- 하나의 요청이 여러 서비스를 거쳐갈 때 모든 로그를 연결하는 고유 ID
-- Gateway → Catalog Service → Review Service 전체 흐름 추적 가능
+**로깅 시 TraceId 포함 규칙:**
+- 모든 로그에 `traceId` 포함 (MDC/Span 활용)
+- 로그 형식: `[traceId=xxx] 메시지`
+- 구조화 로깅 사용 시 `traceId` 필드 포함
 
-### 5-2. TraceId 전파 규칙
+**구현 방법:**
+- **Spring Boot**: MDC에 traceId 설정 → 로그에 자동 포함
+- **NestJS**: 요청 컨텍스트에서 traceId 읽어 로그에 포함
 
-1. **헤더 이름**: `X-Trace-Id` 또는 `X-Request-Id`
-2. **생성 규칙**: 요청에 `X-Trace-Id` 헤더가 없으면 새로 생성 (UUID v4)
-3. **전파 규칙**: 서비스 간 HTTP 호출 시 자동으로 헤더에 포함
+### 5-2. 상세 가이드
 
-### 5-3. 구현 예시
+TraceId 생성, 전파, 서비스 간 호출 등 상세 내용은 다음 가이드를 참고하세요:
 
-#### NestJS - 인터셉터로 TraceId 주입
-
-```typescript
-// trace-id.interceptor.ts
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
-
-@Injectable()
-export class TraceIdInterceptor implements NestInterceptor {
-  private readonly logger = new Logger(TraceIdInterceptor.name);
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const request = context.switchToHttp().getRequest();
-
-    // TraceId 생성 또는 조회
-    let traceId = request.headers['x-trace-id'] || request.headers['x-request-id'];
-    if (!traceId) {
-      traceId = uuidv4();
-    }
-
-    // 요청 객체에 traceId 추가
-    request.traceId = traceId;
-
-    // Logger에 traceId 컨텍스트 설정 (Winston/Pino 사용 시)
-    // 또는 미들웨어에서 AsyncLocalStorage 사용
-
-    return next.handle();
-  }
-}
-
-// app.module.ts
-@Module({
-  providers: [
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: TraceIdInterceptor,
-    },
-  ],
-})
-export class AppModule {}
-```
-
-#### Spring Boot - MDC 필터로 TraceId 설정
-
-```kotlin
-// TraceIdFilter.kt
-@Component
-class TraceIdFilter : OncePerRequestFilter() {
-    private val logger = LoggerFactory.getLogger(TraceIdFilter::class.java)
-
-    override fun doFilterInternal(
-        request: HttpServletRequest,
-        response: HttpServletResponse,
-        filterChain: FilterChain
-    ) {
-        // TraceId 생성 또는 조회
-        val traceId = request.getHeader("X-Trace-Id")
-            ?: request.getHeader("X-Request-Id")
-            ?: UUID.randomUUID().toString()
-
-        // MDC에 traceId 설정 (로깅 시 자동 포함)
-        MDC.put("traceId", traceId)
-
-        // 응답 헤더에도 포함 (선택사항)
-        response.setHeader("X-Trace-Id", traceId)
-
-        try {
-            filterChain.doFilter(request, response)
-        } finally {
-            // 요청 완료 후 MDC 정리
-            MDC.clear()
-        }
-    }
-}
-
-// WebClient 설정 - 서비스 간 호출 시 자동 전파
-@Bean
-fun webClient(builder: WebClient.Builder): WebClient {
-    return builder
-        .filter { request, next ->
-            val traceId = MDC.get("traceId")
-            if (traceId != null) {
-                val modifiedRequest = ClientRequest.from(request)
-                    .header("X-Trace-Id", traceId)
-                    .build()
-                next.exchange(modifiedRequest)
-            } else {
-                next.exchange(request)
-            }
-        }
-        .build()
-}
-```
-
-### 5-4. 로그에 TraceId 포함
-
-#### NestJS (Logger 사용 시)
-```typescript
-// traceId를 로그 메시지에 포함
-this.logger.log(`리뷰 생성 완료: id=${reviewId}, traceId=${request.traceId}`);
-
-// 또는 구조화 로깅 사용 시
-this.logger.log({
-  message: "리뷰 생성 완료",
-  reviewId,
-  traceId: request.traceId,
-});
-```
-
-#### Spring Boot (MDC 사용)
-```kotlin
-// MDC에 설정된 traceId가 자동으로 로그에 포함됨
-logger.info("리뷰 생성 완료: id={}", reviewId)
-// 출력: [INFO] [traceId=xxx] [ReviewService] 리뷰 생성 완료: id=123
-```
+- **[TraceId 가이드](./trace-id-guide.md)** - HTTP 요청 단위 분산 추적 ID 관리 가이드
+- **[에러 처리 스펙](../specs/error-handling.md)** - TraceId 정책 (섹션 3)
 
 ---
 

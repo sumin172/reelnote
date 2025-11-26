@@ -8,7 +8,8 @@ import {
   type ReviewCreateInput,
 } from "@/domains/review/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createReview, reviewQueryKeys } from "@/domains/review/services";
+import { reviewQueryKeys } from "@/domains/review/services";
+import { useReviewApi } from "@/domains/review/hooks/useReviewApi";
 import { useErrorHandler } from "@/hooks/use-error-handler";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ export default function ReviewCreateForm() {
   });
 
   const handleError = useErrorHandler();
+  const { createReview } = useReviewApi();
 
   const { mutate, isPending } = useMutation({
     mutationFn: (data: ReviewCreateInput) => createReview(data),

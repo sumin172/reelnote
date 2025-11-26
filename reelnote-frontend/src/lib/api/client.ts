@@ -7,7 +7,10 @@ import {
 } from "../errors/error-codes";
 import { logFromApiError } from "../logger";
 
-export type FetchOptions = RequestInit & { baseUrl?: string };
+export interface FetchOptions extends RequestInit {
+  baseUrl?: string;
+  actionId?: string; // 사용자 액션 단위 상관관계 ID
+}
 
 /**
  * 표준 에러 응답 스키마
@@ -81,39 +84,21 @@ export class ApiError extends Error {
 }
 
 /**
- * TraceId 생성 (UUID v4 형식)
+ * TraceId는 백엔드가 생성/관리합니다.
+ * 프론트엔드는 X-Trace-Id 헤더를 보내지 않으며,
+ * 백엔드가 응답(에러 응답 또는 헤더)에 포함한 traceId를 사용합니다.
  */
-function generateTraceId(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  // Fallback for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
-/**
- * TraceId 가져오기 또는 생성
- * 요청 헤더에 X-Trace-Id가 있으면 사용하고, 없으면 새로 생성
- */
-function getOrCreateTraceId(headers?: HeadersInit): string {
-  if (headers && typeof headers === "object" && "x-trace-id" in headers) {
-    const traceId = (headers as Record<string, string>)["x-trace-id"];
-    if (traceId) {
-      return traceId;
-    }
-  }
-  return generateTraceId();
-}
 
 export async function apiFetch<T>(
   path: string,
   options: FetchOptions = {},
 ): Promise<T> {
-  const { baseUrl = reviewConfig.baseUrl, headers, ...rest } = options;
+  const {
+    baseUrl = reviewConfig.baseUrl,
+    actionId,
+    headers,
+    ...rest
+  } = options;
   const isBrowser = typeof window !== "undefined";
 
   // MSW 활성화 여부 확인
@@ -121,14 +106,28 @@ export async function apiFetch<T>(
   const baseUrlToUse = mswEnabled ? "/api" : baseUrl;
   const url = `${baseUrlToUse}${path}`;
 
-  // TraceId 전파: 요청 헤더에 있으면 사용, 없으면 생성
-  const traceId = getOrCreateTraceId(headers);
-  const requestHeaders: HeadersInit = {
-    "Content-Type": "application/json",
-    "X-Trace-Id": traceId,
-    ...(userSeq ? { "X-User-Seq": userSeq.toString() } : {}),
-    ...headers,
-  };
+  // 헤더 머지: 사용자 헤더를 먼저 설정하고, 기본값을 덮어쓰지 않도록 주의
+  const userHeaders = new Headers(headers);
+
+  // 기본 헤더 설정 (사용자가 명시적으로 설정한 경우 덮어쓰지 않음)
+  if (!userHeaders.has("Content-Type")) {
+    userHeaders.set("Content-Type", "application/json");
+  }
+
+  // ActionId: 사용자 액션 단위 상관관계 ID (프론트엔드가 생성/관리)
+  if (actionId && !userHeaders.has("X-Action-Id")) {
+    userHeaders.set("X-Action-Id", actionId);
+  }
+
+  // UserSeq: 개발 환경에서 사용자 식별용
+  if (userSeq && !userHeaders.has("X-User-Seq")) {
+    userHeaders.set("X-User-Seq", userSeq.toString());
+  }
+
+  // TraceId는 백엔드가 생성/관리하므로 프론트엔드에서 보내지 않음
+  // (사용자가 명시적으로 X-Trace-Id를 설정한 경우에만 전송)
+
+  const requestHeaders: HeadersInit = Object.fromEntries(userHeaders.entries());
 
   const res = await fetch(url, {
     ...rest,
@@ -171,15 +170,17 @@ export async function apiFetch<T>(
 
     // 표준 에러 스키마가 있으면 ApiError로 변환
     if (errorDetail) {
-      // 응답의 traceId가 없으면 요청의 traceId 사용 (전파 보장)
-      const finalTraceId = errorDetail.traceId || traceId;
+      // TraceId는 백엔드가 생성/관리하므로 응답에서 가져옴
+      // 응답 헤더에서도 확인 (백엔드가 헤더에 포함한 경우)
+      const responseTraceId =
+        errorDetail.traceId || res.headers.get("X-Trace-Id") || undefined;
 
       const apiError = new ApiError(
         errorDetail.message,
         res.status,
         errorDetail.code,
         errorDetail.details,
-        finalTraceId,
+        responseTraceId,
       );
 
       // 구조화된 로깅 (error-config.ts의 logLevel 활용)
@@ -189,12 +190,15 @@ export async function apiFetch<T>(
     }
 
     // 표준 에러 스키마가 없으면 기본 에러
+    // TraceId는 백엔드가 생성/관리하므로 응답 헤더에서 확인
+    const responseTraceId = res.headers.get("X-Trace-Id") || undefined;
+
     const apiError = new ApiError(
       errorText || res.statusText || `API 요청 실패 (${res.status})`,
       res.status,
       "UNKNOWN_ERROR", // 표준 에러 스키마가 없는 경우
       { url, message: errorText || res.statusText },
-      traceId,
+      responseTraceId,
     );
 
     // 구조화된 로깅

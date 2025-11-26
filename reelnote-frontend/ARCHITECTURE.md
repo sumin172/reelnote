@@ -527,17 +527,12 @@ export default function ReviewsList() {
 **단일 API 클라이언트** (`lib/api/client.ts`)로 여러 서비스를 통합:
 
 ```typescript
-// Review Service 호출 (domains/review/services.ts)
-import { apiFetch } from "@/lib/api/client";
-apiFetch<Page<Review>>("/v1/reviews/my");
+// 컴포넌트에서는 훅 레이어 사용 (권장)
+import { useReviewApi } from "@/domains/review/hooks/useReviewApi";
+import { useCatalogApi } from "@/domains/catalog/hooks/useCatalogApi";
 
-// Catalog Service 호출 (domains/catalog/services.ts)
-import { apiFetch } from "@/lib/api/client";
-import { catalogConfig } from "@/lib/config/catalog.config";
-
-apiFetch<SearchResponse>("/v1/search?q=...", {
-  baseUrl: catalogConfig.baseUrl,
-});
+const { fetchReviews } = useReviewApi(); // actionId 자동 주입
+const { searchMovies } = useCatalogApi(); // actionId 자동 주입
 ```
 
 ### 11.2 공통 에러 스키마
@@ -553,10 +548,24 @@ export interface ErrorDetail {
 }
 ```
 
-### 11.3 TraceId 전파
+### 11.3 ActionId vs TraceId
 
-- 백엔드에서 제공하는 `traceId`를 에러 메시지에 포함
-- 사용자 문의 시 추적 가능
+**ActionId (프론트엔드 관리):**
+
+- 사용자 액션 단위 상관관계 ID
+- 프론트엔드가 생성/관리
+- 헤더: `X-Action-Id`
+- 하나의 사용자 액션에서 발생하는 모든 API 호출이 같은 actionId 사용
+
+**TraceId (백엔드 관리):**
+
+- HTTP 요청 단위 분산 추적 ID
+- 백엔드가 생성/관리
+- 헤더: `X-Trace-Id` (프론트엔드에서 전송하지 않음)
+- 각 HTTP 요청마다 다른 traceId
+- 에러 응답에서 traceId를 읽어와서 로그에 포함
+
+**참고 문서:** [ActionId 가이드](../docs/guides/action-id-guide.md)
 
 ## 12. 공용 용어 (Frontend ↔ Backend)
 
@@ -568,5 +577,7 @@ export interface ErrorDetail {
 | **에러 처리**     | `lib/errors/`           | `exception/`           | ✅ 개념 일치 |
 | **에러 코드**     | `error-codes.ts`        | `ErrorCode`            | ✅ 일치      |
 | **에러 스키마**   | `ErrorDetail`           | `ErrorDetail`          | ✅ 동일      |
+| **ActionId**      | `action-context.tsx`    | `X-Action-Id` 헤더     | ✅ 개념 일치 |
+| **TraceId**       | 백엔드 응답에서 추출    | MDC/Span에 저장        | ✅ 개념 일치 |
 
 이 가이드는 Review Service와 Catalog Service와 동일한 문체로 작성되어 있으므로, 세 문서를 교차 검토하며 전체 시스템의 아키텍처를 일관되게 이해할 수 있습니다.

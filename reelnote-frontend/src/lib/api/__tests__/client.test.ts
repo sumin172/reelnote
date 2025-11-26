@@ -35,14 +35,17 @@ describe("apiFetch", () => {
 
       expect(result).toEqual(mockData);
       // Node.js 환경에서는 MSW가 비활성화되어 baseUrl이 그대로 사용됨
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${baseUrl}/v1/test`,
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-          }),
-        }),
-      );
+      const callArgs = mockFetch.mock.calls[0];
+      expect(callArgs[0]).toBe(`${baseUrl}/v1/test`);
+      const headers = callArgs[1]?.headers as HeadersInit;
+      if (headers instanceof Headers) {
+        expect(headers.get("content-type")).toBe("application/json");
+      } else if (headers && typeof headers === "object") {
+        const headerObj = headers as Record<string, string>;
+        expect(headerObj["content-type"] || headerObj["Content-Type"]).toBe(
+          "application/json",
+        );
+      }
     });
 
     it("should handle 204 No Content responses", async () => {
@@ -75,129 +78,15 @@ describe("apiFetch", () => {
     });
   });
 
-  describe("TraceId 처리", () => {
-    it("should generate TraceId when not provided", async () => {
-      let capturedTraceId: string | null = null;
+  describe("TraceId 처리 (백엔드 관리)", () => {
+    it("should not send X-Trace-Id header (백엔드가 생성/관리)", async () => {
+      let capturedHeaders: unknown = null;
 
       mockFetch.mockImplementationOnce((_url, options) => {
         const headers = options?.headers as HeadersInit;
-        if (headers && typeof headers === "object") {
-          const headerObj = headers as Record<string, string>;
-          capturedTraceId = headerObj["X-Trace-Id"];
-        }
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          headers: new Headers({ "Content-Type": "application/json" }),
-          json: async () => ({ success: true }),
-        } as Response);
-      });
-
-      await apiFetch("/v1/test", { baseUrl });
-
-      expect(capturedTraceId).toBeTruthy();
-      expect(capturedTraceId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
-    });
-
-    it("should propagate existing TraceId from headers", async () => {
-      const providedTraceId = "existing-trace-id-123";
-      let capturedTraceId: string | null = null;
-
-      mockFetch.mockImplementationOnce((_url, options) => {
-        const headers = options?.headers as HeadersInit;
-        if (headers && typeof headers === "object") {
-          const headerObj = headers as Record<string, string>;
-          // getOrCreateTraceId는 소문자 키를 찾지만, 실제 헤더는 대문자로 저장됨
-          capturedTraceId = headerObj["X-Trace-Id"] || headerObj["x-trace-id"];
-        }
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          headers: new Headers({ "Content-Type": "application/json" }),
-          json: async () => ({ success: true }),
-        } as Response);
-      });
-
-      // getOrCreateTraceId는 소문자 키를 찾으므로 소문자로 전달
-      await apiFetch("/v1/test", {
-        baseUrl,
-        headers: { "x-trace-id": providedTraceId },
-      });
-
-      expect(capturedTraceId).toBe(providedTraceId);
-    });
-
-    it("should use response traceId if available, otherwise use request traceId", async () => {
-      const requestTraceId = "request-trace-id";
-      const responseTraceId = "response-trace-id";
-
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        headers: new Headers({ "Content-Type": "application/json" }),
-        json: async () => ({
-          code: CommonErrorCode.INTERNAL_ERROR,
-          message: "Server error",
-          traceId: responseTraceId,
-        }),
-      } as Response);
-
-      try {
-        // getOrCreateTraceId는 소문자 키를 찾으므로 소문자로 전달
-        await apiFetch("/v1/test", {
-          baseUrl,
-          headers: { "x-trace-id": requestTraceId },
-        });
-        expect.fail("Should have thrown ApiError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ApiError);
-        if (error instanceof ApiError) {
-          // 응답에 traceId가 있으면 그것을 사용
-          expect(error.traceId).toBe(responseTraceId);
-        }
-      }
-    });
-
-    it("should use request traceId when response has no traceId", async () => {
-      const requestTraceId = "request-trace-id";
-
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        headers: new Headers({ "Content-Type": "application/json" }),
-        json: async () => ({
-          code: CommonErrorCode.INTERNAL_ERROR,
-          message: "Server error",
-          // traceId 없음
-        }),
-      } as Response);
-
-      try {
-        // getOrCreateTraceId는 소문자 키를 찾으므로 소문자로 전달
-        await apiFetch("/v1/test", {
-          baseUrl,
-          headers: { "x-trace-id": requestTraceId },
-        });
-        expect.fail("Should have thrown ApiError");
-      } catch (error) {
-        expect(error).toBeInstanceOf(ApiError);
-        if (error instanceof ApiError) {
-          // 응답에 traceId가 없으면 요청의 traceId 사용
-          expect(error.traceId).toBe(requestTraceId);
-        }
-      }
-    });
-  });
-
-  describe("헤더 처리", () => {
-    it("should include Content-Type header", async () => {
-      let capturedHeaders: Record<string, string> = {};
-
-      mockFetch.mockImplementationOnce((_url, options) => {
-        const headers = options?.headers as HeadersInit;
-        if (headers && typeof headers === "object") {
+        if (headers instanceof Headers) {
+          capturedHeaders = headers;
+        } else if (headers && typeof headers === "object") {
           capturedHeaders = headers as Record<string, string>;
         }
         return Promise.resolve({
@@ -210,15 +99,171 @@ describe("apiFetch", () => {
 
       await apiFetch("/v1/test", { baseUrl });
 
-      expect(capturedHeaders["Content-Type"]).toBe("application/json");
+      // X-Trace-Id 헤더를 보내지 않음 (백엔드가 생성/관리)
+      if (capturedHeaders !== null) {
+        if (capturedHeaders instanceof Headers) {
+          expect(capturedHeaders.get("X-Trace-Id")).toBeNull();
+          expect(capturedHeaders.get("x-trace-id")).toBeNull();
+        } else {
+          const headerObj = capturedHeaders as Record<string, string>;
+          expect(headerObj["X-Trace-Id"]).toBeUndefined();
+          expect(headerObj["x-trace-id"]).toBeUndefined();
+        }
+      }
     });
 
-    it("should merge custom headers", async () => {
-      let capturedHeaders: Record<string, string> = {};
+    it("should use traceId from error response (백엔드가 생성)", async () => {
+      const responseTraceId = "response-trace-id";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        headers: new Headers({ "Content-Type": "application/json" }),
+        json: async () => ({
+          code: CommonErrorCode.INTERNAL_ERROR,
+          message: "Server error",
+          traceId: responseTraceId, // 백엔드가 생성한 traceId
+        }),
+      } as Response);
+
+      try {
+        await apiFetch("/v1/test", { baseUrl });
+        expect.fail("Should have thrown ApiError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        if (error instanceof ApiError) {
+          // 응답에서 traceId를 읽어옴
+          expect(error.traceId).toBe(responseTraceId);
+        }
+      }
+    });
+
+    it("should use traceId from response header if available", async () => {
+      const responseTraceId = "response-trace-id-header";
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        headers: new Headers({
+          "Content-Type": "application/json",
+          "X-Trace-Id": responseTraceId,
+        }),
+        json: async () => ({
+          code: CommonErrorCode.INTERNAL_ERROR,
+          message: "Server error",
+          // traceId 없음 (헤더에서 가져옴)
+        }),
+      } as Response);
+
+      try {
+        await apiFetch("/v1/test", { baseUrl });
+        expect.fail("Should have thrown ApiError");
+      } catch (error) {
+        expect(error).toBeInstanceOf(ApiError);
+        if (error instanceof ApiError) {
+          // 응답 헤더에서 traceId를 읽어옴
+          expect(error.traceId).toBe(responseTraceId);
+        }
+      }
+    });
+  });
+
+  describe("ActionId 처리", () => {
+    it("should include X-Action-Id header when provided", async () => {
+      const actionId = "test-action-id";
+      let capturedActionId: string | null = null;
 
       mockFetch.mockImplementationOnce((_url, options) => {
         const headers = options?.headers as HeadersInit;
-        if (headers && typeof headers === "object") {
+        if (headers instanceof Headers) {
+          capturedActionId = headers.get("X-Action-Id");
+        } else if (headers && typeof headers === "object") {
+          const headerObj = headers as Record<string, string>;
+          capturedActionId =
+            headerObj["X-Action-Id"] || headerObj["x-action-id"];
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "Content-Type": "application/json" }),
+          json: async () => ({ success: true }),
+        } as Response);
+      });
+
+      await apiFetch("/v1/test", { baseUrl, actionId });
+
+      expect(capturedActionId).toBe(actionId);
+    });
+
+    it("should not include X-Action-Id header when not provided", async () => {
+      let capturedActionId: string | null | undefined = null;
+
+      mockFetch.mockImplementationOnce((_url, options) => {
+        const headers = options?.headers as HeadersInit;
+        if (headers instanceof Headers) {
+          capturedActionId = headers.get("X-Action-Id");
+        } else if (headers && typeof headers === "object") {
+          const headerObj = headers as Record<string, string>;
+          capturedActionId =
+            headerObj["X-Action-Id"] || headerObj["x-action-id"];
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "Content-Type": "application/json" }),
+          json: async () => ({ success: true }),
+        } as Response);
+      });
+
+      await apiFetch("/v1/test", { baseUrl });
+
+      // Headers 객체에서 없는 헤더는 null을 반환하지만,
+      // Record 객체에서는 undefined일 수 있음
+      expect(capturedActionId).toBeFalsy(); // null 또는 undefined
+    });
+  });
+
+  describe("헤더 처리", () => {
+    it("should include Content-Type header", async () => {
+      let capturedHeaders: unknown = null;
+
+      mockFetch.mockImplementationOnce((_url, options) => {
+        const headers = options?.headers as HeadersInit;
+        if (headers instanceof Headers) {
+          capturedHeaders = headers;
+        } else if (headers && typeof headers === "object") {
+          capturedHeaders = headers as Record<string, string>;
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "Content-Type": "application/json" }),
+          json: async () => ({ success: true }),
+        } as Response);
+      });
+
+      await apiFetch("/v1/test", { baseUrl });
+
+      if (capturedHeaders !== null) {
+        if (capturedHeaders instanceof Headers) {
+          expect(capturedHeaders.get("content-type")).toBe("application/json");
+        } else {
+          const headerObj = capturedHeaders as Record<string, string>;
+          expect(headerObj["content-type"] || headerObj["Content-Type"]).toBe(
+            "application/json",
+          );
+        }
+      }
+    });
+
+    it("should merge custom headers", async () => {
+      let capturedHeaders: unknown = null;
+
+      mockFetch.mockImplementationOnce((_url, options) => {
+        const headers = options?.headers as HeadersInit;
+        if (headers instanceof Headers) {
+          capturedHeaders = headers;
+        } else if (headers && typeof headers === "object") {
           capturedHeaders = headers as Record<string, string>;
         }
         return Promise.resolve({
@@ -234,8 +279,55 @@ describe("apiFetch", () => {
         headers: { "X-Custom-Header": "custom-value" },
       });
 
-      expect(capturedHeaders["X-Custom-Header"]).toBe("custom-value");
-      expect(capturedHeaders["Content-Type"]).toBe("application/json");
+      if (capturedHeaders !== null) {
+        if (capturedHeaders instanceof Headers) {
+          expect(capturedHeaders.get("x-custom-header")).toBe("custom-value");
+          expect(capturedHeaders.get("content-type")).toBe("application/json");
+        } else {
+          const headerObj = capturedHeaders as Record<string, string>;
+          expect(
+            headerObj["X-Custom-Header"] || headerObj["x-custom-header"],
+          ).toBe("custom-value");
+          expect(headerObj["content-type"] || headerObj["Content-Type"]).toBe(
+            "application/json",
+          );
+        }
+      }
+    });
+
+    it("should allow user to override default headers", async () => {
+      let capturedHeaders: unknown = null;
+
+      mockFetch.mockImplementationOnce((_url, options) => {
+        const headers = options?.headers as HeadersInit;
+        if (headers instanceof Headers) {
+          capturedHeaders = headers;
+        } else if (headers && typeof headers === "object") {
+          capturedHeaders = headers as Record<string, string>;
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ "Content-Type": "application/json" }),
+          json: async () => ({ success: true }),
+        } as Response);
+      });
+
+      await apiFetch("/v1/test", {
+        baseUrl,
+        headers: { "Content-Type": "application/xml" }, // 사용자가 override
+      });
+
+      if (capturedHeaders !== null) {
+        if (capturedHeaders instanceof Headers) {
+          expect(capturedHeaders.get("content-type")).toBe("application/xml");
+        } else {
+          const headerObj = capturedHeaders as Record<string, string>;
+          expect(headerObj["content-type"] || headerObj["Content-Type"]).toBe(
+            "application/xml",
+          );
+        }
+      }
     });
   });
 

@@ -2,7 +2,8 @@
 
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { reviewQueryKeys, fetchReviews } from "@/domains/review/services";
+import { reviewQueryKeys } from "@/domains/review/services";
+import { useReviewApi } from "@/domains/review/hooks/useReviewApi";
 import type { Page, Review } from "@/domains/review/types";
 import { LoadingState } from "@/domains/shared/components/state/Loading";
 import { ErrorState } from "@/domains/shared/components/state/Error";
@@ -22,6 +23,7 @@ import {
 
 export default function ReviewsList() {
   const handleErrorSideEffects = useErrorHandler();
+  const { fetchReviews } = useReviewApi();
 
   const { data, isLoading, isError, error, refetch } = useQuery<Page<Review>>({
     queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),

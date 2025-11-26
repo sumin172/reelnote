@@ -16,7 +16,8 @@ interface LogContext {
   message: string;
   errorCode?: string;
   errorType?: "SYSTEM" | "BUSINESS";
-  traceId?: string;
+  actionId?: string; // 사용자 액션 단위 상관관계 ID
+  traceId?: string; // HTTP 요청 단위 (백엔드가 생성/관리)
   timestamp: string;
   error?: {
     name: string;
@@ -29,7 +30,8 @@ interface LogContext {
 interface LogParams {
   message: string;
   error?: Error;
-  traceId?: string;
+  actionId?: string; // 사용자 액션 단위 상관관계 ID
+  traceId?: string; // HTTP 요청 단위 (백엔드가 생성/관리)
   metadata?: Record<string, unknown>;
   includeStack?: boolean;
   errorCode?: string;
@@ -163,6 +165,7 @@ function log(level: LogLevel, params: LogParams): void {
   const {
     message,
     error,
+    actionId,
     traceId,
     metadata,
     includeStack,
@@ -176,6 +179,7 @@ function log(level: LogLevel, params: LogParams): void {
     timestamp: new Date().toISOString(),
     ...(errorCode && { errorCode }),
     ...(errorType && { errorType }),
+    ...(actionId && { actionId }),
     ...(traceId && { traceId }),
     ...(metadata && { metadata }),
     ...(error && {
@@ -224,6 +228,7 @@ export const logger = {
     message: string,
     error?: Error,
     context?: {
+      actionId?: string;
       traceId?: string;
       metadata?: Record<string, unknown>;
       includeStack?: boolean;
@@ -234,6 +239,7 @@ export const logger = {
     log("error", {
       message,
       error,
+      actionId: context?.actionId,
       traceId: context?.traceId,
       metadata: context?.metadata,
       includeStack: context?.includeStack,
@@ -249,6 +255,7 @@ export const logger = {
   warn: (
     message: string,
     context?: {
+      actionId?: string;
       traceId?: string;
       metadata?: Record<string, unknown>;
       errorCode?: string;
@@ -257,6 +264,7 @@ export const logger = {
   ) => {
     log("warn", {
       message,
+      actionId: context?.actionId,
       traceId: context?.traceId,
       metadata: context?.metadata,
       errorCode: context?.errorCode,
@@ -271,12 +279,14 @@ export const logger = {
   info: (
     message: string,
     context?: {
+      actionId?: string;
       traceId?: string;
       metadata?: Record<string, unknown>;
     },
   ) => {
     log("info", {
       message,
+      actionId: context?.actionId,
       traceId: context?.traceId,
       metadata: context?.metadata,
     });
@@ -289,12 +299,14 @@ export const logger = {
   debug: (
     message: string,
     context?: {
+      actionId?: string;
       traceId?: string;
       metadata?: Record<string, unknown>;
     },
   ) => {
     log("debug", {
       message,
+      actionId: context?.actionId,
       traceId: context?.traceId,
       metadata: context?.metadata,
     });

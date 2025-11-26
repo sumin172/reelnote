@@ -19,7 +19,7 @@
 - [ ] **서비스 레이어**: 컴포넌트에서 직접 `apiFetch` 사용 금지, 서비스 함수만 사용
 - [ ] **타입 안전성**: API 응답 타입 명시, `unknown` 타입 안전하게 처리
 - [ ] **MSW 핸들러**: 에러 코드 Enum 사용 (하드코딩 금지)
-- [ ] **TraceId 전파**: API 요청 시 `X-Trace-Id` 헤더 자동 포함
+- [ ] **ActionId**: 훅 레이어(`useReviewApi`, `useCatalogApi`) 사용하여 actionId 자동 주입
 - [ ] **환경 변수**: 타입 안전한 환경 변수 접근 (`lib/env` 사용)
 
 ---
@@ -44,8 +44,9 @@
 - [ ] MSW 핸들러에서도 Enum 사용
 - [ ] 새 에러 코드 추가 시 `errorConfig`에 설정 추가
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 2
-**코드 참고:** `src/lib/errors/error-codes.ts`, `src/lib/errors/error-config.ts`
+**참고 문서:**
+- [에러 처리 스펙](../specs/error-handling.md) - 에러 코드 정의 (섹션 2)
+- **코드 참고:** `src/lib/errors/error-codes.ts`, `src/lib/errors/error-config.ts`
 
 ---
 
@@ -179,19 +180,41 @@ if (error instanceof Error) { /* ... */ }
 
 ---
 
-### 2-2. TraceId 전파
+### 2-2. ActionId 전파 (필수) ⚠️
 
-**API 요청 시 자동으로 `X-Trace-Id` 헤더 포함됨 (확인만 필요)**
+**API 요청 시 `X-Action-Id` 헤더 자동 포함**
 
-✅ **확인 사항:**
-- `apiFetch` 사용 시 TraceId 자동 전파됨
-- 수동으로 `X-Trace-Id` 헤더 추가 불필요 (자동 처리됨)
+✅ **해야 할 것:**
+- 컴포넌트에서는 **훅 레이어 사용** (`useReviewApi`, `useCatalogApi`) - actionId 자동 주입
+- 여러 API 호출이 연속으로 발생하는 사용자 액션의 경우 `useActionTrace().startAction()` 사용
+
+❌ **하지 말 것:**
+- 컴포넌트에서 직접 `apiFetch` 호출 (actionId 누락)
+- 서비스 함수를 컴포넌트에서 직접 호출 (actionId 누락)
 
 **체크리스트:**
-- [ ] `apiFetch` 사용 시 TraceId 자동 전파 확인
-- [ ] 수동으로 `X-Trace-Id` 헤더 추가하는 코드 없음
+- [ ] 컴포넌트에서는 훅 레이어 사용 (`useReviewApi`, `useCatalogApi`)
+- [ ] 여러 API 호출이 연속으로 발생하는 경우 `useActionTrace().startAction()` 사용
+- [ ] 수동으로 `X-Action-Id` 헤더 추가하는 코드 없음 (훅 레이어가 자동 처리)
 
-**참고 문서:** [docs/specs/error-handling.md](../specs/error-handling.md) 섹션 3
+**참고 문서:** [ActionId 가이드](./action-id-guide.md)
+
+### 2-3. TraceId (백엔드 관리)
+
+**TraceId는 백엔드가 생성/관리합니다.**
+
+✅ **확인 사항:**
+- 프론트엔드는 `X-Trace-Id` 헤더를 보내지 않음
+- 에러 응답에서 traceId를 읽어와서 로그에 포함
+- 성공 응답의 traceId는 사용하지 않음 (선택사항)
+
+**체크리스트:**
+- [ ] 프론트엔드에서 `X-Trace-Id` 헤더를 보내는 코드 없음
+- [ ] 에러 응답에서 traceId를 읽어와서 사용
+
+**참고 문서:**
+- [TraceId 가이드](./trace-id-guide.md) - 프론트엔드 처리 방법 포함
+- [에러 처리 스펙](../specs/error-handling.md) - TraceId 정책 (섹션 3)
 
 ---
 
@@ -541,10 +564,10 @@ const { data } = useQuery({
    - [ ] MSW 핸들러도 에러 코드 Enum 사용
 
 2. **API 연동:**
-   - [ ] `apiFetch` 사용 (직접 `fetch` 금지)
+   - [ ] 컴포넌트에서는 훅 레이어 사용 (`useReviewApi`, `useCatalogApi`)
+   - [ ] 여러 API 호출이 연속으로 발생하는 경우 `useActionTrace().startAction()` 사용
    - [ ] 응답 타입 제네릭으로 명시
-   - [ ] 서비스 레이어에서 API 호출 로직 분리 (`domains/{domain}/services.ts`)
-   - [ ] 컴포넌트에서 직접 `apiFetch` 사용 금지 (서비스 함수만 사용)
+   - [ ] QueryKey 팩토리 함수 정의
 
 3. **React Query:**
    - [ ] QueryKey는 계층적 구조 사용 (`all` → `lists()` → `search()` / `list()`)
@@ -575,11 +598,14 @@ const { data } = useQuery({
 
 ### 프론트엔드 전용
 - [README](../../reelnote-frontend/README.md) - 프론트엔드 프로젝트 개요 및 아키텍처
+- [ActionId 가이드](./action-id-guide.md) - 사용자 액션 단위 상관관계 ID 관리
 - [환경 변수 가이드](../../reelnote-frontend/src/lib/env/README.md) - 환경 변수 관리
 - [MSW 가이드](../../reelnote-frontend/src/lib/msw/README.md) - MSW 모킹 패턴
 
 ### 코드 참고
 - API 클라이언트: `src/lib/api/client.ts`
+- 훅 레이어: `src/domains/review/hooks/useReviewApi.ts`, `src/domains/catalog/hooks/useCatalogApi.ts`
+- ActionContext: `src/lib/action/action-context.tsx`
 - 에러 코드: `src/lib/errors/error-codes.ts`
 - 에러 설정: `src/lib/errors/error-config.ts`
 - 에러 처리 훅: `src/hooks/use-error-handler.ts`

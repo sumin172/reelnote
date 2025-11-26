@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ActionProvider } from "@/lib/action/action-context";
 import { isMSWEnabled } from "@/lib/env";
 
 type AppProvidersProps = {
@@ -41,7 +42,9 @@ export function AppProviders({ children }: AppProvidersProps) {
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ActionProvider>{children}</ActionProvider>
+      </QueryClientProvider>
     </ThemeProvider>
   );
 }

@@ -93,6 +93,7 @@ class SecurityConfig(
                 "Origin",
                 "X-Requested-With",
                 "X-User-Seq",
+                "X-Action-Id",
                 "X-Trace-Id",
             )
         config.exposedHeaders = listOf("Location")

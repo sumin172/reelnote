@@ -31,22 +31,27 @@ export const reviewQueryKeys = {
  */
 
 export async function fetchReviews(
-  params: { page?: number; size?: number } = {},
+  params: { page?: number; size?: number; actionId?: string } = {},
 ) {
+  const { page, size, actionId } = params;
   const search = new URLSearchParams();
-  if (params.page != null) search.set("page", String(params.page));
-  if (params.size != null) search.set("size", String(params.size));
+  if (page != null) search.set("page", String(page));
+  if (size != null) search.set("size", String(size));
   const qs = search.toString();
   // Real API: personal reviews under /api/v1/reviews/my (base URL already includes /api)
   const path = `/v1/reviews/my${qs ? `?${qs}` : ""}`;
-  return apiFetch<Page<Review>>(path);
+  return apiFetch<Page<Review>>(path, {
+    actionId,
+  });
 }
 
 export async function createReview(
   payload: Pick<Review, "movieId" | "rating" | "reason" | "tags" | "watchedAt">,
+  options: { actionId?: string } = {},
 ) {
   return apiFetch<Review>(`/v1/reviews`, {
     method: "POST",
     body: JSON.stringify(payload),
+    actionId: options.actionId,
   });
 }

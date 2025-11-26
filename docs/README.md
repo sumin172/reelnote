@@ -18,6 +18,8 @@
 - **[Micro Service 개발 표준 가이드](guides/development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
 - **[Frontend 개발 표준 가이드](guides/frontend-development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (React Query 패턴, 에러 처리, API 통신 등)
 - **[로깅 가이드](guides/logging.md)** – 로그 레벨 매핑, 구조화 로깅, TraceId 전파 등 로깅 표준
+- **[TraceId 가이드](guides/trace-id-guide.md)** – HTTP 요청 단위 분산 추적 ID 관리 가이드
+- **[ActionId 가이드](guides/action-id-guide.md)** – 사용자 액션 단위 상관관계 ID 관리 가이드
 - **[신규 서비스 체크리스트](guides/new-service.md)** – 새 마이크로서비스 추가 시 전체 체크리스트
 
 ### 기타 문서
@@ -38,6 +40,8 @@ docs/
 │   ├── development-standards.md # Micro Service 개발 표준 가이드 (실시간 참조) ⭐
 │   ├── frontend-development-standards.md # Frontend 개발 표준 가이드 (실시간 참조) ⭐
 │   ├── logging.md               # 로깅 가이드 (로그 레벨, 구조화 로깅, TraceId 전파)
+│   ├── trace-id-guide.md        # TraceId 가이드 (HTTP 요청 단위 분산 추적 ID)
+│   ├── action-id-guide.md       # ActionId 가이드 (사용자 액션 단위 상관관계 ID)
 │   └── new-service.md           # 신규 서비스 체크리스트
 └── improvements.md              # 기술 개선 사항 모음
 ```
