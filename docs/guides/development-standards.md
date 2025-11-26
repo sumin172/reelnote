@@ -48,7 +48,7 @@
 
 ---
 
-### 1-2. Resilience 패턴 (권장)
+### 1-2. Resilience 패턴
 
 **외부 서비스 호출 시 필수 고려:**
 
@@ -69,7 +69,7 @@
 - [ ] Circuit Breaker 적용 (실패율 50% 이상 시 OPEN)
 - [ ] 환경 변수로 설정 관리
 
-**초기 구현 가이드:** [신규 서비스 체크리스트 - Resilience 패턴](new-service.md#72-resilience-패턴-권장)
+**초기 구현 가이드:** [신규 서비스 체크리스트 - Resilience 패턴](new-service.md#72-resilience-패턴)
 
 ---
 

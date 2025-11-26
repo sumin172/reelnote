@@ -15,7 +15,8 @@
 
 개발 시 참고할 가이드 문서입니다.
 
-- **[개발 표준 가이드](guides/development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
+- **[Micro Service 개발 표준 가이드](guides/development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
+- **[Frontend 개발 표준 가이드](guides/frontend-development-standards.md)** ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (React Query 패턴, 에러 처리, API 통신 등)
 - **[로깅 가이드](guides/logging.md)** – 로그 레벨 매핑, 구조화 로깅, TraceId 전파 등 로깅 표준
 - **[신규 서비스 체크리스트](guides/new-service.md)** – 새 마이크로서비스 추가 시 전체 체크리스트
 
@@ -34,7 +35,8 @@ docs/
 │   ├── error-handling.md        # 에러 처리 스펙 및 가이드
 │   └── health-check.md          # 헬스 체크 스펙
 ├── guides/                      # 가이드 문서
-│   ├── development-standards.md # 개발 표준 가이드 (실시간 참조) ⭐
+│   ├── development-standards.md # Micro Service 개발 표준 가이드 (실시간 참조) ⭐
+│   ├── frontend-development-standards.md # Frontend 개발 표준 가이드 (실시간 참조) ⭐
 │   ├── logging.md               # 로깅 가이드 (로그 레벨, 구조화 로깅, TraceId 전파)
 │   └── new-service.md           # 신규 서비스 체크리스트
 └── improvements.md              # 기술 개선 사항 모음
@@ -44,16 +46,16 @@ docs/
 
 ## 🎯 온보딩 가이드
 
-### 신규 개발자라면
+### 구조 이해를 원한다면
 
 1. **프로젝트 개요**: 루트 `README.md`를 먼저 읽어보세요.
 2. **공통 스펙 이해**:
    - [에러 처리 스펙](specs/error-handling.md) - 에러 응답 형식, TraceId 정책 등
    - [헬스 체크 스펙](specs/health-check.md) - Health Check 엔드포인트 구현
-3**서비스별 문서**: 각 서비스의 `README.md`와 `ARCHITECTURE.md`를 참고하세요.
-   - `reelnote-api/review-service/README.md`
-   - `reelnote-api/catalog-service/README.md`
-   - `reelnote-frontend/README.md`
+3. **서비스별 문서**: 각 서비스의 `README.md`와 `ARCHITECTURE.md`를 참고하세요.
+   - `reelnote-api/review-service/README.md`, `ARCHITECTURE.md`
+   - `reelnote-api/catalog-service/README.md`, `ARCHITECTURE.md`
+   - `reelnote-frontend/README.md`, `ARCHITECTURE.md`
 
 ### 새 서비스를 추가한다면
 
@@ -104,6 +106,7 @@ docs/
 
 - **Frontend** (Next.js)
   - [README](../reelnote-frontend/README.md) – 프론트엔드 개요
+  - [ARCHITECTURE.md](../reelnote-frontend/ARCHITECTURE.md) – 아키텍처 상세
 
 ---
 

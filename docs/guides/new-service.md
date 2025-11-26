@@ -272,7 +272,7 @@ CACHE_NAMESPACE=catalog-cache
     - [ ] HttpService Interceptor에 TraceId 전파 로직 포함
     - [ ] 수동으로 `X-Trace-Id` 헤더 추가하는 코드 없음
 
-### 7.2 Resilience 패턴 (권장)
+### 7.2 Resilience 패턴
 
 - [ ] **외부 서비스 호출에 Resilience 패턴 적용**
   - **Retry**: 일시적 네트워크 오류/타임아웃에 대한 재시도
@@ -295,7 +295,7 @@ CACHE_NAMESPACE=catalog-cache
 - **설정**: 환경 변수로 재시도 횟수, 타임아웃, Circuit Breaker 임계값 관리
 
 **지속적 개발 시 참고:**
-- 외부 서비스 호출 추가/수정 시 [개발 표준 가이드 - Resilience 패턴](development-standards.md#1-2-resilience-패턴-권장) 참조
+- 외부 서비스 호출 추가/수정 시 [개발 표준 가이드 - Resilience 패턴](development-standards.md#1-2-resilience-패턴) 참조
 
 ### 7.3 클라이언트 설정 표준화
 

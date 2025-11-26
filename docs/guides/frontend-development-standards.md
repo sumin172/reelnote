@@ -15,6 +15,8 @@
 - [ ] **에러 처리**: `useErrorHandler` 훅 사용, `handleError()`로 에러 처리 후 `ErrorState`에 traceId, retryable 포함
 - [ ] **에러 코드**: 백엔드와 동기화된 에러 코드 Enum 사용
 - [ ] **React Query**: React Query v5 패턴 준수 (`onError` 제거, `useEffect`로 처리)
+- [ ] **QueryKey 패턴**: 계층적 QueryKey 구조 사용 (all → lists → search/list)
+- [ ] **서비스 레이어**: 컴포넌트에서 직접 `apiFetch` 사용 금지, 서비스 함수만 사용
 - [ ] **타입 안전성**: API 응답 타입 명시, `unknown` 타입 안전하게 처리
 - [ ] **MSW 핸들러**: 에러 코드 Enum 사용 (하드코딩 금지)
 - [ ] **TraceId 전파**: API 요청 시 `X-Trace-Id` 헤더 자동 포함
@@ -153,20 +155,27 @@ if (error instanceof Error) { /* ... */ }
 - 모든 API 호출은 `apiFetch` 사용 (직접 `fetch` 금지)
 - 응답 타입 제네릭으로 명시 (`apiFetch<ResponseType>`)
 - 도메인별 서비스 파일에서 API 호출 로직 분리 (`domains/{domain}/services.ts`)
+- 컴포넌트에서는 서비스 함수만 사용 (직접 `apiFetch` 호출 금지)
 - React Query `queryKey` 팩토리 함수 정의
 
 ❌ **하지 말 것:**
 - 직접 `fetch` 호출 (TraceId 전파 누락)
 - 타입 없는 API 호출
-- 컴포넌트에서 직접 API 호출
+- 컴포넌트에서 직접 `apiFetch` 호출 (ESLint 규칙으로 금지됨)
+- 서비스 레이어 없이 컴포넌트에 API 로직 포함
 
 **체크리스트:**
 - [ ] 모든 API 호출은 `apiFetch` 사용
 - [ ] 응답 타입 제네릭으로 명시 (`apiFetch<ResponseType>`)
-- [ ] 서비스 레이어에서 API 호출 로직 분리
+- [ ] 서비스 레이어에서 API 호출 로직 분리 (`domains/{domain}/services.ts`)
+- [ ] 컴포넌트에서 직접 `apiFetch` 사용 금지 (서비스 함수만 사용)
 - [ ] QueryKey 팩토리 함수 정의 (`queryKeys`)
 
-**코드 참고:** `src/lib/api/client.ts`, `src/domains/review/services.ts`
+**코드 참고:**
+- `src/lib/api/client.ts` - API 클라이언트
+- `src/domains/review/services.ts` - 서비스 레이어 예시
+- `src/domains/catalog/services.ts` - 서비스 레이어 예시
+- `eslint.config.mjs` - ESLint 규칙 (컴포넌트에서 `apiFetch` 직접 사용 금지)
 
 ---
 
@@ -188,7 +197,128 @@ if (error instanceof Error) { /* ... */ }
 
 ## 3. React Query 패턴
 
-### 3-1. Query/Mutation 사용 시 확인
+### 3-1. QueryKey 패턴 표준화 (필수) ⚠️
+
+**새 Query 추가 시 반드시 확인:**
+
+✅ **해야 할 것:**
+- 계층적 QueryKey 구조 사용: `all` → `lists()` → `search()` / `list()`
+- `search`는 `lists()` 계열로 분류 (검색도 리스트 계열)
+- QueryKey params는 `Readonly` 타입으로 제한
+- QueryKey 타입 export (`ReturnType` 사용)
+
+❌ **하지 말 것:**
+- QueryKey를 직접 배열로 하드코딩 (`["catalog", "search"]` 대신 `catalogQueryKeys.search()` 사용)
+- params를 mutable 타입으로 정의
+- 계층 구조 없이 평면적으로 정의
+
+**표준 패턴:**
+```typescript
+// domains/{domain}/services.ts
+export const domainQueryKeys = {
+  all: ["domain"] as const,
+  lists: () => [...domainQueryKeys.all, "list"] as const,
+  // search는 lists 계열 (검색도 리스트 결과를 반환)
+  search: (params: Readonly<{ q: string; page: number }>) =>
+    [...domainQueryKeys.lists(), "search", params] as const,
+  // list도 lists 계열
+  list: (params?: Readonly<{ page?: number; size?: number }>) =>
+    [...domainQueryKeys.lists(), params] as const,
+} as const;
+
+// QueryKey 타입 export (타입 안전성 강화)
+export type DomainQueryKey =
+  | ReturnType<typeof domainQueryKeys.all>
+  | ReturnType<typeof domainQueryKeys.lists>
+  | ReturnType<typeof domainQueryKeys.search>
+  | ReturnType<typeof domainQueryKeys.list>;
+```
+
+**계층 구조 설명:**
+- `all`: 도메인 루트 (모든 쿼리 무효화 시 사용)
+- `lists()`: 모든 리스트 계열 쿼리 그룹 (`list`, `search` 등)
+- `search()` / `list()`: 실제 쿼리 키 (params 포함)
+
+**체크리스트:**
+- [ ] QueryKey는 계층적 구조 사용 (`all` → `lists()` → `search()` / `list()`)
+- [ ] `search`는 `lists()` 계열로 분류
+- [ ] QueryKey params는 `Readonly` 타입으로 제한
+- [ ] QueryKey 타입 export (`ReturnType` 사용)
+- [ ] JSDoc에 계층 구조 문서화
+
+**코드 참고:**
+- `src/domains/catalog/services.ts` - Catalog QueryKey 패턴
+- `src/domains/review/services.ts` - Review QueryKey 패턴
+
+---
+
+### 3-2. 서비스 레이어 분리 (필수) ⚠️
+
+**API 호출 시 반드시 확인:**
+
+✅ **해야 할 것:**
+- 모든 API 호출은 `domains/{domain}/services.ts`에 서비스 함수로 정의
+- 컴포넌트에서는 서비스 함수만 사용 (`useQuery`, `useMutation`의 `queryFn` / `mutationFn`)
+- QueryKey 팩토리와 서비스 함수를 같은 파일에 정의
+
+❌ **하지 말 것:**
+- 컴포넌트에서 직접 `apiFetch` 호출 (ESLint 규칙으로 금지됨)
+- 컴포넌트에서 직접 `fetch` 호출
+- 서비스 레이어 없이 컴포넌트에 API 로직 포함
+
+**올바른 패턴:**
+```typescript
+// ✅ domains/review/services.ts
+export async function fetchReviews(
+  params: { page?: number; size?: number } = {},
+) {
+  const search = new URLSearchParams();
+  if (params.page != null) search.set("page", String(params.page));
+  if (params.size != null) search.set("size", String(params.size));
+  const qs = search.toString();
+  const path = `/v1/reviews/my${qs ? `?${qs}` : ""}`;
+  return apiFetch<Page<Review>>(path);
+}
+
+// ✅ 컴포넌트에서 사용
+import { reviewQueryKeys, fetchReviews } from "@/domains/review/services";
+
+const { data } = useQuery({
+  queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
+  queryFn: () => fetchReviews({ page: 0, size: 10 }),
+});
+```
+
+**잘못된 패턴:**
+```typescript
+// ❌ 컴포넌트에서 직접 apiFetch 사용 (ESLint 오류)
+import { apiFetch } from "@/lib/api/client";
+
+const { data } = useQuery({
+  queryKey: ["reviews"],
+  queryFn: () => apiFetch<Page<Review>>("/v1/reviews"),  // ❌ 금지됨
+});
+```
+
+**ESLint 규칙:**
+- 컴포넌트 파일 (`src/app/**`, `src/components/**`, `src/domains/**`)에서 `apiFetch` 직접 import 금지
+- 테스트 파일 (`*.test.ts`, `*.spec.ts`) 및 Storybook (`*.stories.ts`)는 예외
+
+**체크리스트:**
+- [ ] 모든 API 호출은 서비스 함수로 정의 (`domains/{domain}/services.ts`)
+- [ ] 컴포넌트에서는 서비스 함수만 사용
+- [ ] 컴포넌트에서 `apiFetch` 직접 import 없음 (ESLint 규칙 준수)
+- [ ] QueryKey 팩토리와 서비스 함수를 같은 파일에 정의
+
+**코드 참고:**
+- `src/domains/catalog/services.ts` - 서비스 레이어 예시
+- `src/domains/review/services.ts` - 서비스 레이어 예시
+- `src/app/catalog/CatalogSearch.tsx` - 컴포넌트에서 서비스 함수 사용 예시
+- `eslint.config.mjs` - ESLint 규칙 설정
+
+---
+
+### 3-3. Query/Mutation 사용 시 확인
 
 **새 Query 또는 Mutation 추가 시:**
 
@@ -204,9 +334,12 @@ if (error instanceof Error) { /* ... */ }
 - [ ] QueryKey는 `queryKeys` 팩토리 함수 사용
 - [ ] `useQuery`는 `onError` 제거, `useEffect`로 에러 처리
 - [ ] `useMutation`은 `onError` 사용 가능
-- [ ] 성공 시 필요한 쿼리 무효화
+- [ ] 성공 시 필요한 쿼리 무효화 (`invalidateQueries`)
 
-**코드 참고:** `src/domains/review/services.ts` (QueryKey 패턴)
+**코드 참고:**
+- `src/domains/review/services.ts` - QueryKey 패턴
+- `src/app/reviews/ReviewsList.tsx` - Query 사용 예시
+- `src/app/reviews/new/ReviewCreateForm.tsx` - Mutation 사용 예시
 
 ---
 
@@ -253,13 +386,15 @@ if (error instanceof Error) { /* ... */ }
 **환경 변수 접근 시:**
 
 ✅ **해야 할 것:**
-- `config` 객체를 통해서만 접근 (`lib/env`)
+- `lib/env/index.ts`에서 export되는 `env`, `userSeq`, `isMSWEnabled` 사용
+- 추가 설정값은 `lib/config/review.config.ts`, `lib/config/catalog.config.ts`에서 접근
 
 ❌ **하지 말 것:**
 - `process.env` 직접 접근 금지
 
 **체크리스트:**
-- [ ] 환경 변수는 `config` 객체를 통해서만 접근
+- [ ] 환경 변수는 `lib/env`의 `env`/`userSeq`/`isMSWEnabled`로 접근
+- [ ] API 설정은 `lib/config/*.config.ts`를 통해 접근
 - [ ] `process.env` 직접 접근 금지
 
 **참고 문서:** `src/lib/env/README.md`
@@ -408,18 +543,22 @@ if (error instanceof Error) { /* ... */ }
 2. **API 연동:**
    - [ ] `apiFetch` 사용 (직접 `fetch` 금지)
    - [ ] 응답 타입 제네릭으로 명시
-   - [ ] 서비스 레이어에서 API 호출 로직 분리
-   - [ ] QueryKey 팩토리 함수 정의
+   - [ ] 서비스 레이어에서 API 호출 로직 분리 (`domains/{domain}/services.ts`)
+   - [ ] 컴포넌트에서 직접 `apiFetch` 사용 금지 (서비스 함수만 사용)
 
 3. **React Query:**
+   - [ ] QueryKey는 계층적 구조 사용 (`all` → `lists()` → `search()` / `list()`)
+   - [ ] QueryKey params는 `Readonly` 타입으로 제한
    - [ ] Query 타입 명시 (`useQuery<ResponseType>`)
+   - [ ] QueryKey는 서비스 파일의 `queryKeys` 팩토리 함수 사용
    - [ ] `useQuery`는 `onError` 제거, `useEffect`로 에러 처리
    - [ ] `useMutation`은 `onError` 사용 가능
-   - [ ] 성공 시 필요한 쿼리 무효화
+   - [ ] 성공 시 필요한 쿼리 무효화 (`invalidateQueries`)
 
-4. **컴포넌트:**
+4. **컴포넌트 & 환경 변수:**
    - [ ] 로딩/에러/빈 상태는 공통 컴포넌트 사용
-   - [ ] 환경 변수는 `config` 객체를 통해서만 접근
+   - [ ] 환경 변수는 `lib/env`의 `env`/`userSeq`/`isMSWEnabled` 사용
+   - [ ] API 설정은 `lib/config/*.config.ts`로 접근
 
 5. **테스트 (Phase 2):**
    - [ ] 도메인 서비스 테스트 작성 (기능 구현 시)
@@ -444,6 +583,8 @@ if (error instanceof Error) { /* ... */ }
 - 에러 코드: `src/lib/errors/error-codes.ts`
 - 에러 설정: `src/lib/errors/error-config.ts`
 - 에러 처리 훅: `src/hooks/use-error-handler.ts`
+- QueryKey 패턴: `src/domains/catalog/services.ts`, `src/domains/review/services.ts`
+- ESLint 규칙: `reelnote-frontend/eslint.config.mjs`
 
 ---
 

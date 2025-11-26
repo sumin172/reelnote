@@ -9,7 +9,7 @@
   - `review-service/` – Spring Boot 기반 리뷰 서비스
 - `reelnote-frontend/` – Next.js 기반 웹 애플리케이션
 - `tools/` – 언어별 공용 설정 (TypeScript 등)
-- `docs/` – 진행 현황 및 체크리스트 문서
+- `docs/` – 프로젝트 문서 (공통 스펙, 개발 가이드, 체크리스트 등)
 
 ## 시작하기
 
@@ -27,9 +27,9 @@
    pnpm nx serve review-service
    pnpm nx serve reelnote-frontend
    ```
-4. 환경 변수 템플릿은 각 패키지의 `ENV.EXAMPLE` 또는 README 문서를 참고하세요.
+4. 환경 변수 템플릿은 각 패키지의 `env.example` 또는 README 문서를 참고하세요.
 
-## 테스트 & 린트 가이드
+## 테스트 & 린트 가이드 (E2E 로컬 개발 중)
 
 - TypeScript 서비스 (catalog-service, frontend)
   ```bash
@@ -74,7 +74,7 @@
   ```
 - 서비스별 변경 후 `nx affected --target=e2e`를 실행하면 `api-schema`에 의존하는 테스트가 자동으로 재실행됩니다.
 
-## E2E 통합 환경 기동
+## E2E 통합 환경 기동 (로컬 개발 중)
 
 1. `.env.e2e`에 기본 베이스 URL 및 자격 정보가 정의되어 있습니다. 필요한 값이 있으면 편집 후 아래 명령을 실행하세요.
 2. Docker Compose 프로필별 기동
@@ -98,11 +98,12 @@
   - [에러 처리 스펙](docs/specs/error-handling.md) – 에러 응답 형식 및 예외 처리 가이드
   - [헬스 체크 스펙](docs/specs/health-check.md) – Health Check 응답 형식 및 엔드포인트
 - **가이드**: `docs/guides/` 폴더 참조
-  - [개발 표준 가이드](docs/guides/development-standards.md) ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
+  - [Micro Service 개발 표준 가이드](docs/guides/development-standards.md) ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (TraceId, 에러 처리, 로깅 등)
+  - [Frontend 개발 표준 가이드](docs/guides/frontend-development-standards.md) ⭐ **실시간 참조** – 기능 추가/개선 시 항상 고려할 표준 (React Query 패턴, 에러 처리, API 통신 등)
   - [로깅 가이드](docs/guides/logging.md) – 로그 레벨 매핑, 구조화 로깅, TraceId 전파 등 로깅 표준
   - [신규 서비스 체크리스트](docs/guides/new-service.md) – 새 서비스 추가 시 체크리스트
 - 서비스별 상세 가이드는 각 디렉터리의 `README.md`를 참조하세요.
-- CI 파이프라인:
+- CI 파이프라인 (로컬 개발 중):
   - `E2E PR Pipeline` – PR 변경분에 따라 Compose 환경을 올리고 필요한 E2E만 실행
   - `Nightly E2E Suite` – 매일 전체 E2E/통합 시나리오 실행, 산출물은 GitHub Artifacts 보관
 - `contract-frontend-catalog`, `e2e-cross` 프로젝트는 구조만 마련된 상태이며, 스크립트는 TODO 메시지를 출력합니다. 향후 계약/크로스 테스트 작성 시 해당 디렉터리에서 작업하세요.

@@ -8,7 +8,6 @@
 2. [엔드포인트 설계 원칙](#2-엔드포인트-설계-원칙)
 3. [서비스별 구현](#3-서비스별-구현)
 4. [원칙 및 가이드라인](#4-원칙-및-가이드라인)
-5. [구현 현황](#5-구현-현황)
 
 ---
 
@@ -197,23 +196,6 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
   - NestJS: Prometheus 메트릭 또는 커스텀 카운터
 
 ---
-
-## 5. 구현 현황
-
-### ✅ Phase 1: 즉시 (서비스 확장 전) - 완료
-- [x] Review Service: `PublicHealthController` 추가
-- [x] Review Service: `/health/live`, `/health/ready` 엔드포인트 제공
-- [x] Review Service: `ServiceMetaHealthIndicator` 추가
-- [x] Review Service: `SecurityConfig` 수정 (심플 버전)
-- [x] Review Service: 버전 읽기 방식 구현 (`build-info.properties`)
-- [x] Review Service: 로깅 및 메트릭 추가 (Micrometer Counter)
-
-### ✅ Phase 2: 단기 (1-2주 내) - 완료
-- [x] Catalog Service: `/health/live`, `/health/ready` 추가
-- [x] Catalog Service: `status` 값 `UP`/`DOWN`으로 변경
-- [x] Catalog Service: 버전 읽기 및 캐싱 구현 (`VersionService`)
-- [x] Catalog Service: 로깅 및 메트릭 추가 (`HealthMetricsService`)
-- [x] Catalog Service: `/api/v1/health` 제거 완료
 
 ### 📝 향후 개선 사항
 
