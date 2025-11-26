@@ -2,9 +2,34 @@ import { apiFetch } from "@/lib/api/client";
 import { catalogConfig } from "@/lib/config/catalog.config";
 import type { CatalogMovie, SearchResponse } from "./types";
 
+/**
+ * Catalog 도메인 QueryKey 팩토리
+ *
+ * 계층 구조:
+ * - all: 도메인 루트
+ * - lists(): 모든 리스트 계열 쿼리 (list, search 등)
+ * - search(): 검색 쿼리 (lists 계열)
+ */
 export const catalogQueryKeys = {
-  search: (q: string, page = 1) => ["catalog", "search", { q, page }] as const,
-};
+  all: ["catalog"] as const,
+  lists: () => [...catalogQueryKeys.all, "list"] as const,
+  search: (params: Readonly<{ q: string; page: number }>) =>
+    [...catalogQueryKeys.lists(), "search", params] as const,
+} as const;
+
+/**
+ * Catalog 도메인 QueryKey 타입 (향후 활용 예정)
+ *
+ * 향후 타입 안전성 강화를 위해 사용할 수 있습니다:
+ * - invalidateQueries({ queryKey: ... })에서 타입 체크
+ * - 커스텀 훅에서 queryKey 파라미터 타입 제한
+ *
+ * @example
+ * export type CatalogQueryKey =
+ *   | typeof catalogQueryKeys.all
+ *   | ReturnType<typeof catalogQueryKeys.lists>
+ *   | ReturnType<typeof catalogQueryKeys.search>;
+ */
 
 type CatalogSearchApiMovie = {
   tmdbId?: number;

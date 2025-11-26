@@ -48,7 +48,7 @@ export default function CatalogSearch() {
 
   const { data, isFetching, isError, error, refetch } =
     useQuery<SearchResponse>({
-      queryKey: catalogQueryKeys.search(debouncedQuery, 1),
+      queryKey: catalogQueryKeys.search({ q: debouncedQuery, page: 1 }),
       queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
       enabled: canSearch,
       staleTime: 1000 * 30,

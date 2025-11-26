@@ -85,27 +85,45 @@ domains/
 
 ### 4.1 QueryKey 팩토리 패턴
 
-**현재 구현**
+**계층적 표준 구조**
 
 ```typescript
 // domains/review/services.ts
 export const reviewQueryKeys = {
   all: ["reviews"] as const,
-  list: (params?: { page?: number; size?: number }) =>
-    [...reviewQueryKeys.all, "list", params] as const,
-};
+  lists: () => [...reviewQueryKeys.all, "list"] as const,
+  list: (params?: Readonly<{ page?: number; size?: number }>) =>
+    [...reviewQueryKeys.lists(), params] as const,
+} as const;
+
+// QueryKey 타입 (향후 타입 안전성 강화 시 활용 가능)
+// export type ReviewQueryKey =
+//   | typeof reviewQueryKeys.all
+//   | ReturnType<typeof reviewQueryKeys.lists>
+//   | ReturnType<typeof reviewQueryKeys.list>;
 
 // domains/catalog/services.ts
 export const catalogQueryKeys = {
-  search: (q: string, page = 1) => ["catalog", "search", { q, page }] as const,
-};
+  all: ["catalog"] as const,
+  lists: () => [...catalogQueryKeys.all, "list"] as const,
+  // 검색도 결국 리스트 계열이므로 lists() 하위에 둔다.
+  search: (params: Readonly<{ q: string; page: number }>) =>
+    [...catalogQueryKeys.lists(), "search", params] as const,
+} as const;
+
+// QueryKey 타입 (향후 타입 안전성 강화 시 활용 가능)
+// export type CatalogQueryKey =
+//   | typeof catalogQueryKeys.all
+//   | ReturnType<typeof catalogQueryKeys.lists>
+//   | ReturnType<typeof catalogQueryKeys.search>;
 ```
 
-**장점:**
+**규칙 요약:**
 
-- **계층적 구조**: `all` 기반으로 전체 그룹 캐시 무효화 가능
-- **타입 안전성**: `as const`로 QueryKey 타입 보장
-- **중앙 관리**: 도메인별 서비스 레이어에서 통합 관리
+- **계층**: `all` → `lists()` → `search()/list()`로 고정
+- **검색(Search)**: 리스트 계열 결과를 반환하므로 `lists()` 하위로 배치
+- **타입 안정성**: `Readonly` params + `ReturnType` 기반 QueryKey 타입 export
+- **중앙 관리**: 서비스 레이어(`domains/*/services.ts`)에서 QueryKey와 서비스 함수 동시 정의
 
 **사용 예시:**
 
@@ -117,6 +135,13 @@ queryClient.invalidateQueries({ queryKey: reviewQueryKeys.all });
 useQuery({
   queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
   queryFn: () => fetchReviews({ page: 0, size: 10 }),
+});
+
+// 카탈로그 검색
+useQuery({
+  queryKey: catalogQueryKeys.search({ q: debouncedQuery, page: 1 }),
+  queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
+  enabled: canSearch,
 });
 ```
 
@@ -178,7 +203,7 @@ const queryClient = new QueryClient({
 ```typescript
 // 검색어가 있을 때만 쿼리 실행
 const { data } = useQuery({
-  queryKey: catalogQueryKeys.search(debouncedQuery, 1),
+  queryKey: catalogQueryKeys.search({ q: debouncedQuery, page: 1 }),
   queryFn: ({ signal }) => searchMovies(debouncedQuery, 1, { signal }),
   enabled: canSearch, // 조건부 실행
   staleTime: 1000 * 30, // 30초
@@ -290,15 +315,15 @@ export function useErrorHandler() {
 ```typescript
 // 검색 결과는 30초 TTL
 useQuery({
-  queryKey: catalogQueryKeys.search(query, page),
+  queryKey: catalogQueryKeys.search({ q: query, page }),
   queryFn: () => searchMovies(query, page),
   staleTime: 1000 * 30, // 30초
 });
 
 // 리뷰 목록은 기본 5분 TTL 사용
 useQuery({
-  queryKey: reviewQueryKeys.list(),
-  queryFn: () => fetchReviews(),
+  queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
+  queryFn: () => fetchReviews({ page: 0, size: 10 }),
   // 기본 설정 사용
 });
 ```
@@ -346,8 +371,15 @@ export type Review = {
 };
 
 // domains/review/services.ts
-export async function fetchReviews(): Promise<Page<Review>> {
-  return apiFetch<Page<Review>>("/v1/reviews/my");
+export async function fetchReviews(
+  params: { page?: number; size?: number } = {},
+): Promise<Page<Review>> {
+  const search = new URLSearchParams();
+  if (params.page != null) search.set("page", String(params.page));
+  if (params.size != null) search.set("size", String(params.size));
+  const qs = search.toString();
+  const path = `/v1/reviews/my${qs ? `?${qs}` : ""}`;
+  return apiFetch<Page<Review>>(path);
 }
 ```
 
@@ -356,14 +388,34 @@ export async function fetchReviews(): Promise<Page<Review>> {
 `lib/env/`에서 타입 안전한 환경 변수 접근:
 
 ```typescript
-export const config = {
-  get reviewApiBaseUrl() {
-    return getReviewApiBaseUrl(); // 타입 검증 포함
-  },
-  get enableMSW() {
-    return process.env.NEXT_PUBLIC_ENABLE_MSW === "true" && isDevelopment;
-  },
-} as const;
+// lib/env/index.ts
+import { env, userSeq, isMSWEnabled } from "@/lib/env";
+
+// Zod로 검증된 환경 변수 객체
+const reviewBaseUrl = env.NEXT_PUBLIC_REVIEW_API_BASE_URL;
+const catalogBaseUrl = env.NEXT_PUBLIC_CATALOG_API_BASE_URL;
+const userId = userSeq; // 개발 환경에서 사용자 식별용
+
+// MSW 활성화 여부 (환경 변수 또는 개발 환경에서 자동 활성화)
+const enableMSW = isMSWEnabled;
+```
+
+**API 설정 객체** (`lib/config/`):
+
+```typescript
+// lib/config/review.config.ts
+import { reviewConfig } from "@/lib/config/review.config";
+
+const baseUrl = reviewConfig.baseUrl;
+const timeout = reviewConfig.timeout; // 기본값: 10000ms
+const retry = reviewConfig.retry; // 기본값: 3
+
+// lib/config/catalog.config.ts
+import { catalogConfig } from "@/lib/config/catalog.config";
+
+const baseUrl = catalogConfig.baseUrl;
+const timeout = catalogConfig.timeout; // 기본값: 10000ms
+const retry = catalogConfig.retry; // 기본값: 3
 ```
 
 ## 7. Next.js App Router 구조
@@ -427,8 +479,8 @@ export default function ReviewsList() {
   const handleErrorSideEffects = useErrorHandler();
 
   const { data, error } = useQuery({
-    queryKey: reviewQueryKeys.list(),
-    queryFn: () => fetchReviews(),
+    queryKey: reviewQueryKeys.list({ page: 0, size: 10 }),
+    queryFn: () => fetchReviews({ page: 0, size: 10 }),
   });
 
   // 에러 부작용 처리 (리다이렉트, 로깅)
@@ -475,12 +527,16 @@ export default function ReviewsList() {
 **단일 API 클라이언트** (`lib/api/client.ts`)로 여러 서비스를 통합:
 
 ```typescript
-// Review Service 호출
+// Review Service 호출 (domains/review/services.ts)
+import { apiFetch } from "@/lib/api/client";
 apiFetch<Page<Review>>("/v1/reviews/my");
 
-// Catalog Service 호출
+// Catalog Service 호출 (domains/catalog/services.ts)
+import { apiFetch } from "@/lib/api/client";
+import { catalogConfig } from "@/lib/config/catalog.config";
+
 apiFetch<SearchResponse>("/v1/search?q=...", {
-  baseUrl: config.catalogApiBaseUrl,
+  baseUrl: catalogConfig.baseUrl,
 });
 ```
 

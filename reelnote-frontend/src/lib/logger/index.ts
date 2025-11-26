@@ -144,12 +144,13 @@ function sendToErrorReportingService(logContext: LogContext): void {
       // 서버에서는 구조화된 로그를 표준 출력으로 전송 (로그 수집 도구가 수집)
       console.error(jsonString);
     }
-  } catch (error) {
-    // JSON 직렬화 실패 시 (순환 참조 등) 기본 정보만 출력
+  } catch (serializationError) {
+    // JSON 직렬화 실패 시 (순환 참조 등) 기본 정보와 원본 에러만 출력
     console.error("[Logger] Failed to serialize log context", {
       level: sanitized.level,
       message: sanitized.message,
       errorCode: sanitized.errorCode,
+      serializationError,
     });
   }
 }

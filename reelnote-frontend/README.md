@@ -8,7 +8,7 @@
 
 - **Next.js 16.0.1** (App Router) + **React 19.2.0** + **TypeScript 5.9.3**
 - **Tailwind CSS 4.1.17** + **shadcn/ui** (Radix UI 기반)
-- **React Query 5** (@tanstack/react-query) + **Zustand**
+- **React Query 5** (@tanstack/react-query)
 - **React Hook Form** + **Zod** (폼 관리 및 검증)
 - **MSW 2.12.1** (Mock Service Worker) - 개발 환경 모킹
 - **Vitest 4.0.8** + **Testing Library** + **Playwright 1.56.1** (테스트)
@@ -64,14 +64,14 @@ src/
 
 - **Domain-Driven Design**: 도메인별 모듈 분리 (`domains/review`, `domains/catalog`, `domains/shared`)
 - **Layered Architecture**: Presentation (`app/`) → Domain/Application (`domains/`) → Infrastructure (`lib/`) 레이어 분리
-- **React Query 패턴**: QueryKey 팩토리, 서비스 레이어 분리로 서버 상태 관리
+- **React Query 패턴**: 계층적 QueryKey + 서비스 레이어 + ESLint 제한 (자세한 가이드는 `docs/guides/frontend-development-standards.md`)
 
 ### 주요 특징
 
 - API 통신 중앙 관리 및 타입 안전한 환경 변수 관리
 - MSW를 통한 개발 환경 독립성 확보
 - 계층화된 에러 처리 아키텍처
-- React Query (서버 상태) + Zustand (클라이언트 상태) 분리
+- React Query (서버 상태) + 도메인 서비스 레이어로 상태 제어 (ESLint로 강제)
 
 ## 💡 핵심 구현 특징
 
@@ -161,19 +161,37 @@ pnpm format
 
 ### 주요 설정값
 
-```typescript
-// lib/api/client.ts
-const config = {
-  reviewApiBaseUrl:
-    process.env.NEXT_PUBLIC_REVIEW_API_BASE_URL || "http://localhost:8080/api",
-  catalogApiBaseUrl:
-    process.env.NEXT_PUBLIC_CATALOG_API_BASE_URL || "http://localhost:3001/api",
-  userSeq: process.env.NEXT_PUBLIC_USER_SEQ
-    ? parseInt(process.env.NEXT_PUBLIC_USER_SEQ, 10)
-    : null,
-};
+**환경 변수 접근** (`lib/env/index.ts`):
 
-// React Query 설정
+```typescript
+import { env, userSeq, isMSWEnabled } from "@/lib/env";
+
+// 환경 변수는 Zod로 검증된 env 객체를 통해 접근
+const reviewBaseUrl = env.NEXT_PUBLIC_REVIEW_API_BASE_URL;
+const catalogBaseUrl = env.NEXT_PUBLIC_CATALOG_API_BASE_URL;
+const userId = userSeq; // 개발 환경에서 사용자 식별용
+```
+
+**API 설정** (`lib/config/`):
+
+```typescript
+import { reviewConfig } from "@/lib/config/review.config";
+import { catalogConfig } from "@/lib/config/catalog.config";
+
+// Review API 설정
+const reviewBaseUrl = reviewConfig.baseUrl;
+const reviewTimeout = reviewConfig.timeout; // 기본값: 10000ms
+const reviewRetry = reviewConfig.retry; // 기본값: 3
+
+// Catalog API 설정
+const catalogBaseUrl = catalogConfig.baseUrl;
+const catalogTimeout = catalogConfig.timeout; // 기본값: 10000ms
+const catalogRetry = catalogConfig.retry; // 기본값: 3
+```
+
+**React Query 설정** (`app/providers.tsx`):
+
+```typescript
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -184,6 +202,12 @@ const queryClient = new QueryClient({
   },
 });
 ```
+
+### ESLint 정책
+
+- `src/app/**`, `src/components/**`, `src/domains/**` 등 UI 계층에서는 `@/lib/api/client`를 직접 import 할 수 없습니다.
+- 모든 API 호출은 `domains/{domain}/services.ts`의 서비스 함수를 통해 이루어져야 하며, 위 규칙은 `eslint.config.mjs`의 `no-restricted-imports`로 강제됩니다.
+- Storybook/테스트 파일(`*.stories.*`, `*.test.*`, `__tests__/**`)만 예외입니다.
 
 ## 📚 주요 기능
 
