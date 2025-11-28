@@ -50,8 +50,9 @@
     "format:kotlin": "pnpm nx run review-service:ktlintFormat",
     "format:ts": "pnpm nx run-many --target=format:write --projects=catalog-service,frontend",
     "format:ts:check": "pnpm nx run-many --target=format:check --projects=catalog-service,frontend",
-    "e2e:docker:up": "pnpm nx run e2e-env:start:docker",
-    "e2e:docker:down": "pnpm nx run e2e-env:stop:docker",
+    "up": "pnpm nx run e2e-env:start:docker",
+    "up:db": "pnpm nx run e2e-env:start:docker:db",
+    "down": "pnpm nx run e2e-env:stop:docker",
     "e2e:local:start": "pnpm nx run e2e-env:start:local",
     "e2e:local:stop": "pnpm nx run e2e-env:stop:local"
   },

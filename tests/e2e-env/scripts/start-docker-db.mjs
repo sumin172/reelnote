@@ -23,14 +23,14 @@ function mergeEnv() {
 }
 
 /**
- * Docker Compose 실행 (전체 서비스)
+ * Docker Compose 실행 (DB + Redis만)
  */
 function startDocker() {
-  console.log("\n🐳 Docker Compose 시작 중 (전체 서비스)...\n");
+  console.log("\n🐳 Docker Compose 시작 중 (DB + Redis만)...\n");
 
   const result = spawnSync(
     "docker",
-    ["compose", "--profile", "services", "up", "-d"],
+    ["compose", "up", "-d"],
     {
       cwd: dockerDir,
       stdio: "inherit",
@@ -46,7 +46,7 @@ function startDocker() {
  * 메인 함수
  */
 function main() {
-  console.log("🎬 E2E Docker 환경 시작 (전체 서비스)\n");
+  console.log("🎬 E2E Docker 환경 시작 (DB + Redis만)\n");
 
   try {
     // 1. 환경 변수 병합
@@ -54,7 +54,7 @@ function main() {
     mergeEnv();
     console.log("✅ 환경 변수 병합 완료\n");
 
-    // 2. Docker Compose 시작 (services 프로파일 활성화 = 전체 서비스)
+    // 2. Docker Compose 시작 (프로파일 없음 = DB + Redis만)
     console.log("🐳 Docker Compose 시작...");
     startDocker();
     console.log("✅ Docker Compose 시작 완료\n");
@@ -63,8 +63,8 @@ function main() {
     console.log("\n📌 서비스 정보:");
     console.log("   PostgreSQL: localhost:5434");
     console.log("   Redis: localhost:6380");
-    console.log("   Catalog Service: http://localhost:4100");
-    console.log("   Review Service: http://localhost:5100");
+    console.log("\n💡 애플리케이션 서비스는 로컬에서 실행하거나,");
+    console.log("   'nx run e2e-env:start:docker'로 전체 서비스를 올릴 수 있습니다.");
     console.log("\n컨테이너 상태 확인: docker compose -f tests/e2e-env/docker/docker-compose.yml ps");
     console.log("로그 확인: docker compose -f tests/e2e-env/docker/docker-compose.yml logs -f");
     console.log("종료: docker compose -f tests/e2e-env/docker/docker-compose.yml down\n");
@@ -75,7 +75,4 @@ function main() {
 }
 
 main();
-
-
-
 

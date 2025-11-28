@@ -25,6 +25,13 @@
         "cwd": "{projectRoot}"
       }
     },
+    "start:docker:db": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/start-docker-db.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
     "stop:docker": {
       "executor": "nx:run-commands",
       "options": {

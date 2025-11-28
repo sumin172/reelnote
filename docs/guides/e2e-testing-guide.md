@@ -73,17 +73,8 @@ tests/
 도커에는 **API 서버 + 테스트용 DB만** 올립니다. 프론트엔드는 포함하지 않습니다.
 
 ```bash
-# 프론트엔드만 (실제로는 프론트엔드 없음, 백엔드만)
-pnpm up:front
-
-# 카탈로그 서비스만
-pnpm up:catalog
-
-# 리뷰 서비스만
-pnpm up:review
-
 # 모든 서비스 통합 기동
-pnpm up:all
+pnpm up
 
 # 종료 및 볼륨 정리
 pnpm down
@@ -201,7 +192,7 @@ pnpm nx run e2e-frontend:e2e
 ### 구성
 
 1. **프론트엔드**: Playwright `webServer`로 자동 실행
-2. **백엔드 서비스**: 도커 컨테이너에서 실행 (사전에 `pnpm up:all` 등으로 실행)
+2. **백엔드 서비스**: 도커 컨테이너에서 실행 (사전에 `pnpm up` 등으로 실행)
 3. **헬스 체크**: `globalSetup`에서 도커 API 서버가 준비될 때까지 대기
 
 ```typescript
@@ -312,7 +303,7 @@ nx e2e e2e-cross
 
 ```bash
 # 1. 도커 컨테이너 실행 (백엔드 서비스 + DB)
-pnpm up:all
+pnpm up
 
 # 2. E2E 테스트 실행 (프론트엔드는 자동 실행)
 nx e2e e2e-cross
@@ -347,15 +338,13 @@ nx run-many --target=e2e --projects=e2e-frontend,e2e-cross,e2e-catalog,e2e-revie
 nx e2e e2e-frontend
 
 # 크로스 서비스 E2E 테스트
-pnpm up:all  # 도커 컨테이너 먼저 실행
+pnpm up  # 도커 컨테이너 먼저 실행
 nx e2e e2e-cross
 
 # 카탈로그 서비스 E2E 테스트
-pnpm up:catalog  # 도커 컨테이너 먼저 실행
 nx e2e e2e-catalog
 
 # 리뷰 서비스 E2E 테스트
-pnpm up:review  # 도커 컨테이너 먼저 실행
 nx e2e e2e-review
 ```
 
@@ -366,7 +355,7 @@ CI 환경에서는 `.env.e2e` 파일이 자동으로 로드되며, 도커 컨테
 ```yaml
 # 예시: GitHub Actions
 - name: Start Docker containers
-  run: pnpm up:all
+  run: pnpm up
 
 - name: Run E2E tests
   run: nx e2e e2e-cross
@@ -409,7 +398,7 @@ CI 환경에서는 `.env.e2e` 파일이 자동으로 로드되며, 도커 컨테
 ### Q: 크로스 테스트에서 도커 컨테이너가 준비되지 않았습니다.
 
 **A:** `globalSetup`에서 헬스 체크를 수행하지만, 도커 컨테이너가 완전히 시작되지 않았을 수 있습니다. 다음을 확인하세요:
-1. `pnpm up:all` 명령이 성공적으로 완료되었는지 확인
+1. `pnpm up` 명령이 성공적으로 완료되었는지 확인
 2. `docker ps`로 컨테이너가 실행 중인지 확인
 3. 각 서비스의 `/health` 엔드포인트가 정상 응답하는지 확인
 

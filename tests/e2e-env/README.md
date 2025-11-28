@@ -45,24 +45,13 @@ tests/e2e-env/
 
 ```bash
 # 도커 환경
-pnpm e2e:docker:up      # 도커 시작
-pnpm e2e:docker:down    # 도커 종료
+pnpm up      # 도커 시작 (전체 서비스)
+pnpm up:db   # 도커 시작 (DB + Redis만)
+pnpm down    # 도커 종료
 
 # 로컬 환경
 pnpm e2e:local:start    # 로컬 시작
 pnpm e2e:local:stop     # 로컬 종료
-```
-
-### 상세 명령어
-
-#### 로컬 실행
-
-```bash
-# E2E 환경 시작 (서비스 + DB + Redis)
-nx run e2e-env:start:local
-
-# 또는 루트에서
-pnpm nx run e2e-env:start:local
 ```
 
 실행 순서:
@@ -84,17 +73,33 @@ pnpm nx run e2e-env:stop:local
 
 #### 도커 실행
 
+**옵션 1: DB + Redis만 실행** (로컬 서버와 함께 사용)
+
 ```bash
-# 도커 환경 시작 (PostgreSQL + Redis)
-nx run e2e-env:start:docker
+# 도커 환경 시작 (PostgreSQL + Redis만)
+nx run e2e-env:start:docker:db
 
 # 또는 루트에서
-pnpm nx run e2e-env:start:docker
+pnpm up:db
 ```
 
 실행 순서:
 1. 환경 변수 병합 (`base.env` + `e2e.docker.override.env` → `.env.e2e`)
-2. Docker Compose 시작 (PostgreSQL, Redis)
+2. Docker Compose 시작 (PostgreSQL, Redis만, 프로파일 없음)
+
+**옵션 2: 전체 서비스 실행** (DB + Redis + Catalog + Review)
+
+```bash
+# 도커 환경 시작 (전체 서비스)
+nx run e2e-env:start:docker
+
+# 또는 루트에서
+pnpm up
+```
+
+실행 순서:
+1. 환경 변수 병합 (`base.env` + `e2e.docker.override.env` → `.env.e2e`)
+2. Docker Compose 시작 (`--profile services` 활성화 = 전체 서비스)
 
 #### 도커 종료
 
@@ -103,7 +108,7 @@ pnpm nx run e2e-env:start:docker
 nx run e2e-env:stop:docker
 
 # 또는 루트에서
-pnpm nx run e2e-env:stop:docker
+pnpm down
 ```
 
 ### 환경 변수 병합만 수행
@@ -230,7 +235,9 @@ CREATE SCHEMA app;
 
 ### 서비스 구성
 
-현재는 **DB와 Redis만** 올리는 초안입니다:
+Docker Compose는 **프로파일(profiles)**을 사용하여 두 가지 모드로 실행할 수 있습니다:
+
+#### 기본 모드 (프로파일 없음): DB + Redis만
 
 - **PostgreSQL**: 포트 5434 (호스트) → 5432 (컨테이너), 인스턴스 1개
   - `catalog_e2e_db`, `review_e2e_db` 데이터베이스 자동 생성
@@ -238,7 +245,13 @@ CREATE SCHEMA app;
   - `vector` 확장 자동 설치 (Catalog Service용)
 - **Redis**: 포트 6380 (호스트) → 6379 (컨테이너)
 
-나중에 e2e 서버와 합칠 예정입니다.
+#### 전체 모드 (`--profile services`): DB + Redis + 애플리케이션 서비스
+
+위의 인프라 서비스에 추가로:
+- **Catalog Service**: 포트 4100 (호스트) → 4100 (컨테이너)
+- **Review Service**: 포트 5100 (호스트) → 5100 (컨테이너)
+
+**참고**: 애플리케이션 서비스는 아직 Dockerfile이 없으므로, 현재는 구조만 정의되어 있습니다. Dockerfile을 생성한 후 `docker-compose.yml`의 `build` 섹션 주석을 해제하세요.
 
 ### 수동 실행
 

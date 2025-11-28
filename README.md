@@ -88,10 +88,14 @@
 ### Docker Compose 프로필별 기동 (개발 중)
 
 ```bash
-pnpm up:catalog    # 카탈로그 서비스만
-pnpm up:review     # 리뷰 서비스만
-pnpm up:all        # 통합 기동 (모든 백엔드 서비스)
-pnpm down          # 종료 및 볼륨 정리
+# 전체 서비스 기동 (DB + Redis + Catalog + Review)
+pnpm up
+
+# DB + Redis만 기동 (로컬 서버와 함께 사용)
+pnpm up:db
+
+# 종료 및 볼륨 정리
+pnpm down
 ```
 
 ### 서비스 포트
@@ -107,7 +111,7 @@ pnpm down          # 종료 및 볼륨 정리
 nx e2e e2e-frontend
 
 # 크로스 서비스 E2E 테스트 (로컬 E2E or 도커 컨테이너 사전 실행 필요)
-pnpm up:all
+pnpm up
 nx e2e e2e-cross
 ```
 

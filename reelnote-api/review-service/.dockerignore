@@ -1,0 +1,14 @@
+build
+.gradle
+.git
+.env
+*.log
+.DS_Store
+.idea
+*.iml
+*.swp
+*.swo
+*~
+test-output
+bin
+
