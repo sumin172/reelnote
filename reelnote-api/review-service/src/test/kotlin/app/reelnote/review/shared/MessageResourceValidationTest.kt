@@ -1,15 +1,17 @@
 package app.reelnote.review.shared
 
-import app.reelnote.review.infrastructure.config.TestcontainersBase
 import app.reelnote.review.shared.response.ErrorCodes
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.MessageSource
-import org.springframework.test.context.ActiveProfiles
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
+import org.springframework.context.support.ResourceBundleMessageSource
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig
 import java.util.Locale
 
 /**
@@ -19,13 +21,25 @@ import java.util.Locale
  *
  * @see docs/specs/error-handling.md 섹션 2.4
  *
- * ⚠️ 중요: Testcontainers를 사용하여 격리된 테스트 데이터베이스를 사용합니다. 로컬 개발 데이터베이스에 영향을 주지 않도록 합니다.
+ * MessageSource만 검증하므로 최소한의 컨텍스트만 로드합니다.
  */
-@SpringBootTest
-@ActiveProfiles("test")
+@SpringJUnitConfig
+@Import(MessageResourceValidationTest.TestConfig::class)
 class MessageResourceValidationTest(
     @Autowired private val messageSource: MessageSource,
-) : TestcontainersBase() {
+) {
+    @TestConfiguration
+    class TestConfig {
+        @Bean
+        fun messageSource(): MessageSource {
+            val messageSource = ResourceBundleMessageSource()
+            messageSource.setBasename("messages")
+            messageSource.setDefaultEncoding("UTF-8")
+            messageSource.setCacheSeconds(0)
+            return messageSource
+        }
+    }
+
     /**
      * ErrorCodes에 정의된 에러 코드에 대응하는 메시지 키 매핑
      *

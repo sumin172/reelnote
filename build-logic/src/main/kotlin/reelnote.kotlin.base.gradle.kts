@@ -20,6 +20,16 @@ repositories {
     mavenCentral()
 }
 
+// 전역 의존성 버전 관리 (취약점 보완)
+configurations.all {
+    resolutionStrategy {
+        // CVE-2025-48924 취약점 보완: commons-lang3 3.18.0 이상 강제
+        force("org.apache.commons:commons-lang3:3.19.0")
+        // WS-2019-0379 취약점 보완: commons-codec 1.13-RC1 이상 강제
+        force("commons-codec:commons-codec:1.16.1")
+    }
+}
+
 // 공통 테스트 설정
 tasks.withType<Test> {
     useJUnitPlatform()

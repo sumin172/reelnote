@@ -37,5 +37,8 @@ dependencies {
 
     // Version Management
     implementation("com.github.ben-manes:gradle-versions-plugin:0.53.0")
+
+    // CVE-2025-48924 취약점 보완: commons-lang3 3.18.0 이상 강제
+    implementation("org.apache.commons:commons-lang3:3.19.0")
 }
 
