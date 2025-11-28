@@ -1,0 +1,29 @@
+{
+  "name": "e2e-frontend",
+  "root": "tests/e2e-frontend",
+  "sourceRoot": "tests/e2e-frontend",
+  "projectType": "application",
+  "implicitDependencies": ["frontend", "api-schema"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-with-env.mjs tests/.env.e2e pnpm playwright test -c tests/e2e-frontend/playwright.config.ts"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm prettier --check \"tests/e2e-frontend/**/*.{ts,tsx,js,jsx}\" && pnpm eslint --max-warnings=0 \"tests/e2e-frontend/**/*.{ts,tsx,js,jsx}\""
+      }
+    },
+    "lint-fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm prettier --write \"tests/e2e-frontend/**/*.{ts,tsx,js,jsx}\""
+      }
+    }
+  },
+  "tags": ["type:e2e", "scope:frontend"]
+}
+

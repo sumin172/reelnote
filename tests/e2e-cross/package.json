@@ -1,0 +1,13 @@
+{
+  "name": "@reelnote/e2e-cross",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cross:e2e": "echo \"TODO: implement cross-service E2E\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  }
+}
+

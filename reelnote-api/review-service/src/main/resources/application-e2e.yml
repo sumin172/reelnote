@@ -1,4 +1,7 @@
 # E2E 테스트 환경 설정
+server:
+  port: 5100
+
 spring:
   jpa:
     show-sql: false  # E2E에서는 SQL 로그 최소화

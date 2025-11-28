@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/e2e-catalog",
+    "noUnusedLocals": false,
+    "noImplicitAny": false,
+    "types": ["node", "jest"],
+    "paths": {
+      "@reelnote/api-schema": ["../../packages/api-schema/src/index.ts"]
+    }
+  },
+  "include": [
+    "jest.config.ts",
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../packages/api-schema"
+    }
+  ]
+}
+

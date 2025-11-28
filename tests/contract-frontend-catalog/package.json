@@ -1,0 +1,14 @@
+{
+  "name": "@reelnote/contract-frontend-catalog",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "contract:generate": "echo \"TODO: generate Pact contracts\"",
+    "contract:verify": "echo \"TODO: verify Pact contracts\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  }
+}
+

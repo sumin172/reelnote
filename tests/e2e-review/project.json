@@ -1,0 +1,30 @@
+{
+  "name": "e2e-review",
+  "root": "tests/e2e-review",
+  "sourceRoot": "tests/e2e-review",
+  "projectType": "application",
+  "implicitDependencies": ["review-service", "api-schema"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-with-env.mjs tests/.env.e2e node tools/scripts/run-gradlew.mjs tests/e2e-review test"
+      },
+      "cache": false
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-gradlew.mjs tests/e2e-review lint"
+      }
+    },
+    "lint-fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-gradlew.mjs tests/e2e-review ktlintFormat"
+      }
+    }
+  },
+  "tags": ["type:e2e", "scope:review"]
+}
+

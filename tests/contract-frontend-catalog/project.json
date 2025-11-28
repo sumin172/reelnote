@@ -1,0 +1,25 @@
+{
+  "name": "contract-frontend-catalog",
+  "root": "tests/contract-frontend-catalog",
+  "sourceRoot": "tests/contract-frontend-catalog/src",
+  "projectType": "application",
+  "implicitDependencies": ["frontend", "catalog-service", "api-schema"],
+  "targets": {
+    "verify": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run contract:verify",
+        "cwd": "tests/contract-frontend-catalog"
+      }
+    },
+    "generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm run contract:generate",
+        "cwd": "tests/contract-frontend-catalog"
+      }
+    }
+  },
+  "tags": ["type:contract", "scope:shared"]
+}
+

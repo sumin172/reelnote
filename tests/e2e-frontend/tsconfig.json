@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.node.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc/e2e-frontend",
+    "rootDir": "./tests",
+    "lib": ["es2022", "dom", "dom.iterable"]
+  },
+  "include": ["tests/**/*.ts"]
+}
+

@@ -10,6 +10,7 @@
     "e2e-catalog": "tests/e2e-catalog",
     "e2e-review": "tests/e2e-review",
     "e2e-cross": "tests/e2e-cross",
+    "e2e-env": "tests/e2e-env",
     "api-schema": "packages/api-schema",
     "contract-frontend-catalog": "tests/contract-frontend-catalog"
   },

@@ -1,0 +1,23 @@
+{
+  "name": "e2e-cross",
+  "root": "tests/e2e-cross",
+  "sourceRoot": "tests/e2e-cross/tests",
+  "projectType": "application",
+  "implicitDependencies": [
+    "frontend",
+    "catalog-service",
+    "review-service",
+    "api-schema"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-with-env.mjs tests/.env.e2e pnpm run cross:e2e",
+        "cwd": "tests/e2e-cross"
+      }
+    }
+  },
+  "tags": ["type:e2e", "scope:cross"]
+}
+

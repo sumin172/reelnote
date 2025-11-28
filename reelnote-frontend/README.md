@@ -141,10 +141,8 @@ pnpm test
 pnpm test:watch
 
 # E2E 테스트 실행
-# Playwright가 자체적으로 개발 서버(`pnpm dev`)를 구동하므로 별도 `pnpm start` 없이 바로 실행하면 됩니다.
+# Playwright가 자체적으로 개발 서버를 구동하므로 별도 서버 실행 없이 바로 실행하면 됩니다.
 pnpm test:e2e
-
-# CI 등에서 이미 서버가 떠 있다면 `playwright.config.ts`의 `reuseExistingServer` 설정이 활성화되어 있어 같은 포트를 그대로 재사용합니다.
 
 # 린트 실행
 pnpm lint
@@ -152,6 +150,11 @@ pnpm lint
 # 코드 포맷팅
 pnpm format
 ```
+
+> **📖 E2E 테스트 상세 가이드**: [E2E 테스트 가이드](../docs/guides/e2e-testing-guide.md)를 참고하세요.
+>
+> - 프론트엔드 단독 테스트: Playwright `webServer`로 자동 실행, API는 모킹
+> - 크로스 서비스 E2E 테스트: 프론트엔드는 `webServer`로 실행, 백엔드는 도커 컨테이너 사용
 
 ## 🔧 설정
 

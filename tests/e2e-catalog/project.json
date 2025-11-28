@@ -1,0 +1,29 @@
+{
+  "name": "e2e-catalog",
+  "root": "tests/e2e-catalog",
+  "sourceRoot": "tests/e2e-catalog",
+  "projectType": "application",
+  "implicitDependencies": ["catalog-service", "api-schema"],
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node tools/scripts/run-with-env.mjs tests/.env.e2e pnpm jest -c tests/e2e-catalog/jest.config.cjs"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm prettier --check \"tests/e2e-catalog/**/*.{ts,tsx,js,jsx}\" && pnpm eslint --max-warnings=0 \"tests/e2e-catalog/**/*.{ts,tsx,js,jsx}\""
+      }
+    },
+    "lint-fix": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm prettier --write \"tests/e2e-catalog/**/*.{ts,tsx,js,jsx}\""
+      }
+    }
+  },
+  "tags": ["type:e2e", "scope:catalog"]
+}
+

@@ -98,9 +98,9 @@ class EnvironmentVariables {
   @Max(65535)
   PORT?: number;
 
-  @IsEnum(["development", "production", "test", "e2e"])
+  @IsEnum(["development", "production", "test"])
   @IsOptional()
-  NODE_ENV?: "development" | "production" | "test" | "e2e";
+  NODE_ENV?: "development" | "production" | "test";
 
   @IsString()
   @IsOptional()

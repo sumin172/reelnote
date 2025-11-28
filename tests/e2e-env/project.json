@@ -1,0 +1,45 @@
+{
+  "name": "e2e-env",
+  "root": "tests/e2e-env",
+  "sourceRoot": "tests/e2e-env",
+  "projectType": "application",
+  "targets": {
+    "start:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/start-local.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "stop:local": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/stop-local.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "start:docker": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/start-docker.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "stop:docker": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/stop-docker.mjs",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "merge-env": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node config/merge-env.mjs",
+        "cwd": "{projectRoot}"
+      }
+    }
+  },
+  "tags": ["type:e2e", "scope:infrastructure"]
+}
+

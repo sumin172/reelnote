@@ -29,7 +29,7 @@
    ```
 4. 환경 변수 템플릿은 각 패키지의 `env.example` 또는 README 문서를 참고하세요.
 
-## 테스트 & 린트 가이드 (E2E 로컬 개발 중)
+## 테스트 & 린트 가이드
 
 - TypeScript 서비스 (catalog-service, frontend)
   ```bash
@@ -74,22 +74,44 @@
   ```
 - 서비스별 변경 후 `nx affected --target=e2e`를 실행하면 `api-schema`에 의존하는 테스트가 자동으로 재실행됩니다.
 
-## E2E 통합 환경 기동 (로컬 개발 중)
+## E2E 통합 환경 기동
 
-1. `.env.e2e`에 기본 베이스 URL 및 자격 정보가 정의되어 있습니다. 필요한 값이 있으면 편집 후 아래 명령을 실행하세요.
-2. Docker Compose 프로필별 기동
-   ```bash
-   pnpm up:front      # 프런트만
-   pnpm up:catalog    # 카탈로그 서비스만
-   pnpm up:review     # 리뷰 서비스만
-   pnpm up:all        # 통합 기동
-   pnpm down          # 종료 및 볼륨 정리
-   ```
-3. 각 서비스는 다음 포트로 노출됩니다.
-   - Frontend: `http://localhost:3100`
-   - Catalog: `http://localhost:4100`
-   - Review: `http://localhost:5100` (기본 monitor 계정 `monitor / monitor123`)
-4. E2E 타깃(`pnpm nx run e2e-*:e2e`)은 `.env.e2e`를 자동으로 로드하므로 별도 export 없이 바로 실행할 수 있습니다.
+> **📖 상세 가이드**: [E2E 테스트 가이드](docs/guides/e2e-testing-guide.md)를 참고하세요.
+
+### 핵심 원칙
+
+- **도커에는 API 서버 + 테스트용 DB만 올린다** (프론트엔드는 제외)
+- **프론트엔드는 Playwright `webServer`로 실행한다**
+- **프론트엔드 단독 테스트**: API 모킹 사용 (Playwright `page.route()` 또는 MSW)
+- **크로스 E2E 테스트**: 실제 도커 API 호출 (`globalSetup`에서 헬스 체크)
+
+### Docker Compose 프로필별 기동 (개발 중)
+
+```bash
+pnpm up:catalog    # 카탈로그 서비스만
+pnpm up:review     # 리뷰 서비스만
+pnpm up:all        # 통합 기동 (모든 백엔드 서비스)
+pnpm down          # 종료 및 볼륨 정리
+```
+
+### 서비스 포트
+
+- **Catalog**: `http://localhost:4100`
+- **Review**: `http://localhost:5100`
+- **Frontend**: `http://localhost:3100` (Playwright `webServer`로 자동 실행)
+
+### E2E 테스트 실행
+
+```bash
+# 프론트엔드 단독 테스트 (백엔드 서버 불필요)
+nx e2e e2e-frontend
+
+# 크로스 서비스 E2E 테스트 (로컬 E2E or 도커 컨테이너 사전 실행 필요)
+pnpm up:all
+nx e2e e2e-cross
+```
+
+E2E 타깃은 `.env.e2e`를 자동으로 로드하므로 별도 export 없이 바로 실행할 수 있습니다.
 
 ## 문서
 

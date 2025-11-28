@@ -1,0 +1,11 @@
+{
+  "name": "@reelnote/e2e-env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "E2E 테스트 환경 오케스트레이션"
+}
+
+
+
+

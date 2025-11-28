@@ -5,7 +5,6 @@ import type { ApplicationConfig } from "./application.config.js";
  *
  * 정책:
  * - development: localhost:* 패턴 허용 (유연성)
- * - e2e: 환경 변수에서 지정한 origin만 허용 (엄격)
  * - production: 환경 변수에서 지정한 origin만 허용 (보안)
  */
 export function buildCorsOptions(appConfig: ApplicationConfig) {
@@ -27,7 +26,7 @@ export function buildCorsOptions(appConfig: ApplicationConfig) {
         }
       }
 
-      // prod / e2e: env 기반
+      // production: env 기반 (엄격)
       if (origin && allowedOrigins.includes(origin)) {
         return callback(null, true);
       }

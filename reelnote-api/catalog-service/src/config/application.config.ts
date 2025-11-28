@@ -23,12 +23,12 @@ export class ApplicationConfig {
    * Node 환경
    * 기본값: development
    */
-  get nodeEnv(): "development" | "production" | "test" | "e2e" {
+  get nodeEnv(): "development" | "production" | "test" {
     return (
-      (this.configService.get<"development" | "production" | "test" | "e2e">(
+      (this.configService.get<"development" | "production" | "test">(
         "NODE_ENV",
         { infer: true },
-      ) as "development" | "production" | "test" | "e2e") ?? "development"
+      ) as "development" | "production" | "test") ?? "development"
     );
   }
 
