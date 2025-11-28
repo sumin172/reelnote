@@ -1,4 +1,12 @@
-import { Controller, Get, HttpCode, HttpStatus, Res } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Res,
+  Version,
+  VERSION_NEUTRAL,
+} from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import type { Response } from "express";
 import { HealthService } from "./health.service.js";
@@ -16,6 +24,7 @@ export class HealthController {
    * K8s Liveness Probe용 엔드포인트
    */
   @Get("health/live")
+  @Version(VERSION_NEUTRAL)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Liveness 체크",
@@ -30,6 +39,7 @@ export class HealthController {
    * K8s Readiness Probe용 엔드포인트
    */
   @Get("health/ready")
+  @Version(VERSION_NEUTRAL)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Readiness 체크",
@@ -51,6 +61,7 @@ export class HealthController {
    * Prometheus 메트릭 엔드포인트
    */
   @Get("metrics")
+  @Version(VERSION_NEUTRAL)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: "Prometheus 메트릭",

@@ -38,21 +38,9 @@
 - 커스텀 값(`ok`, `error` 등) 사용 금지
 - 프레임워크별 변환은 상위 레이어(게이트웨이/모니터링)에서 처리
 
-### 1-3. checks 구조 가이드라인
+### 1-3. checks 구조
 
-#### 포함 기준
-- **readiness에 포함**: 서비스가 트래픽을 받을 수 있는지 판단하는 핵심 의존성
-  - 데이터베이스 연결
-  - 필수 캐시 (Redis 등)
-
-- **제외 또는 별도 처리**: 외부 API, 선택적 의존성
-  - 외부 API는 실패해도 서비스 전체를 `DOWN`으로 보지 않음
-  - 필요시 `checks`에 `DEGRADED` 상태로 표시하거나 별도 엔드포인트 제공
-
-#### 타임아웃 및 보호
-- 외부 연동 체크는 **짧은 타임아웃** (예: 1초 이내)
-- 실패해도 전체 `status`는 `UP` 유지
-- 헬스 체크가 서비스 DDOS가 되지 않도록 주의
+`checks`는 readiness에만 포함하며, 서비스가 트래픽을 받을 수 있는지 판단하는 핵심 의존성(DB, 필수 캐시)만 포함합니다.
 
 ---
 
@@ -88,6 +76,13 @@
 - **인증**: 필요 (ADMIN/MONITOR 역할)
 - **응답**: Actuator 표준 형식 유지
 
+#### Prometheus 메트릭 (`/actuator/prometheus`, `/metrics`)
+- **목적**: Prometheus 스크래핑용 메트릭
+- **인증**:
+  - Review Service: ADMIN 권한 필요 (`/actuator/prometheus`)
+  - Catalog Service: 인증 없음 (`/metrics`)
+- **응답**: Prometheus 형식 (text/plain)
+
 ### 2-3. 게이트웨이 전략
 
 > **게이트웨이가 생겨도 K8s의 readiness/liveness는 각 서비스로 직접 날린다.**
@@ -103,44 +98,34 @@
 ### 3-1. Catalog Service (NestJS)
 
 #### 엔드포인트
-- ✅ `/health/live` - Liveness 체크
-- ✅ `/health/ready` - Readiness 체크
+- `/health/live` - Liveness 체크
+- `/health/ready` - Readiness 체크
+- `/metrics` - Prometheus 메트릭
 
 #### 구현 요구사항
-- `status`: `UP`/`DOWN` 사용 (기존 `ok`/`error` 제거)
-- `version`: `package.json`에서 읽어서 애플리케이션 시작 시 메모리에 캐시
+- `status`: `UP`/`DOWN` 사용
+- `version`: `package.json`에서 읽어서 시작 시 메모리에 캐시
 - `checks`: readiness에만 포함 (database 등)
-
-#### 버전 읽기 방식
-```typescript
-// 애플리케이션 시작 시 한 번만 읽기
-const packageJson = JSON.parse(readFileSync('package.json', 'utf-8'));
-const version = packageJson.version; // 메모리에 저장
-```
 
 ### 3-2. Review Service (Spring Boot)
 
 #### 엔드포인트
-- ✅ `/health/live` - Liveness 체크 (신규, PublicHealthController)
-- ✅ `/health/ready` - Readiness 체크 (신규, PublicHealthController)
-- ✅ `/actuator/health/**` - 상세 Health (기존 유지, 인증 필요)
+- `/health/live` - Liveness 체크
+- `/health/ready` - Readiness 체크
+- `/actuator/health/**` - 상세 Health (인증 필요)
+- `/actuator/prometheus` - Prometheus 메트릭 (인증 필요)
 
 #### 구현 요구사항
-- `PublicHealthController` 추가: Actuator health를 공통 스펙 형식으로 변환
-- `ServiceMetaHealthIndicator` 추가: 서비스 메타 정보 제공
+- `PublicHealthController`: Actuator health를 공통 스펙 형식으로 변환
+- `ServiceMetaHealthIndicator`: 서비스 메타 정보 제공
 - `status`: Actuator 표준 (`UP`/`DOWN`) 사용
 - `version`: `build.gradle.kts` → `application.yml` 또는 `META-INF/build-info.properties`
 
 #### SecurityConfig
 ```kotlin
-requestMatchers("/health/**").permitAll()  // liveness/readiness
-requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
+requestMatchers("/health/**").permitAll()
+requestMatchers("/actuator/**").hasRole("ADMIN")
 ```
-
-#### 버전 읽기 방식
-- **방법 1**: `build.gradle.kts`에서 `application.yml`로 주입
-- **방법 2**: `META-INF/build-info.properties` 생성 후 Spring Boot `BuildProperties` 사용
-- **원칙**: 빌드 아티팩트에 박힌 값을 읽고, 실행 중 환경변수로 override 하지 않음
 
 ---
 
@@ -158,12 +143,10 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
 
 ### 4-2. checks 포함 기준
 
-> **checks는 "장난감처럼 막 늘리기"보다**
->
-> **서비스 SLA 기준으로 "이게 죽으면 진짜로 이 서비스를 죽었다고 볼 거냐"를 먼저 정의하고 넣자.**
+> **checks는 "장난감처럼 막 늘리기"보다 서비스 SLA 기준으로 "이게 죽으면 진짜로 이 서비스를 죽었다고 볼 거냐"를 먼저 정의하고 넣자.**
 
 - **포함**: DB, 필수 캐시 (서비스가 동작하지 못하는 핵심 의존성)
-- **제외 또는 별도 처리**: 외부 API (실패해도 서비스는 동작 가능)
+- **제외**: 외부 API (실패해도 서비스는 동작 가능)
 - **타임아웃**: 외부 연동 체크는 1초 이내, 실패해도 전체 status는 UP 유지
 
 ### 4-3. 인증 정책
@@ -172,12 +155,11 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
 - **엔드포인트별 고정**:
   - `/health/**`: 항상 인증 없음 (내부망 전제)
   - `/actuator/**`: 항상 인증 필요 (ADMIN/MONITOR)
+  - `/metrics` (Catalog Service): 인증 없음
 
 ### 4-4. 프레임워크 독립성
 
-- 각 서비스는 프레임워크 표준 도구 사용 (Actuator, NestJS Health 등)
-- 응답 형식만 공통 스펙으로 통일
-- 프레임워크 전환 시에도 `/health/**` 경로는 유지
+각 서비스는 프레임워크 표준 도구를 사용하되, 응답 형식만 공통 스펙으로 통일합니다. 프레임워크 전환 시에도 `/health/**` 경로는 유지됩니다.
 
 ### 4-5. 로깅 및 메트릭
 
@@ -186,14 +168,20 @@ requestMatchers("/actuator/**").hasRole("ADMIN")  // 상세 health
 - **실패 로그**: `warn` 또는 `error` 레벨로만 기록
 - 실패 시 컨텍스트 정보 포함 (어떤 체크가 실패했는지)
 
-#### 메트릭
-- **헬스 체크 실패 카운터** 추가
-  - 메트릭 이름: `health_check_failures_total` (또는 프레임워크별 표준)
-  - 태그: `endpoint` (live/ready), `service`, `check` (database 등)
-- 목적: "헬스 체크가 흔들렸다"를 바로 확인 가능
-- 예시:
-  - Spring Boot: Micrometer `Counter` 사용
-  - NestJS: Prometheus 메트릭 또는 커스텀 카운터
+#### 메트릭 컨벤션
+
+**기본 원칙**: 공통 개념은 메트릭 이름 공유 + 라벨(태그)로 구분
+
+- **메트릭 이름**: `health_check_failures_total` (모든 서비스 공통)
+- **필수 라벨**: `service` (catalog-service, review-service), `endpoint` (live, ready)
+- **선택 라벨**: `check` (database, tmdb, redis 등, 필요할 때만 사용)
+- **타입**: Counter (실패 횟수 누적)
+
+**예시**:
+```promql
+health_check_failures_total{service="catalog-service", endpoint="ready", check="database"}
+health_check_failures_total{service="review-service", endpoint="live"}
+```
 
 ---
 

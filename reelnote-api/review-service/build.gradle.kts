@@ -30,17 +30,22 @@ dependencyManagement {
         mavenBom("com.fasterxml.jackson:jackson-bom:2.20.1")
         mavenBom("org.testcontainers:testcontainers-bom:2.0.1")
     }
+    dependencies {
+        // CVE-2025-48924 취약점 보완: commons-lang3 3.18.0 이상 강제
+        dependency("org.apache.commons:commons-lang3:3.19.0")
+        // WS-2019-0379 취약점 보완: commons-codec 1.13-RC1 이상 강제
+        dependency("commons-codec:commons-codec:1.16.1")
+    }
 }
 
 dependencies {
-    implementation("org.apache.commons:commons-lang3:3.19.0")
-
     // Spring Boot Starters
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("org.springframework.boot:spring-boot-starter-security")
 

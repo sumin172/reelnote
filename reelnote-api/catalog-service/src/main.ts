@@ -1,4 +1,9 @@
-import { Logger, ValidationPipe, VersioningType } from "@nestjs/common";
+import {
+  Logger,
+  ValidationPipe,
+  VersioningType,
+  RequestMethod,
+} from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { AppModule } from "./app/app.module.js";
@@ -14,8 +19,15 @@ async function bootstrap() {
   const appConfig = app.get(ApplicationConfig);
 
   // 글로벌 접두사
+  // health와 metrics 엔드포인트는 /api prefix 없이 접근 가능하도록 제외
   const globalPrefix = "api";
-  app.setGlobalPrefix(globalPrefix);
+  app.setGlobalPrefix(globalPrefix, {
+    exclude: [
+      { path: "health/live", method: RequestMethod.GET },
+      { path: "health/ready", method: RequestMethod.GET },
+      { path: "metrics", method: RequestMethod.GET },
+    ],
+  });
 
   // API 버전 관리
   const defaultVersion = "1";

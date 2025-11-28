@@ -19,8 +19,7 @@
 
 - **Port 계약**은 애플리케이션 계층에 위치하고, Adapter는 해당 계약을 구현합니다.
 - Catalog Service의 `domain/application/infrastructure/interfaces` 구조와 1:1로 매칭됩니다.
-- `application/ReviewService`는 명령(Create/Update/Delete)을 담당하고, `application/ReviewQueryService`는 조회(Read)를 담당하는 CQRS 패턴을 따릅니다.
-- `infrastructure/catalog/`는 Catalog Service와의 통신을 담당하는 Outbound Adapter입니다.
+- CQRS 패턴: `ReviewService`(명령), `ReviewQueryService`(조회)
 
 ## 3. 도메인 모델
 
@@ -170,48 +169,48 @@ review_tags (app.review_tags)
 
 ## 11. 모니터링 & 운영
 
-- **헬스체크**: `/health/live` (Liveness), `/health/ready` (Readiness) - K8s 프로브용
-- **상세 헬스체크**: Spring Actuator `/actuator/health` (인증 필요, 모니터링 도구용)
-- **메트릭**: Spring Actuator `/actuator/metrics`, 헬스 체크 실패 카운터 (`health_check_failures_total`)
+- **헬스체크**: `/health/live`, `/health/ready`
+- **Actuator**: `/actuator/health`, `/actuator/prometheus`, `/actuator/metrics` (인증 필요)
+- **메트릭**: 헬스 체크 실패 카운터 (`health_check_failures_total`)
 - **로깅**: 구조화된 로깅 (SLF4J + Logback), 헬스 체크 실패 시에만 로그 기록
 - **TraceId**: 모든 로그에 traceId 포함 (MDC 활용)
 - **배포 고려사항**: Flyway 마이그레이션, PostgreSQL 연결 풀 설정, 환경별 프로파일
 
-### 11.1 메트릭 컨벤션
+### 11.0 API 경로 Prefix 규칙
 
-**기본 원칙**: 공통 개념은 메트릭 이름 공유 + 라벨(태그)로 구분
+`WebMvcConfig`의 `addPathPrefix("/api")`는 `@RestController` 컨트롤러와 Springdoc `api-docs`에만 적용됩니다.
 
-#### 메트릭 이름 컨벤션
+#### 경로 매핑 요약
 
-- 공통 개념은 하나의 메트릭 이름 사용
-- 예: `health_check_failures_total` (모든 서비스 공통)
-- 서비스 구분은 라벨(`service`)로 처리
-- 네임스페이스가 필요하면 Prometheus Recording Rule로 `reelnote_health_check_failures_total` 생성 가능
+| 항목 | 설정 파일 경로 | 실제 접근 경로 |
+|------|--------------|--------------|
+| `@RestController` 컨트롤러 | `/v1/reviews` | `/api/v1/reviews` |
+| Health Check | `/health/ready` | `/health/ready` |
+| Springdoc api-docs | `/docs-json` | `/api/docs-json` |
+| Actuator | 생략 (기본값 `/actuator`) | `/actuator/**` |
+| Springdoc swagger-ui | `/api/docs` | `/api/docs` |
 
-#### 공통 라벨 (태그)
+#### 설정 파일 작성 규칙
 
-**필수 라벨:**
-- `service`: 서비스 식별자 (`catalog-service`, `review-service`)
-- `endpoint`: 엔드포인트 (`live`, `ready`)
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
 
-**선택 라벨:**
-- `check`: 체크 대상 (`database`, `tmdb`, `redis` 등, 필요할 때만 사용)
-
-#### 메트릭 타입
-
-- **타입**: Counter (`health_check_failures_total`은 실패 횟수를 누적하는 카운터 메트릭)
-
-#### 예시
-
-```promql
-# 특정 체크 대상이 있는 경우
-health_check_failures_total{service="catalog-service", endpoint="ready", check="database"}
-
-# 단순 health 실패 (세분화 안함)
-health_check_failures_total{service="review-service", endpoint="live"}
+springdoc:
+  api-docs:
+    path: /docs-json  # → /api/docs-json
+  swagger-ui:
+    path: /api/docs   # → /api/docs
 ```
 
-이 컨벤션은 Catalog Service와 동일하게 적용되어, PromQL에서 서비스 간 메트릭을 일관되게 쿼리할 수 있습니다.
+**주의**: `api-docs`에 `/api`를 포함하면 `/api/api/docs-json`이 됩니다.
+
+### 11.1 메트릭 컨벤션
+
+메트릭 컨벤션은 [Health Check 표준 스펙](../../docs/specs/health-check.md#4-5-로깅-및-메트릭)을 참고하세요.
 
 ## 12. 공용 용어 (Review ↔ Catalog)
 

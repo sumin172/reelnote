@@ -19,8 +19,8 @@ import java.time.Instant
  * Public Health Check Controller
  *
  * K8s 프로브용 공개 헬스 체크 엔드포인트
- * - /health/live: Liveness 체크 (프로세스/스레드 상태)
- * - /health/ready: Readiness 체크 (DB 등 핵심 의존성)
+ * - /health/live: Liveness 체크 (프로세스/스레드 상태) - WebMvcConfig에서 제외되어 /api prefix 없음
+ * - /health/ready: Readiness 체크 (DB 등 핵심 의존성) - WebMvcConfig에서 제외되어 /api prefix 없음
  *
  * Actuator의 health를 공통 스펙 형식으로 변환하여 제공
  */
@@ -101,7 +101,7 @@ class PublicHealthController(
         val checks = extractChecks((health as? Health)?.details)
 
         val response =
-            buildMap<String, Any> {
+            buildMap {
                 put("status", status)
                 put("timestamp", Instant.now().toString())
                 put("service", appName)

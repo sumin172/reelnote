@@ -73,7 +73,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when-authorized
@@ -82,11 +82,17 @@ management:
 
 # OpenAPI 설정
 # info 설정은 OpenApiConfig.kt에서 코드로 관리합니다.
+#
+# ⚠️ 중요: Springdoc 경로 설정 규칙
+# - api-docs.path: /docs-json (WebMvcConfig prefix 적용됨 → 실제 접근: /api/docs-json)
+#   → 설정 파일에 /api를 포함하면 안됨 (이중으로 붙어서 /api/api/docs-json이 됨)
+# - swagger-ui.path: /api/docs (WebMvcConfig prefix 적용 안됨 → 실제 접근: /api/docs)
+#   → 설정 파일에 /api 포함 필요
 springdoc:
   api-docs:
-    path: /api/docs-json
+    path: /docs-json  # WebMvcConfig가 /api 추가 → 실제 접근: /api/docs-json
   swagger-ui:
-    path: /api/docs
+    path: /api/docs  # WebMvcConfig 적용 안됨 → 실제 접근: /api/docs
     operationsSorter: method
 
 # App custom settings

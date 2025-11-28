@@ -19,9 +19,6 @@
 
 - **Port 계약**은 애플리케이션 계층에 위치하고, Adapter는 해당 계약을 구현합니다.
 - Review Service의 `domain/application/infrastructure/interfaces` 구조와 1:1로 매칭됩니다.
-- `movies/application/jobs`는 대량 임포트를 비동기로 처리하는 `ImportMoviesJobService`를 제공하며, Facade에서 임계치에 따라 즉시/큐 처리를 분기합니다.
-- `movies/application/dto`는 UseCase 결과를 API DTO로 변환하는 Presenter를 포함해 계층 간 데이터 누수를 방지합니다.
-- `movies/infrastructure/{cache,external,persistence}`는 Port 구현을 세분화해 캐시/외부 API/DB 접근을 모듈별로 캡슐화합니다.
 
 ## 3. Resilience Layer
 
@@ -288,47 +285,13 @@ user_profile (user_id PK)
 - **카탈로그 지표**: 캐시 히트율, 동기화 지연, 응답 시간(p50/p95/p99)
 - **Resilience 지표**: 재시도 횟수, 서킷브레이커 상태 이벤트, 레이트리밋 대기 시간
 - **헬스체크**: `/health/live` (Liveness), `/health/ready` (Readiness) - K8s 프로브용
-- **메트릭**: Prometheus 메트릭 엔드포인트 `/metrics` 제공, 헬스 체크 실패 카운터 (`health_check_failures_total`)
+- **메트릭**: Prometheus 메트릭 엔드포인트 `/metrics`, 헬스 체크 실패 카운터 (`health_check_failures_total`)
 - **배포 고려사항**: Prisma Migrate, Redis 고가용성, PostgreSQL 리드 리플리카
 - **CORS 정책**: `NODE_ENV=development`에서는 localhost 허용, 운영/테스트는 `CORS_ORIGINS`로 명시적 제어
 
 ### 9.1 메트릭 컨벤션
 
-**기본 원칙**: 공통 개념은 메트릭 이름 공유 + 라벨(태그)로 구분
-
-#### 메트릭 이름 컨벤션
-
-- 공통 개념은 하나의 메트릭 이름 사용
-- 예: `health_check_failures_total` (모든 서비스 공통)
-- 서비스 구분은 라벨(`service`)로 처리
-- 네임스페이스가 필요하면 Prometheus Recording Rule로 `reelnote_health_check_failures_total` 생성 가능
-
-#### 공통 라벨 (태그)
-
-**필수 라벨:**
-
-- `service`: 서비스 식별자 (`catalog-service`, `review-service`)
-- `endpoint`: 엔드포인트 (`live`, `ready`)
-
-**선택 라벨:**
-
-- `check`: 체크 대상 (`database`, `tmdb`, `redis` 등, 필요할 때만 사용)
-
-#### 메트릭 타입
-
-- **타입**: Counter (`health_check_failures_total`은 실패 횟수를 누적하는 카운터 메트릭)
-
-#### 예시
-
-```promql
-# 특정 체크 대상이 있는 경우
-health_check_failures_total{service="catalog-service", endpoint="ready", check="database"}
-
-# 단순 health 실패 (세분화 안함)
-health_check_failures_total{service="review-service", endpoint="live"}
-```
-
-이 컨벤션은 Review Service와 동일하게 적용되어, PromQL에서 서비스 간 메트릭을 일관되게 쿼리할 수 있습니다.
+메트릭 컨벤션은 [Health Check 표준 스펙](../../docs/specs/health-check.md#4-5-로깅-및-메트릭)을 참고하세요.
 
 ## 10. 공용 용어 (Review ↔ Catalog)
 

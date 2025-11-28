@@ -81,6 +81,19 @@ src/main/kotlin/app/reelnote/review/
 - **Swagger UI**: http://localhost:5000/api/docs
 - **OpenAPI JSON**: http://localhost:5000/api/docs-json
 
+### 2-1. 모니터링 엔드포인트
+
+- **Health Check** (인증 없음):
+  - `GET /health/live` - Liveness 체크
+  - `GET /health/ready` - Readiness 체크
+- **Actuator** (ADMIN 권한 필요):
+  - `GET /actuator/health` - 상세 Health 정보
+  - `GET /actuator/prometheus` - Prometheus 메트릭
+  - `GET /actuator/metrics` - 메트릭 목록
+  - `GET /actuator/info` - 애플리케이션 정보
+
+> **참고**: Actuator 엔드포인트는 Basic Authentication 필요 (username: `admin`, password: `admin123`)
+
 ### 3. 데이터베이스 연결 (개발 환경)
 
 - **PostgreSQL**: `localhost:5433/review_db`

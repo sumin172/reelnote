@@ -12,7 +12,8 @@ class WebMvcConfig : WebMvcConfigurer {
         // RestController가 있는 컨트롤러에만 /api prefix 추가
         // 예: RequestMapping("/v1/reviews") -> /api/v1/reviews
         configurer.addPathPrefix("/api") { clazz ->
-            clazz.isAnnotationPresent(RestController::class.java)
+            clazz.isAnnotationPresent(RestController::class.java) &&
+                !clazz.simpleName.equals("PublicHealthController", ignoreCase = true)
         }
     }
 }
