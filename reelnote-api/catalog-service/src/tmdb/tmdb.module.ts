@@ -2,8 +2,8 @@ import { Module } from "@nestjs/common";
 import { HttpModule, HttpService } from "@nestjs/axios";
 import { TmdbClient } from "./tmdb.client.js";
 import { TmdbService } from "./tmdb.service.js";
-import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TmdbConfig } from "../config/tmdb.config.js";
+import { TmdbConfigModule } from "../config/tmdb-config.module.js";
 import { MessageService } from "../i18n/message.service.js";
 
 /**
@@ -17,38 +17,21 @@ import { MessageService } from "../i18n/message.service.js";
  */
 @Module({
   imports: [
-    // ConfigModule을 import하여 ConfigService를 사용 가능하게 함
-    ConfigModule,
+    TmdbConfigModule,
     // HttpModule.registerAsync를 사용하여 동적으로 HttpModule 등록
-    // ConfigService를 직접 inject하여 사용
     HttpModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const timeout =
-          configService.get<number>("TMDB_API_TIMEOUT", { infer: true }) ??
-          10000;
-        const baseUrl =
-          configService.get<string>("TMDB_API_BASE_URL", { infer: true }) ??
-          "https://api.themoviedb.org/3";
+      imports: [TmdbConfigModule],
+      inject: [TmdbConfig],
+      useFactory: (tmdbConfig: TmdbConfig) => {
         return {
-          timeout,
+          timeout: tmdbConfig.timeout,
           maxRedirects: 5,
-          baseURL: baseUrl,
+          baseURL: tmdbConfig.baseUrl,
         };
       },
     }),
   ],
   providers: [
-    // TmdbConfig를 factory로 등록하여 ConfigService 의존성 주입 보장
-    // ConfigModule이 isGlobal이므로 ConfigService는 자동으로 주입 가능
-    {
-      provide: TmdbConfig,
-      useFactory: (configService: ConfigService) => {
-        return new TmdbConfig(configService);
-      },
-      inject: [ConfigService],
-    },
     // TmdbClient를 factory로 등록하여 HttpService와 TmdbConfig가 준비된 후에 생성되도록 보장
     {
       provide: TmdbClient,

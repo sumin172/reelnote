@@ -1,29 +1,22 @@
 import { Module, Global, Logger } from "@nestjs/common";
 import { ModuleRef } from "@nestjs/core";
-import { ConfigModule, ConfigService } from "@nestjs/config";
 import { CacheModule as NestCacheModule } from "@nestjs/cache-manager";
 import { CacheService } from "./cache.service.js";
 import { IoredisStore } from "./ioredis-store.js";
 import { CacheConfig } from "../config/cache.config.js";
+import { CacheConfigModule } from "../config/cache-config.module.js";
 
 @Global()
 @Module({
   imports: [
-    ConfigModule,
+    CacheConfigModule,
     NestCacheModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService, ModuleRef],
-      useFactory: async (
-        configService: ConfigService,
-        moduleRef: ModuleRef,
-      ) => {
+      imports: [CacheConfigModule],
+      inject: [CacheConfig, ModuleRef],
+      useFactory: async (cacheConfig: CacheConfig, moduleRef: ModuleRef) => {
         const logger = new Logger("CacheModule");
 
-        // Redis가 설정되어 있으면 사용 시도, 아니면 인메모리 캐시
-        const ttlSeconds =
-          configService.get<number>("CACHE_TTL_SECONDS", { infer: true }) ??
-          3600;
-        const ttl = ttlSeconds > 0 ? ttlSeconds * 1000 : undefined;
+        const ttl = cacheConfig.ttlMs;
 
         // IoredisStore를 optional로 가져오기 (provider가 null을 반환할 수 있음)
         let redisStore: IoredisStore | null = null;
@@ -61,26 +54,18 @@ import { CacheConfig } from "../config/cache.config.js";
     }),
   ],
   providers: [
-    CacheConfig,
     CacheService,
     {
       provide: IoredisStore,
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService): IoredisStore | null => {
-        const redisUrlEnv = configService.get<string>("REDIS_URL", {
-          infer: true,
-        });
-        const redisUrl =
-          redisUrlEnv && redisUrlEnv.trim() !== "" ? redisUrlEnv : undefined;
+      inject: [CacheConfig],
+      useFactory: (cacheConfig: CacheConfig): IoredisStore | null => {
+        const redisUrl = cacheConfig.redisUrl;
 
         if (!redisUrl) {
           return null;
         }
 
-        const namespace =
-          configService.get<string>("CACHE_NAMESPACE", { infer: true }) ??
-          "catalog-cache";
-        return new IoredisStore(redisUrl, namespace);
+        return new IoredisStore(redisUrl, cacheConfig.namespace);
       },
     },
   ],
