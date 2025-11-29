@@ -14,6 +14,8 @@ data/
 .env.test.local
 .env.production.local
 .env.e2e
+# E2E Docker override (개인 API 키 등)
+tests/e2e-env/config/e2e.docker.override.env
 # Keep env.example files
 !**/env.example
 !.env.example

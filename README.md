@@ -89,7 +89,7 @@
 
 ```bash
 # 전체 서비스 기동 (DB + Redis + Catalog + Review)
-pnpm up
+pnpm up:all
 
 # DB + Redis만 기동 (로컬 서버와 함께 사용)
 pnpm up:db
@@ -111,7 +111,7 @@ pnpm down
 nx e2e e2e-frontend
 
 # 크로스 서비스 E2E 테스트 (로컬 E2E or 도커 컨테이너 사전 실행 필요)
-pnpm up
+pnpm up:all
 nx e2e e2e-cross
 ```
 

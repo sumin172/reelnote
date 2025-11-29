@@ -52,6 +52,12 @@ services:
     container_name: catalog-service-e2e
     ports:
       - "4100:4100"
+    # merge-env.mjs가 생성한 환경 변수 파일 사용
+    # base.env + e2e.docker.override.env 병합 결과가 tests/.env.e2e에 생성됨
+    env_file:
+      - ../../.env.e2e
+    # environment 섹션은 env_file보다 우선순위가 높음
+    # 도커 전용 값들(호스트명 등)은 여기에 명시하여 env_file 값을 오버라이드
     environment:
       - NODE_ENV=development
       - PORT=4100

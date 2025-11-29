@@ -108,8 +108,8 @@ export class TmdbClient implements OnModuleDestroy {
     this.registerCircuitBreakerEvents();
 
     this.logger.debug(
-      `TMDB API 클라이언트 초기화: timeout=${this.timeout}ms, concurrency=${resolvedConcurrency}, retries=${resolvedRetries}, keyLength=${this.apiKey.length}, keyPreview=${this.maskToken(
-        this.apiKey,
+      `TMDB API 클라이언트 초기화: timeout=${this.timeout}ms, concurrency=${resolvedConcurrency}, retries=${resolvedRetries}, keyLength=${this.apiKey?.length ?? 0}, keyPreview=${this.maskToken(
+        this.apiKey ?? "",
       )}`,
     );
   }

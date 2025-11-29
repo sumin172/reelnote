@@ -15,7 +15,14 @@ export class TmdbConfig {
    * TMDB API Key (필수)
    */
   get apiKey(): string {
-    return this.configService.get<string>("TMDB_API_KEY", { infer: true })!;
+    const key = this.configService.get<string>("TMDB_API_KEY", { infer: true });
+    // env.validation.ts에서 필수로 검증하지만, 런타임 안전성을 위해 체크
+    if (!key) {
+      throw new Error(
+        "TMDB_API_KEY가 설정되지 않았습니다. 환경 변수를 확인해주세요.",
+      );
+    }
+    return key;
   }
 
   /**

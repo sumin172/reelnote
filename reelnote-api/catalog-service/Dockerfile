@@ -18,9 +18,13 @@ COPY nx.json ./
 # Nx 설정 복사
 COPY tools/ ./tools/
 
+# TypeScript 설정 파일 복사 (빌드에 필요)
+COPY tsconfig.base.json tsconfig.node.json tsconfig.json ./
+
 # Catalog Service 의존성 설치
 COPY reelnote-api/catalog-service/package.json ./reelnote-api/catalog-service/
 COPY reelnote-api/catalog-service/prisma ./reelnote-api/catalog-service/prisma/
+COPY reelnote-api/catalog-service/project.json ./reelnote-api/catalog-service/
 
 # 의존성 설치 (루트에서)
 RUN pnpm install --frozen-lockfile
@@ -48,15 +52,14 @@ COPY --from=builder /app/reelnote-api/catalog-service/package.json ./package.jso
 COPY --from=builder /app/reelnote-api/catalog-service/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 
-# Prisma 클라이언트 복사
-COPY --from=builder /app/reelnote-api/catalog-service/node_modules/.prisma ./node_modules/.prisma
-
 # 포트 노출
 EXPOSE 4100
 
 # 헬스체크 (curl 설치)
 RUN apk add --no-cache curl
 
-# 실행
-CMD ["node", "dist/reelnote-api/catalog-service/src/main.js"]
+ENV MAIN_ENTRY=""
+
+# 실행 - package.json의 main 필드를 사용하거나 fallback
+CMD ["sh", "-c", "MAIN_ENTRY=$(node -p \"require('./dist/package.json').main || 'dist/src/main.js'\"); node $MAIN_ENTRY"]
 

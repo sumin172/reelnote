@@ -45,7 +45,7 @@ tests/e2e-env/
 
 ```bash
 # 도커 환경
-pnpm up      # 도커 시작 (전체 서비스)
+pnpm up:all  # 도커 시작 (전체 서비스)
 pnpm up:db   # 도커 시작 (DB + Redis만)
 pnpm down    # 도커 종료
 
@@ -94,7 +94,7 @@ pnpm up:db
 nx run e2e-env:start:docker
 
 # 또는 루트에서
-pnpm up
+pnpm up:all
 ```
 
 실행 순서:

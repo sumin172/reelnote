@@ -39,7 +39,8 @@
         "disableJestRuntime": true
       },
       "exclude": [
-        "tests/e2e-catalog/**/*"
+        "tests/e2e-catalog/**/*",
+        "**/catalog-service/jest.config.cjs"
       ]
     }
   ],
