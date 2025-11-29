@@ -15,7 +15,7 @@
 
 ```bash
 # 빌드 산출물 정리
-pnpm clean:build              # 모든 빌드 산출물 정리
+pnpm clean:build              # 모든 빌드 산출물 정리 + build-logic 자동 재빌드
 pnpm clean:build:dry          # 삭제할 항목만 확인 (실제 삭제 안 함)
 
 # 캐시 정리
@@ -23,7 +23,7 @@ pnpm clean:cache              # Nx 캐시 + IDE 캐시 정리
 pnpm clean:ide                # IDE 캐시만 정리
 
 # 전체 정리
-pnpm clean:all                # 빌드 산출물 + Nx 캐시 + IDE 캐시 모두 정리
+pnpm clean:all                # 빌드 산출물 + Nx 캐시 + IDE 캐시 모두 정리 + build-logic 자동 재빌드
 ```
 
 ## 📦 1. 빌드 산출물 정리 (`clean-build-outputs.ps1`)
@@ -198,6 +198,7 @@ pnpm clean:ide
 
 ```bash
 pnpm clean:all
+# 모든 빌드 산출물과 캐시를 정리한 후 build-logic을 자동으로 재빌드합니다
 ```
 
 ## 📚 관련 문서

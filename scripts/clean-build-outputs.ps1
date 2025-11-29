@@ -8,7 +8,8 @@
 
 param(
     [switch]$DryRun,        # 건조 실행 (실제 삭제 안 함)
-    [switch]$Interactive    # 대화형 모드
+    [switch]$Interactive,   # 대화형 모드
+    [switch]$ForceRebuild   # build-logic 강제 재빌드 (clean:all에서 사용)
 )
 
 Write-Host "🧹 빌드 산출물 정리 시작..." -ForegroundColor Cyan
@@ -268,8 +269,8 @@ if ($DryRun) {
     Write-Host "   삭제된 디렉토리: $cleanedCount개" -ForegroundColor White
     Write-Host "   해제된 공간: $([math]::Round($totalSize, 2)) MB" -ForegroundColor White
 
-    # build-logic이 삭제되었으면 다시 빌드
-    if ($buildLogicCleaned) {
+    # build-logic이 삭제되었거나 강제 재빌드 옵션이 있으면 다시 빌드
+    if ($buildLogicCleaned -or $ForceRebuild) {
         Write-Host "`n🔨 build-logic 재빌드 중..." -ForegroundColor Yellow
         try {
             $gradlewPath = Join-Path $projectRoot "gradlew.bat"

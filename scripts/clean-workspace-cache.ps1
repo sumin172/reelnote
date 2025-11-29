@@ -40,29 +40,52 @@ if (Test-Path $workspaceStoragePath) {
         if ($AllWorkspaces) {
             $shouldClean = $true
         } elseif (Test-Path $workspaceFile) {
-            try {
-                $workspace = Get-Content $workspaceFile -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
-                if ($workspace) {
-                    # 현재 프로젝트와 관련된 워크스페이스 찾기
-                    $folders = if ($workspace.folders) { $workspace.folders } else { @($workspace.folder) }
-                    foreach ($folder in $folders) {
-                        $folderPath = if ($folder.path) { $folder.path } else { $folder }
-                        $folderUri = if ($folder.uri) { $folder.uri } else { $null }
+            # workspace.json 파일을 한 번만 읽기
+            $workspaceContent = Get-Content $workspaceFile -Raw -ErrorAction SilentlyContinue
+            if ($workspaceContent) {
+                try {
+                    $workspace = $workspaceContent | ConvertFrom-Json -ErrorAction Stop
+                    if ($workspace) {
+                        # 현재 프로젝트와 관련된 워크스페이스 찾기
+                        $folders = if ($workspace.folders) { $workspace.folders } else { @($workspace.folder) }
+                        foreach ($folder in $folders) {
+                            $folderPath = if ($folder.path) { $folder.path } else { $folder }
+                            $folderUri = if ($folder.uri) { $folder.uri } else { $null }
 
-                        if ($folderPath -like "*$projectName*" -or
-                            $folderUri -like "*$projectName*" -or
-                            (Test-Path (Join-Path $projectRoot $folderPath))) {
-                            $shouldClean = $true
-                            break
+                            # 프로젝트 경로로 매칭 (절대 경로 확인)
+                            if ($folderPath -and (Test-Path (Join-Path $projectRoot $folderPath) -ErrorAction SilentlyContinue)) {
+                                $shouldClean = $true
+                                break
+                            }
+
+                            # URI나 경로에 프로젝트 이름 포함 여부 확인
+                            if (($folderPath -like "*$projectName*") -or ($folderUri -like "*$projectName*")) {
+                                $shouldClean = $true
+                                break
+                            }
+
+                            # 현재 워크스페이스 파일명으로 매칭
+                            if ($currentWorkspacePath -and $folderUri -like "*$([System.IO.Path]::GetFileName($currentWorkspacePath))*") {
+                                $shouldClean = $true
+                                break
+                            }
                         }
                     }
+                } catch {
+                    # JSON 파싱 실패 시 원본 텍스트로 확인
+                    if ($workspaceContent -like "*$projectName*" -or
+                        ($currentWorkspacePath -and $workspaceContent -like "*$([System.IO.Path]::GetFileName($currentWorkspacePath))*")) {
+                        $shouldClean = $true
+                    }
                 }
-            } catch {
-                # JSON 파싱 실패 시 state.vscdb 파일 확인
+            }
+
+            # state.vscdb 파일도 확인 (JSON 파싱 실패 시 대비)
+            if (-not $shouldClean) {
                 $stateFile = "$($cache.FullName)\state.vscdb"
                 if (Test-Path $stateFile) {
-                    $content = Get-Content $stateFile -Raw -ErrorAction SilentlyContinue
-                    if ($content -and $content -like "*$projectName*") {
+                    $stateContent = Get-Content $stateFile -Raw -ErrorAction SilentlyContinue
+                    if ($stateContent -and $stateContent -like "*$projectName*") {
                         $shouldClean = $true
                     }
                 }
