@@ -1,13 +1,14 @@
 name: Lint
 
 on:
-  pull_request:
   push:
     branches-ignore:
+      - 'main'
+      - 'master'
       - 'dependabot/**'
 
 concurrency:
-  group: lint-${{ github.event.pull_request.number || github.ref }}
+  group: lint-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
