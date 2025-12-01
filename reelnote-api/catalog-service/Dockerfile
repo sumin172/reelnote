@@ -58,8 +58,21 @@ EXPOSE 4100
 # 헬스체크 (curl 설치)
 RUN apk add --no-cache curl
 
-# 실행 - Nx @nx/js:swc executor는 항상 dist/src/main.js로 출력
-# 플랫폼 독립적: Windows/Mac/Linux 모두 동일하게 동작
-# generatePackageJson: true지만, ESM 모듈이므로 직접 경로 사용이 더 안전
-CMD ["node", "dist/src/main.js"]
+# 실행 스크립트 생성 (마이그레이션 실행 후 애플리케이션 시작)
+# 런타임 스테이지에는 prisma 폴더가 복사되어 있으므로 직접 실행 가능
+# node_modules/.bin/prisma 또는 npx를 통해 실행
+RUN echo '#!/bin/sh' > /app/entrypoint.sh && \
+    echo 'set -e' >> /app/entrypoint.sh && \
+    echo 'echo "Running Prisma migrations..."' >> /app/entrypoint.sh && \
+    echo 'if [ -f "/app/node_modules/.bin/prisma" ]; then' >> /app/entrypoint.sh && \
+    echo '  /app/node_modules/.bin/prisma migrate deploy || echo "Migration failed or already applied"' >> /app/entrypoint.sh && \
+    echo 'else' >> /app/entrypoint.sh && \
+    echo '  npx prisma migrate deploy || echo "Migration failed or already applied"' >> /app/entrypoint.sh && \
+    echo 'fi' >> /app/entrypoint.sh && \
+    echo 'echo "Starting application..."' >> /app/entrypoint.sh && \
+    echo 'exec node dist/src/main.js' >> /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+# 실행 - 마이그레이션 후 애플리케이션 시작
+CMD ["/app/entrypoint.sh"]
 

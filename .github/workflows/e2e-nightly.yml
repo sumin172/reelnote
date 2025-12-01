@@ -36,6 +36,9 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Generate Prisma Client
+        run: pnpm nx run catalog-service:prisma:generate
+
       - name: Pre-generate API schema
         continue-on-error: true
         run: pnpm api-schema:generate
