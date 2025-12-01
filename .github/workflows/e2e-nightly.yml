@@ -14,14 +14,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+          node-version: '24'
+          cache: 'pnpm'
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -82,5 +82,13 @@ jobs:
 
       - name: Tear down compose environment
         if: always()
-        run: pnpm down
+        run: |
+          if command -v pnpm &> /dev/null; then
+            pnpm down
+          else
+            # pnpm이 없어도 docker compose를 직접 사용하여 정리
+            cd tests/e2e-env/docker
+            docker compose down || true
+            docker rm -f catalog-service-e2e review-service-e2e || true
+          fi
 
