@@ -25,6 +25,16 @@ tasks.named("bootRun") {
     dependsOn("bootBuildInfo")
 }
 
+// generateOpenApiDocs 태스크에서 사용하는 forkedSpringBootRun에 환경 변수 전달
+// springdoc-openapi-gradle-plugin이 내부적으로 이 태스크를 사용하여 애플리케이션을 시작함
+// JavaExecFork 타입이지만 ProcessForkOptions를 구현하므로 environment 속성 사용 가능
+tasks.configureEach {
+    if (name == "forkedSpringBootRun") {
+        val env = (this as? ProcessForkOptions)?.environment
+        env?.putAll(System.getenv())
+    }
+}
+
 dependencyManagement {
     imports {
         mavenBom("com.fasterxml.jackson:jackson-bom:2.20.1")
@@ -85,7 +95,10 @@ dependencies {
 }
 
 openApi {
-    apiDocsUrl.set("http://localhost:5000/api/docs-json")
+    // 환경 변수 SERVER_PORT를 읽어서 동적으로 포트 설정 (기본값: 5000)
+    // CI 도커 환경에서는 docker-compose.yml에서 SERVER_PORT=5100이 설정됨
+    val serverPort = System.getenv("SERVER_PORT")?.toIntOrNull() ?: 5000
+    apiDocsUrl.set("http://localhost:$serverPort/api/docs-json")
     // workspace 루트 기준으로 최종 위치에 직접 생성 (catalog-service와 통일)
     outputDir.set(file("../../packages/api-schema/generated"))
     outputFileName.set("review-service-openapi.json")
