@@ -56,10 +56,6 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm nx run catalog-service:prisma:generate
 
-      - name: Pre-generate API schema
-        continue-on-error: true
-        run: pnpm api-schema:generate
-
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
@@ -69,6 +65,10 @@ jobs:
       - name: Wait for services to be ready
         run: node tests/e2e-env/scripts/wait-for-services.mjs
         timeout-minutes: 5
+
+      - name: Generate API schema
+        continue-on-error: true
+        run: pnpm api-schema:generate
 
       - name: Run affected E2E suites
         env:
