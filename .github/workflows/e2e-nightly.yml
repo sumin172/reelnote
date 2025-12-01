@@ -64,7 +64,7 @@ jobs:
 
       - name: Generate API schema
         continue-on-error: true
-        run: pnpm api-schema:generate
+        run: node tools/scripts/run-with-env.mjs tests/.env.e2e pnpm api-schema:generate
 
       - name: Run full E2E matrix
         run: |

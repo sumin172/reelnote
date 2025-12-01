@@ -51,11 +51,13 @@ const result = spawnSync(
         stdio: "inherit",
         cwd: workspaceRoot,
         shell: true,
+        env: process.env, // 환경 변수 명시적 전달
       }
     : {
         stdio: "inherit",
         cwd: workspaceRoot,
         shell: false,
+        env: process.env, // 환경 변수 명시적 전달
       },
 );
 
