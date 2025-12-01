@@ -2,7 +2,11 @@ name: commitlint (PR title)
 
 on:
   pull_request:
-    types: [opened, edited, synchronize]
+    types: [opened, synchronize]
+
+concurrency:
+  group: commitlint-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
