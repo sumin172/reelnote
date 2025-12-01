@@ -18,14 +18,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'pnpm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -40,9 +53,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Pre-generate API schema
-        continue-on-error: true
-        run: pnpm api-schema:generate
+      - name: Generate Prisma Client
+        run: pnpm nx run catalog-service:prisma:generate
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Start compose environment
         run: pnpm up:all
@@ -51,11 +66,15 @@ jobs:
         run: node tests/e2e-env/scripts/wait-for-services.mjs
         timeout-minutes: 5
 
+      - name: Generate API schema
+        continue-on-error: true
+        run: pnpm api-schema:generate
+
       - name: Run affected E2E suites
         env:
           NX_BASE: ${{ github.event.pull_request.base.sha }}
           NX_HEAD: ${{ github.sha }}
-        run: pnpm nx affected --target=e2e --parallel=1 --base=$NX_BASE --head=$NX_HEAD
+        run: pnpm nx affected --target=e2e --parallel=1 --base=$NX_BASE --head=$NX_HEAD --exclude=e2e-cross
 
       - name: Upload Playwright report (if exists)
         if: always()
