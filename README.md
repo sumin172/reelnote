@@ -85,7 +85,7 @@
 - **프론트엔드 단독 테스트**: API 모킹 사용 (Playwright `page.route()` 또는 MSW)
 - **크로스 E2E 테스트**: 실제 도커 API 호출 (`globalSetup`에서 헬스 체크)
 
-### Docker Compose 프로필별 기동 (개발 중)
+### Docker Compose 프로필별 기동
 
 ```bash
 # 전체 서비스 기동 (DB + Redis + Catalog + Review)
@@ -131,7 +131,7 @@ E2E 타깃은 `.env.e2e`를 자동으로 로드하므로 별도 export 없이 �
   - [ActionId 가이드](docs/guides/action-id-guide.md) – 사용자 액션 단위 상관관계 ID 관리 가이드
   - [신규 서비스 체크리스트](docs/guides/new-service.md) – 새 서비스 추가 시 체크리스트
 - 서비스별 상세 가이드는 각 디렉터리의 `README.md`를 참조하세요.
-- CI 파이프라인 (로컬 개발 중):
+- CI 파이프라인:
   - `E2E PR Pipeline` – PR 변경분에 따라 Compose 환경을 올리고 필요한 E2E만 실행
   - `Nightly E2E Suite` – 매일 전체 E2E/통합 시나리오 실행, 산출물은 GitHub Artifacts 보관
 - `contract-frontend-catalog`, `e2e-cross` 프로젝트는 구조만 마련된 상태이며, 스크립트는 TODO 메시지를 출력합니다. 향후 계약/크로스 테스트 작성 시 해당 디렉터리에서 작업하세요.
