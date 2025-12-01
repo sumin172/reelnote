@@ -58,8 +58,8 @@ EXPOSE 4100
 # 헬스체크 (curl 설치)
 RUN apk add --no-cache curl
 
-ENV MAIN_ENTRY=""
-
-# 실행 - package.json의 main 필드를 사용하거나 fallback
-CMD ["sh", "-c", "MAIN_ENTRY=$(node -p \"require('./dist/package.json').main || 'dist/src/main.js'\"); node $MAIN_ENTRY"]
+# 실행 - Nx @nx/js:swc executor는 항상 dist/src/main.js로 출력
+# 플랫폼 독립적: Windows/Mac/Linux 모두 동일하게 동작
+# generatePackageJson: true지만, ESM 모듈이므로 직접 경로 사용이 더 안전
+CMD ["node", "dist/src/main.js"]
 
