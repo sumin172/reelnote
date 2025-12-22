@@ -8,7 +8,63 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-affected:
+    name: Check if E2E tests needed
+    runs-on: ubuntu-latest
+    outputs:
+      has-affected: ${{ steps.check.outputs.has-affected }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check affected E2E projects
+        id: check
+        env:
+          NX_BASE: ${{ github.event.pull_request.base.sha }}
+          NX_HEAD: ${{ github.sha }}
+        run: |
+          # E2E 테스트가 필요한 프로젝트가 있는지 확인
+          AFFECTED=$(pnpm nx show projects --affected --base=$NX_BASE --head=$NX_HEAD --type=app,lib | grep -E '^(frontend|catalog-service|review-service|api-schema|e2e-)' || true)
+
+          if [ -z "$AFFECTED" ]; then
+            echo "has-affected=false" >> $GITHUB_OUTPUT
+            echo "::notice::No affected projects requiring E2E tests - skipping E2E pipeline"
+          else
+            echo "has-affected=true" >> $GITHUB_OUTPUT
+            echo "::notice::Affected projects: $AFFECTED"
+          fi
+
   e2e:
+    needs: check-affected
+    if: needs.check-affected.outputs.has-affected == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 

@@ -28,4 +28,5 @@ jobs:
       - name: Lint PR title
         run: |
           TITLE="${{ github.event.pull_request.title }}"
-          echo "$TITLE" | pnpm exec commitlint
+          echo "$TITLE" > /tmp/commit-msg.txt
+          pnpm exec commitlint --edit /tmp/commit-msg.txt

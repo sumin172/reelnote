@@ -12,13 +12,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-ts:
-    name: Lint TypeScript/JavaScript
+  check-affected:
+    name: Check affected projects
     runs-on: ubuntu-latest
+    outputs:
+      has-ts: ${{ steps.check.outputs.has-ts }}
+      has-kotlin: ${{ steps.check.outputs.has-kotlin }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -45,16 +50,82 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run TypeScript lint (catalog-service + frontend)
-        run: pnpm lint:ts
+      - name: Check affected projects for linting
+        id: check
+        run: |
+          # TypeScript 프로젝트가 affected인지 확인
+          TS_AFFECTED=$(pnpm nx show projects --affected --base=origin/main --type=app,lib | grep -E '^(frontend|catalog-service|api-schema|shared-)' || true)
 
-  lint-kotlin:
-    name: Lint Kotlin
+          if [ -z "$TS_AFFECTED" ]; then
+            echo "has-ts=false" >> $GITHUB_OUTPUT
+            echo "::notice::No affected TypeScript projects - skipping TS lint"
+          else
+            echo "has-ts=true" >> $GITHUB_OUTPUT
+            echo "::notice::Affected TypeScript projects: $TS_AFFECTED"
+          fi
+
+          # Kotlin 프로젝트(review-service)가 affected인지 확인
+          KOTLIN_AFFECTED=$(pnpm nx show projects --affected --base=origin/main --type=app,lib | grep -E '^review-service$' || true)
+
+          if [ -z "$KOTLIN_AFFECTED" ]; then
+            echo "has-kotlin=false" >> $GITHUB_OUTPUT
+            echo "::notice::No affected Kotlin projects - skipping Kotlin lint"
+          else
+            echo "has-kotlin=true" >> $GITHUB_OUTPUT
+            echo "::notice::Affected Kotlin project: review-service"
+          fi
+
+  lint-ts:
+    name: Lint TypeScript/JavaScript
+    needs: check-affected
+    if: needs.check-affected.outputs.has-ts == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run affected TypeScript lint
+        run: pnpm nx affected --target=lint --base=origin/main --exclude=review-service
+
+  lint-kotlin:
+    name: Lint Kotlin
+    needs: check-affected
+    if: needs.check-affected.outputs.has-kotlin == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
