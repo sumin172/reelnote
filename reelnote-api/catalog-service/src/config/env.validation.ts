@@ -1,4 +1,4 @@
-import { plainToInstance } from "class-transformer";
+import { plainToInstance, Type } from "class-transformer";
 import {
   IsString,
   IsNotEmpty,
@@ -10,7 +10,6 @@ import {
   Max,
 } from "class-validator";
 import { validateSync } from "class-validator";
-import { isSchemaGeneration } from "./schema-generation.js";
 
 /**
  * 환경 변수 검증 DTO
@@ -34,18 +33,21 @@ class EnvironmentVariables {
   @IsUrl({ require_protocol: true })
   TMDB_API_BASE_URL?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1000) // 최소 1초
   @Max(60000) // 최대 60초
   TMDB_API_TIMEOUT?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
   @Max(100)
   TMDB_API_MAX_CONCURRENCY?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(0)
@@ -53,24 +55,28 @@ class EnvironmentVariables {
   TMDB_API_MAX_RETRY?: number;
 
   // Circuit Breaker 설정
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1000)
   @Max(300000) // 최대 5분
   TMDB_BREAKER_TIMEOUT?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1000)
   @Max(600000) // 최대 10분
   TMDB_BREAKER_RESET_TIMEOUT?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(0)
   @Max(100)
   TMDB_BREAKER_ERROR_PERCENTAGE?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -81,6 +87,7 @@ class EnvironmentVariables {
   @IsString()
   REDIS_URL?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -92,6 +99,7 @@ class EnvironmentVariables {
   CACHE_NAMESPACE?: string;
 
   // ========== Application ==========
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -107,30 +115,35 @@ class EnvironmentVariables {
   CORS_ORIGINS?: string;
 
   // ========== Movie Settings ==========
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
   @Max(365) // 최대 1년
   MOVIE_STALE_THRESHOLD_DAYS?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
   @Max(86400)
   MOVIE_CACHE_TTL_SECONDS?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
   @Max(50)
   MOVIE_IMPORT_CONCURRENCY?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
   @Max(1000)
   MOVIE_IMPORT_QUEUE_THRESHOLD?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -138,6 +151,7 @@ class EnvironmentVariables {
   MOVIE_IMPORT_CHUNK_SIZE?: number;
 
   // ========== Sync Settings ==========
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(1)
@@ -152,11 +166,6 @@ class EnvironmentVariables {
  * 검증 실패 시 애플리케이션 시작을 중단합니다.
  */
 export function validate(config: Record<string, unknown>) {
-  // OpenAPI 생성 시 환경 변수 검증 비활성화
-  if (isSchemaGeneration()) {
-    console.log("[env.validation] Skipping validation for OpenAPI generation");
-    return config as any;
-  }
   // 빈 문자열을 undefined로 변환 (REDIS_URL 등 선택적 설정)
   const normalizedConfig: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(config)) {
