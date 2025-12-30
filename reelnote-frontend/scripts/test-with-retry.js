@@ -22,9 +22,15 @@ let retryCount = 0;
  */
 function runVitestWithErrorCapture() {
   return new Promise((resolve, reject) => {
-    const vitestProcess = spawn("vitest", process.argv.slice(2), {
+    // pnpm 환경에서 node_modules/.bin의 vitest 실행 파일 경로 사용
+    // Windows에서는 .CMD 확장자 사용 (대소문자 무관)
+    const binDir = path.resolve(__dirname, "..", "node_modules", ".bin");
+    const vitestCmd = process.platform === "win32" ? "vitest.CMD" : "vitest";
+    const vitestPath = path.join(binDir, vitestCmd);
+
+    const vitestProcess = spawn(vitestPath, process.argv.slice(2), {
       stdio: ["inherit", "inherit", "pipe"],
-      shell: true,
+      shell: process.platform === "win32", // Windows에서는 shell 필요
       cwd: path.resolve(__dirname, ".."),
     });
 
