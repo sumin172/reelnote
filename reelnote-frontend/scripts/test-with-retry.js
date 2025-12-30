@@ -28,9 +28,13 @@ function runVitestWithErrorCapture() {
     const vitestCmd = process.platform === "win32" ? "vitest.CMD" : "vitest";
     const vitestPath = path.join(binDir, vitestCmd);
 
-    const vitestProcess = spawn(vitestPath, process.argv.slice(2), {
+    // Windows에서 shell 모드 사용 시 경로에 공백이 있으면 따옴표로 감싸야 함
+    const isWindows = process.platform === "win32";
+    const command = isWindows ? `"${vitestPath}"` : vitestPath;
+
+    const vitestProcess = spawn(command, process.argv.slice(2), {
       stdio: ["inherit", "inherit", "pipe"],
-      shell: process.platform === "win32", // Windows에서는 shell 필요
+      shell: isWindows, // Windows에서는 shell 필요
       cwd: path.resolve(__dirname, ".."),
     });
 
