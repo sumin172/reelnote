@@ -1,0 +1,82 @@
+# Cursor Rules for ReelNote Project
+
+## 🚨 핵심 원칙
+
+### 작업 프로세스 (필수)
+- **계획 먼저, 실행은 나중**: 코드 수정 전 반드시 계획을 제안하고 동의받기
+- 동의받은 후에도 추가 수정 시 동일하게 계획 제안 → 동의 요청
+
+### 언어 규칙
+- **응답/설명**: 한국어
+- **코드 주석**: 한국어
+- **변수/함수/클래스명**: 영어 (camelCase, PascalCase)
+
+### 필수 패턴
+- **TraceId**: 모든 로그/에러 응답 포함, 서비스 간 자동 전파 (수동 추가 금지)
+- **에러 처리**: `ErrorDetail` 스키마 준수, `BaseAppException` 상속
+- **API 문서화**: OpenAPI 어노테이션/데코레이터 필수
+- **트랜잭션**: 데이터 변경 시 `@Transactional`, 외부 API 호출/메시지 직접 발행 금지
+- **테스트**: 예외 처리, TraceId 전파, ErrorDetail 형식 검증 포함
+
+## 📦 프로젝트 컨텍스트
+
+**ReelNote** - 영화 리뷰 플랫폼 (Nx 모노레포 + 마이크로서비스)
+
+### 서비스 구성
+- **review-service**: Kotlin + Spring Boot 3.5.7 + PostgreSQL + Flyway + JPA
+- **catalog-service**: NestJS + TypeScript + Prisma + PostgreSQL
+- **frontend**: Next.js 16 + React 19 + TypeScript + Tailwind CSS
+- **api-schema**: 공유 API 스키마 (TypeScript)
+
+### 환경
+- Nx 22.0.3 (모노레포), pnpm (>=10.0.0), Node.js (>=24.0.0)
+- Gradle (review-service), PostgreSQL (데이터베이스)
+
+## ✏️ 공통 코딩 규칙
+
+### 들여쓰기 (탭 금지)
+- TypeScript/JavaScript/JSON/YAML: 2 spaces
+- Kotlin/Gradle: 4 spaces
+
+### 명명 규칙
+- **클래스/타입**: PascalCase (`ReviewService`, `MovieDto`)
+- **함수/메서드/변수**: camelCase (`getReviews`, `movieTitle`)
+- **상수**: UPPER_SNAKE_CASE (`MAX_SIZE`, `DEFAULT_PAGE`)
+- **파일명**: TypeScript (kebab-case/camelCase), Kotlin (PascalCase)
+
+### 에러 처리 & TraceId
+- **ErrorDetail 스키마**: `{ code, message, traceId, details? }` (외부 예외는 최종 응답 단계에서 변환)
+- **로깅 레벨**: 4xx WARN, 5xx ERROR
+- **TraceId 전파**: HTTP 헤더 `X-Trace-Id` 자동 전파 (WebClient/HttpService 인터셉터), HTTP/비동기/이벤트 전파 시 동일 TraceId 유지
+
+### 데이터베이스 변경
+- **catalog-service**: Prisma migrate (`prisma/schema.prisma`)
+- **review-service**: Flyway (`src/main/resources/db/migration/`)
+
+### 커밋 메시지
+- Conventional Commits: `type(scope): description`
+- 예: `feat(catalog): add movie import`, `fix(review): resolve validation`
+
+## 🔧 기술별 가이드
+
+### TypeScript/NestJS/Next.js
+- ES Modules, 명시적 타입 (any 금지), async/await 사용, 생성자 주입, `@Injectable()`
+- Next.js: App Router, Server Components 우선, React Query + Zod
+- 라이브러리 호환성 이슈 시 CommonJS 전환 가능 (사유 명시), 복잡한 클라이언트 상태 관리 시 Client Boundary 허용
+- **상세**: [프론트엔드 개발 표준](docs/guides/frontend-development-standards.md)
+
+### Kotlin/Spring Boot
+- Kotlin 컨벤션, 생성자 주입, 데이터 클래스 활용
+- DDD 계층: Domain, Application, Infrastructure, Interfaces
+- SLF4J 로깅 (traceId 포함), 트랜잭션 범위는 유스케이스 단위의 일관성 경계로 정의
+- **상세**: [개발 표준 가이드](docs/guides/development-standards.md)
+
+### 테스트
+- TypeScript: Jest/Vitest, Kotlin: JUnit 5 + MockK + Testcontainers, E2E: Playwright
+- 예외 처리, TraceId 전파, ErrorDetail 형식 검증 포함
+- 검증 전략: 유닛(로직 중심), 통합/E2E(형식 검증), 공통 검증은 헬퍼/커스텀 matcher로 추상화
+
+## 📚 참고 문서
+- [개발 표준 가이드](docs/guides/development-standards.md) - 백엔드 필수
+- [프론트엔드 개발 표준](docs/guides/frontend-development-standards.md) - 프론트엔드 필수
+- [신규 서비스 체크리스트](docs/guides/new-service.md) - 새 서비스 추가 시
