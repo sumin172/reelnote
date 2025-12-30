@@ -10,15 +10,13 @@ import { HealthModule } from "../health/health.module.js";
 import { MessageModule } from "../i18n/message.module.js";
 import { validate } from "../config/env.validation.js";
 import { ApplicationConfig } from "../config/application.config.js";
-import { isSchemaGeneration } from "../config/schema-generation.js";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [".env.local", ".env"],
-      // OpenAPI 생성 시에는 환경 변수 검증을 비활성화
-      validate: isSchemaGeneration() ? undefined : validate,
+      validate,
     }),
     MessageModule,
     DatabaseModule,

@@ -1,6 +1,3 @@
-// OpenAPI 생성 시 환경 변수 검증 비활성화 (먼저 import)
-import "./setup-openapi-env.js";
-
 import { NestFactory } from "@nestjs/core";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import { writeFileSync, mkdirSync } from "fs";
