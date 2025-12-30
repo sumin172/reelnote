@@ -437,23 +437,6 @@
 - [ ] 환경 변수 타입 및 범위 검증
 - [ ] 프레임워크별 검증 패턴 적용
 
-### 8-2. OpenAPI 스키마 생성 시 검증 스킵 (NestJS 전용)
-
-**⚠️ 중요: `SKIP_ENV_VALIDATION` 플래그 역할 고정**
-
-✅ **해야 할 것:**
-- `SKIP_ENV_VALIDATION`은 OpenAPI 스키마 생성 시에만 사용
-- `isSchemaGeneration()` 헬퍼 함수로 일관되게 확인
-
-❌ **하지 말 것:**
-- 테스트에서 DB 연결을 건너뛰기 위한 용도로 재사용 금지
-- 로컬 개발 편의를 위한 검증 스킵 용도로 재사용 금지
-
-**체크리스트:**
-- [ ] `SKIP_ENV_VALIDATION`은 OpenAPI 스키마 생성 시에만 사용
-- [ ] 테스트/로컬 편의 목적으로 재사용하지 않음
-- [ ] `isSchemaGeneration()` 헬퍼 함수로 일관되게 확인
-
 ---
 
 ## 9. Health Check
