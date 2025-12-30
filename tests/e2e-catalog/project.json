@@ -24,6 +24,6 @@
       }
     }
   },
-  "tags": ["type:e2e", "scope:catalog"]
+  "tags": ["type:e2e", "scope:catalog", "lang:typescript"]
 }
 

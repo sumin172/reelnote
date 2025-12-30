@@ -39,5 +39,5 @@
       }
     }
   },
-  "tags": ["backend", "kotlin", "spring-boot"]
+  "tags": ["backend", "kotlin", "spring-boot", "lang:kotlin"]
 }
