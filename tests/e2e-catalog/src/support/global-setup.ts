@@ -14,7 +14,10 @@ const resolveEndpoint = (rawUrl: string) => {
   };
 };
 
-function waitForPortOpen(port: number, options: { host: string }): Promise<void> {
+function waitForPortOpen(
+  port: number,
+  options: { host: string },
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const maxAttempts = 60;
     let attempts = 0;
@@ -31,7 +34,11 @@ function waitForPortOpen(port: number, options: { host: string }): Promise<void>
       socket.on("error", () => {
         attempts++;
         if (attempts >= maxAttempts) {
-          reject(new Error(`Port ${port} on ${options.host} did not open within ${maxAttempts} seconds`));
+          reject(
+            new Error(
+              `Port ${port} on ${options.host} did not open within ${maxAttempts} seconds`,
+            ),
+          );
         } else {
           setTimeout(tryConnect, interval);
         }
@@ -51,4 +58,3 @@ module.exports = async function globalSetup() {
 
   globalThis.__TEARDOWN_MESSAGE__ = "\nCatalog E2E tests completed.\n";
 };
-

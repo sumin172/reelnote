@@ -8,4 +8,3 @@ module.exports = async function globalTeardown() {
     console.log(globalThis.__TEARDOWN_MESSAGE__);
   }
 };
-

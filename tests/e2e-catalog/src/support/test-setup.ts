@@ -7,7 +7,6 @@ function setupAxios() {
   axios.defaults.baseURL = baseUrl.replace(/\/$/, "");
 
   if (!existsSync(catalogServiceOpenApiPath)) {
-    // eslint-disable-next-line no-console
     console.warn(
       `[e2e-catalog] OpenAPI spec not found at ${catalogServiceOpenApiPath}. Run "pnpm api-schema:generate" if contract checks rely on it.`,
     );

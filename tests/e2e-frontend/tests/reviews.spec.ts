@@ -4,8 +4,7 @@ test("리뷰 목록 페이지가 렌더되고 카드가 보인다", async ({ pag
   // API 응답을 명확하게 대기하기 위해 route를 먼저 설정
   const responsePromise = page.waitForResponse(
     (response) =>
-      response.url().includes("/v1/reviews/my") &&
-      response.status() === 200,
+      response.url().includes("/v1/reviews/my") && response.status() === 200,
   );
 
   await page.route("**/v1/reviews/my**", async (route) => {
@@ -69,10 +68,7 @@ test("리뷰 작성 플로우", async ({ page }) => {
         const url = request ? request.url : String(input);
         const method = (init?.method ?? request?.method ?? "GET").toUpperCase();
 
-        if (
-          /\/(api\/)?v1\/reviews$/.test(url) &&
-          method === "POST"
-        ) {
+        if (/\/(api\/)?v1\/reviews$/.test(url) && method === "POST") {
           return new Response(JSON.stringify(responseBody), {
             status: 201,
             headers: { "Content-Type": "application/json" },
@@ -116,4 +112,3 @@ test("리뷰 작성 플로우", async ({ page }) => {
   // 성공적으로 리뷰 목록으로 돌아왔는지 확인
   await expect(page.getByRole("heading", { name: "리뷰 목록" })).toBeVisible();
 });
-
