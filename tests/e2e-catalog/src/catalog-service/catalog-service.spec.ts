@@ -34,4 +34,3 @@ describe("Health Check Endpoints", () => {
     });
   });
 });
-

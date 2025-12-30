@@ -25,6 +25,6 @@
       }
     }
   },
-  "tags": ["type:e2e", "scope:review"]
+  "tags": ["type:e2e", "scope:review", "lang:kotlin"]
 }
 

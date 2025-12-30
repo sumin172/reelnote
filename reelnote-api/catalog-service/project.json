@@ -165,5 +165,5 @@
       }
     }
   },
-  "tags": ["backend", "nodejs", "nestjs"]
+  "tags": ["backend", "nodejs", "nestjs", "lang:typescript"]
 }

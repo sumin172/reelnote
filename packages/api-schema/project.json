@@ -19,6 +19,6 @@
       }
     }
   },
-  "tags": ["type:library", "scope:shared"]
+  "tags": ["type:library", "scope:shared", "lang:typescript"]
 }
 

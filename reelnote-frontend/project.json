@@ -82,5 +82,5 @@
       ]
     }
   },
-  "tags": ["frontend", "react", "nextjs"]
+  "tags": ["frontend", "react", "nextjs", "lang:typescript"]
 }
